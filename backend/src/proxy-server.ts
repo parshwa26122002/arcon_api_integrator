@@ -1,6 +1,6 @@
 import express, { json } from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
+import fetch, { RequestInit } from 'node-fetch';
 
 const app = express();
 const PORT = 4000;
@@ -11,14 +11,17 @@ app.use(json());
 // Proxy endpoint
 app.post('/api/proxy', async (req, res) => {
   try {
-    const response = await fetch('https://reqres.in/api/users', {
+    
+    let reqInit: RequestInit = {
       method: 'POST',
       headers: {
-        'x-api-key': 'reqres-free-v1',
         'Content-Type': 'application/json',
+        ...req.body.headers // API key header
       },
-      body: JSON.stringify(req.body),
-    });
+      body: JSON.stringify(req.body.reqBody),
+    }
+    
+    const response = await fetch('https://reqres.in/api/users', reqInit);
     const data = await response.json();
     res.json(data);
   } catch (error) {
