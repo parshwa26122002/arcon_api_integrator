@@ -2,12 +2,33 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { faker } from '@faker-js/faker'
+
+// Utility to generate a custom username
+function generateCustomUsername(totalLength: number, minDigits: number = 3): string {
+  if (minDigits > totalLength) {
+    throw new Error('minDigits cannot be greater than totalLength')
+  }
+
+  const digits = faker.string.numeric(minDigits).split('')
+  const lettersNeeded = totalLength - minDigits
+  const letters = faker.string.alpha({ length: lettersNeeded, casing: 'lower' }).split('')
+
+  const combined = faker.helpers.shuffle([...letters, ...digits])
+  return combined.join('')
+}
+
 
 function App() {
   const [count, setCount] = useState(0)
   const [response, setResponse] = useState<string | null>(null)
+  const [username, setUsername] = useState<string>('')
+
 
   const sendRequest = async () => {
+    const dynamicUsername = generateCustomUsername(10, 3)
+    setUsername(dynamicUsername)
+
     try {
       // const res = await fetch('https://reqres.in/api/users?page=2', {
       //   headers: {
@@ -21,7 +42,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: 'Manish Shingre',
+          username: dynamicUsername,
           job: 'Tester'
         })
       })
@@ -31,7 +52,7 @@ function App() {
       setResponse('Error: ' + error)
     }
   }
-
+ 
   return (
     <>
       <div>
