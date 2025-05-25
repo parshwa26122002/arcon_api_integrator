@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import RequestPane from './components/requestpane/RequestPane';
 import ImportAPI from './components/collection/ImportAPI';
 import SidebarTabs from './components/sidebar/Sidebar';
+import { useCollectionStore } from './store/collectionStore';
 
 const AppContainer = styled.div`
   display: flex;
@@ -45,6 +46,12 @@ const MainContent = styled.div`
 `;
 
 const App: React.FC = () => {
+  const initialize = useCollectionStore(state => state.initialize);
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
   return (
     <AppContainer>
       <LeftPanel>
