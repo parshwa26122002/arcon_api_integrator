@@ -16,12 +16,18 @@ app.post('/api/proxy', async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...req.body.headers // API key header
+        ...req.body.headers // API key header or Basic Auth header
       },
       body: JSON.stringify(req.body.reqBody),
     }
-    
-    const response = await fetch('https://reqres.in/api/users', reqInit);
+
+    const url = new URL('https://reqres.in/api/users');
+    if (req.body.params) {
+      url.searchParams.append(req.body.params.key, req.body.params.value);
+    }
+    console.log('Request URL:', url.toString());
+    console.log('Request URL:', reqInit.headers);
+    const response = await fetch(url, reqInit);
     const data = await response.json();
     res.json(data);
   } catch (error) {
