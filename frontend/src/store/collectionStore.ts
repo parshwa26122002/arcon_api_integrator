@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
+import { storageService } from '../services/StorageService';
 
 interface Header {
   id: string;
@@ -65,29 +66,23 @@ interface Request {
 
 interface CollectionStoreState {
   collections: APICollection[];
-
   activeCollectionId: string | null;
   activeRequestId: string | null;
+  isInitialized: boolean;
 
-    addCollection: (collection: APICollection) => void;
-    addRequestToCollection: (collectionId: string, request: Request) => void;
-
-  //addCollection: (name: string, requests?: APIRequest[]) => void;
-  removeCollection: (id: string) => void;
-  renameCollection: (id: string, newName: string) => void;
-
-  //addRequestToCollection: (collectionId: string, requestName: string) => void;
-  removeRequestFromCollection: (collectionId: string, requestId: string) => void;
-
+  initialize: () => Promise<void>;
+  addCollection: (collection: APICollection) => Promise<void>;
+  addRequestToCollection: (collectionId: string, request: Request) => Promise<void>;
+  removeCollection: (id: string) => Promise<void>;
+  renameCollection: (id: string, newName: string) => Promise<void>;
+  removeRequestFromCollection: (collectionId: string, requestId: string) => Promise<void>;
   updateRequest: (
     collectionId: string,
     requestId: string,
     updatedRequest: Partial<APIRequest>
-  ) => void;
-
+  ) => Promise<void>;
   setActiveCollection: (id: string | null) => void;
   setActiveRequest: (id: string | null) => void;
-
   getActiveRequest: () => APIRequest | null;
   getActiveCollection: () => APICollection | null;
 }
@@ -96,32 +91,53 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
   collections: [],
   activeCollectionId: null,
   activeRequestId: null,
+  isInitialized: false,
 
-  addCollection: (collection:APICollection) =>
-    set((state) => ({
-      collections: [
-        ...state.collections,
-        {
-          id: uuid(),
-          name: collection.name,
-          requests: collection.requests || [],
-        },
-      ],
-    })),
+  initialize: async () => {
+    try {
+      await storageService.initialize();
+      const collections = await storageService.getAllCollections();
+      set({ collections, isInitialized: true });
+    } catch (error) {
+      console.error('Failed to initialize store:', error);
+      set({ isInitialized: true });
+    }
+  },
 
-  removeCollection: (id) =>
+  addCollection: async (collection: APICollection) => {
+    const newCollection = {
+      ...collection,
+      id: uuid(),
+      requests: collection.requests || [],
+    };
+
+    set((state) => ({ collections: [...state.collections, newCollection] }));
+    await storageService.saveCollection(newCollection);
+  },
+
+  removeCollection: async (id) => {
     set((state) => ({
       collections: state.collections.filter((c) => c.id !== id),
       activeCollectionId: state.activeCollectionId === id ? null : state.activeCollectionId,
       activeRequestId: state.activeCollectionId === id ? null : state.activeRequestId,
-    })),
+    }));
+    await storageService.deleteCollection(id);
+  },
 
-  renameCollection: (id, newName) =>
-    set((state) => ({
-      collections: state.collections.map((c) =>
-        c.id === id ? { ...c, name: newName } : c
-      ),
-    })),
+  renameCollection: async (id, newName) => {
+    const state = get();
+    const collection = state.collections.find((c) => c.id === id);
+    if (collection) {
+      const updatedCollection = { ...collection, name: newName };
+      set((state) => ({
+        collections: state.collections.map((c) =>
+          c.id === id ? updatedCollection : c
+        ),
+      }));
+      await storageService.saveCollection(updatedCollection);
+    }
+  },
+
 
   addRequestToCollection: (collectionId, requestName) =>
     set((state) => ({
