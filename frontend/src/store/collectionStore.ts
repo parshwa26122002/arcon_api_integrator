@@ -8,13 +8,45 @@ interface Header {
   value: string;
 }
 
+interface QueryParam {
+  id: string;
+  key: string;
+  value: string;
+  description: string;
+  isSelected: boolean;
+}
+
+export interface FormDataItem {
+  key: string;
+  value?: string;
+  type: string;
+  description?: string;
+  src?: string;
+}
+
+export interface RequestBody {
+  mode: 'none' | 'raw' | 'formdata' | 'urlencoded' | 'file' | 'graphql';
+  raw?: string;
+  formdata?: FormDataItem[];
+  urlencoded?: Array<{key: string; value: string; type: string}>;
+  file?: { src: string };
+  options?: {
+    raw?: {
+      language: 'json' | 'html' | 'xml' | 'text'
+    }
+  }
+}
+
 export interface APIRequest {
   id: string;
   name: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   url: string;
   headers: Header[];
-  body: string;
+  queryParams: QueryParam[];
+  body?: RequestBody;
+  contentType: string;
+  formData: Array<{ key: string; value: string }>;
   auth: {
     type: string;
     credentials: Record<string, string>;
@@ -106,73 +138,61 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     }
   },
 
-  addRequestToCollection: async (collectionId, request) => {
-    const newRequest = {
-      id: uuid(),
-      name: request.name,
-      method: 'GET' as const,
-      url: '',
-      headers: [],
-      body: '',
-      auth: { type: '', credentials: {} },
-    };
 
-    const state = get();
-    const collection = state.collections.find((c) => c.id === collectionId);
-    if (collection) {
-      const updatedCollection = {
-        ...collection,
-        requests: [...collection.requests, newRequest],
-      };
-      
-      set((state) => ({
-        collections: state.collections.map((c) =>
-          c.id === collectionId ? updatedCollection : c
-        ),
-      }));
-      await storageService.saveCollection(updatedCollection);
-    }
-  },
+  addRequestToCollection: (collectionId, requestName) =>
+    set((state) => ({
+      collections: state.collections.map((c) =>
+        c.id === collectionId
+          ? {
+              ...c,
+              requests: [
+                ...c.requests,
+                {
+                  id: uuid(),
+                  name: requestName.name,
+                  method: 'GET',
+                  url: '',
+                  headers: [],
+                  queryParams: [],
+                  body: undefined,
+                  bodyType: 'none',
+                  contentType: '',
+                  formData: [],
+                  auth: {type: '', credentials: {}}
+                },
+              ],
+            }
+          : c
+      ),
+    })),
 
-  removeRequestFromCollection: async (collectionId, requestId) => {
-    const state = get();
-    const collection = state.collections.find((c) => c.id === collectionId);
-    if (collection) {
-      const updatedCollection = {
-        ...collection,
-        requests: collection.requests.filter((r) => r.id !== requestId),
-      };
+  removeRequestFromCollection: (collectionId, requestId) =>
+    set((state) => ({
+      collections: state.collections.map((c) =>
+        c.id === collectionId
+          ? {
+              ...c,
+              requests: c.requests.filter((r) => r.id !== requestId),
+            }
+          : c
+      ),
+      activeRequestId:
+        get().activeRequestId === requestId ? null : get().activeRequestId,
+    })),
 
-      set((state) => ({
-        collections: state.collections.map((c) =>
-          c.id === collectionId ? updatedCollection : c
-        ),
-        activeRequestId:
-          get().activeRequestId === requestId ? null : get().activeRequestId,
-      }));
-      await storageService.saveCollection(updatedCollection);
-    }
-  },
-
-  updateRequest: async (collectionId, requestId, updatedRequest) => {
-    const state = get();
-    const collection = state.collections.find((c) => c.id === collectionId);
-    if (collection) {
-      const updatedCollection = {
-        ...collection,
-        requests: collection.requests.map((r) =>
-          r.id === requestId ? { ...r, ...updatedRequest } : r
-        ),
-      };
-
-      set((state) => ({
-        collections: state.collections.map((c) =>
-          c.id === collectionId ? updatedCollection : c
-        ),
-      }));
-      await storageService.saveCollection(updatedCollection);
-    }
-  },
+  updateRequest: (collectionId, requestId, updatedRequest) =>
+    set((state) => ({
+      collections: state.collections.map((c) =>
+        c.id === collectionId
+          ? {
+              ...c,
+              requests: c.requests.map((r) =>
+                r.id === requestId ? { ...r, ...updatedRequest } : r
+              ),
+            }
+          : c
+      ),
+    })),
 
   setActiveCollection: (id) =>
     set(() => ({ activeCollectionId: id, activeRequestId: null })),
