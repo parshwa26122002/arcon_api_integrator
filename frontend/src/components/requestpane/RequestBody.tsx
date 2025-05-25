@@ -386,38 +386,6 @@ const RequestBodyComponent: React.FC = () => {
     }
   };
 
-  const handleDeleteFormDataRow = (index: number) => {
-    if (!body?.formdata) return;
-
-    const newFormData = body.formdata.filter((_, i) => i !== index);
-    const newBody = {
-      ...body,
-      formdata: newFormData
-    };
-
-    setLocalBody(newBody);
-
-    if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
-    }
-  };
-
-  const handleAddFormDataRow = () => {
-    if (!body) return;
-
-    const newFormData = [...(body.formdata || []), { key: '', value: '', type: 'text' }];
-    const newBody = {
-      ...body,
-      formdata: newFormData
-    };
-
-    setLocalBody(newBody);
-
-    if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
-    }
-  };
-
   const renderFormData = () => {
     const formData = body?.formdata || [];
     
