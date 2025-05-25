@@ -37,8 +37,16 @@ export async function parseImportFile(file: File): Promise<ParsedResult> {
 
     if (parsed?.title && parsed?.version && parsed?.baseUri) {
       return {
-        type: 'raml',
-        source: parsed,
+      type: 'raml',
+      source: parsed,
+      };
+    }
+
+    // Handle YAML/YML extensions for OpenAPI
+    if ((ext === 'yaml' || ext === 'yml') && parsed?.openapi && typeof parsed.openapi === 'string' && parsed.openapi.startsWith('3.')) {
+      return {
+      type: 'openapi',
+      source: parsed,
       };
     }
 
