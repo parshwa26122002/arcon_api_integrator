@@ -1,0 +1,39 @@
+{
+  "name": "aai",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsc && concurrently \"npm:dev:*\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:electron": "wait-on http://localhost:5173 && npx electron dist/main.js",
+    "build": "cd frontend && npm run build",
+    "start": "ts-node electron-wrapper/main.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parshwa26122002/arcon_api_integrator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/parshwa26122002/arcon_api_integrator/issues"
+  },
+  "homepage": "https://github.com/parshwa26122002/arcon_api_integrator#readme",
+  "description": "",
+  "dependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^36.3.1",
+    "wait-on": "^8.0.3",
+    "js-yaml": "^4.1.0",
+    "uuid": "^11.1.0",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/electron": "^1.4.38",
+    "@types/node": "^22.15.21",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
