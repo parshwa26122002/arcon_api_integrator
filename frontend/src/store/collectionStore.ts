@@ -138,8 +138,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     }
   },
 
-
-  addRequestToCollection: (collectionId, requestName) =>
+  addRequestToCollection: async (collectionId, requestName) => {
     set((state) => ({
       collections: state.collections.map((c) =>
         c.id === collectionId
@@ -164,9 +163,14 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
             }
           : c
       ),
-    })),
+    }));
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
+  },
 
-  removeRequestFromCollection: (collectionId, requestId) =>
+  removeRequestFromCollection: async (collectionId, requestId) => {
     set((state) => ({
       collections: state.collections.map((c) =>
         c.id === collectionId
@@ -178,9 +182,14 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       ),
       activeRequestId:
         get().activeRequestId === requestId ? null : get().activeRequestId,
-    })),
+    }));
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
+  },
 
-  updateRequest: (collectionId, requestId, updatedRequest) =>
+  updateRequest: async (collectionId, requestId, updatedRequest) => {
     set((state) => ({
       collections: state.collections.map((c) =>
         c.id === collectionId
@@ -192,7 +201,12 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
             }
           : c
       ),
-    })),
+    }));
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
+  },
 
   setActiveCollection: (id) =>
     set(() => ({ activeCollectionId: id, activeRequestId: null })),
