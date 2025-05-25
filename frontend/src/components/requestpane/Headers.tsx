@@ -1,13 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { FiTrash2 } from 'react-icons/fi';
-
-interface Header {
-  key: string;
-  value: string;
-  description: string;
-  isSelected: boolean;
-}
+import { v4 as uuid } from 'uuid';
+import { useCollectionStore } from '../../store/collectionStore';
 
 const Container = styled.div`
   display: flex;
@@ -51,16 +45,6 @@ const TableCell = styled.div`
   vertical-align: middle;
 `;
 
-const CheckboxCell = styled(TableCell)`
-  width: 40px;
-  text-align: center;
-`;
-
-const ActionCell = styled(TableCell)`
-  width: 40px;
-  text-align: center;
-`;
-
 const Input = styled.input`
   width: 100%;
   padding: 6px 8px;
@@ -75,101 +59,82 @@ const Input = styled.input`
   }
 `;
 
-const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #7d4acf;
-`;
-
-const DeleteButton = styled.button`
-  background: none;
-  border: none;
-  color: #808080;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-
-  &:hover {
-    color: #ff4d4d;
-    background-color: rgba(255, 77, 77, 0.1);
-  }
-`;
-
 const Headers: React.FC = () => {
-  const [headers, setHeaders] = useState<Header[]>([
-    { key: '', value: '', description: '', isSelected: false }
-  ]);
+  const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
+  const activeRequestId = useCollectionStore(state => state.activeRequestId);
+  const updateRequest = useCollectionStore(state => state.updateRequest);
+  const request = useCollectionStore(state => {
+    const collection = state.collections.find(c => c.id === state.activeCollectionId);
+    return collection?.requests.find(r => r.id === state.activeRequestId) || null;
+  });
 
   const handleHeaderChange = (
     index: number,
-    field: keyof Header,
-    value: string | boolean
+    field: 'key' | 'value',
+    value: string
   ) => {
-    const newHeaders = [...headers];
-    if (field === 'isSelected') {
-      newHeaders[index][field] = value as boolean;
-    } else {
-      newHeaders[index][field] = value as string;
+    if (!activeCollectionId || !activeRequestId || !request) return;
+
+    const newHeaders = [...(request.headers || [])];
+    
+    // Ensure the header exists
+    if (!newHeaders[index]) {
+      newHeaders[index] = {
+        id: uuid(),
+        key: '',
+        value: ''
+      };
     }
+
+    // Update the field
+    newHeaders[index] = {
+      ...newHeaders[index],
+      [field]: value
+    };
 
     // Add new row if the last row has any content
     if (
-      index === headers.length - 1 &&
-      (newHeaders[index].key || newHeaders[index].value || newHeaders[index].description)
+      index === newHeaders.length - 1 &&
+      (newHeaders[index].key || newHeaders[index].value)
     ) {
-      newHeaders.push({ key: '', value: '', description: '', isSelected: false });
+      newHeaders.push({
+        id: uuid(),
+        key: '',
+        value: ''
+      });
     }
 
-    setHeaders(newHeaders);
+    // Update the request in the store
+    updateRequest(activeCollectionId, activeRequestId, {
+      headers: newHeaders
+    });
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newHeaders = headers.map(header => ({
-      ...header,
-      isSelected: e.target.checked
-    }));
-    setHeaders(newHeaders);
-  };
+  // Ensure there's always at least one empty row
+  const headers = request?.headers || [{
+    id: uuid(),
+    key: '',
+    value: ''
+  }];
 
-  const handleDelete = (index: number) => {
-    if (headers.length > 1) {
-      const newHeaders = headers.filter((_, i) => i !== index);
-      // Ensure there's always at least one empty row
-      if (newHeaders.every(header => header.key || header.value || header.description)) {
-        newHeaders.push({ key: '', value: '', description: '', isSelected: false });
-      }
-      setHeaders(newHeaders);
-    }
-  };
+  if (headers.length === 0 || headers[headers.length - 1].key || headers[headers.length - 1].value) {
+    headers.push({
+      id: uuid(),
+      key: '',
+      value: ''
+    });
+  }
 
   return (
     <Container>
       <Title>Headers</Title>
       <Table>
         <TableRow>
-          <CheckboxCell>
-            <Checkbox
-              checked={headers.every(header => header.isSelected)}
-              onChange={handleSelectAll}
-            />
-          </CheckboxCell>
           <TableHeader>Key</TableHeader>
           <TableHeader>Value</TableHeader>
-          <TableHeader>Description</TableHeader>
-          <TableHeader></TableHeader>
         </TableRow>
         {headers.map((header, index) => (
-          <TableRow key={index}>
-            <CheckboxCell>
-              <Checkbox
-                checked={header.isSelected}
-                onChange={(e) => handleHeaderChange(index, 'isSelected', e.target.checked)}
-              />
-            </CheckboxCell>
+          <TableRow key={header.id}>
             <TableCell>
               <Input
                 type="text"
@@ -186,22 +151,6 @@ const Headers: React.FC = () => {
                 placeholder="Header value"
               />
             </TableCell>
-            <TableCell>
-              <Input
-                type="text"
-                value={header.description}
-                onChange={(e) => handleHeaderChange(index, 'description', e.target.value)}
-                placeholder="Header description"
-              />
-            </TableCell>
-            <ActionCell>
-              <DeleteButton
-                onClick={() => handleDelete(index)}
-                title="Delete header"
-              >
-                <FiTrash2 size={16} />
-              </DeleteButton>
-            </ActionCell>
           </TableRow>
         ))}
       </Table>

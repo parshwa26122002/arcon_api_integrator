@@ -1,0 +1,478 @@
+// src/components/ImportAPI.tsx
+import React, { useState, type JSX } from 'react';
+import styled from 'styled-components';
+import { parseImportFile } from '../../utils/importParser';
+import { useCollectionStore, type APICollection, type APIRequest } from '../../store/collectionStore';
+
+const ImportButton = styled.button`
+  padding: 8px 16px;
+  background-color: #7d4acf;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &:hover {
+    background-color: #6a3eb2;
+  }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: #2d2d2d;
+  padding: 24px;
+  border-radius: 8px;
+  width: 500px;
+  border: 1px solid #4a4a4a;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  
+  h2 {
+    margin: 0;
+    color: #e1e1e1;
+    font-size: 16px;
+  }
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 4px;
+  
+  &:hover {
+    color: #e1e1e1;
+  }
+`;
+
+const RadioGroup = styled.div`
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+  border-radius: 4px;
+`;
+
+const RadioOption = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e1e1e1;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #404040;
+  }
+  
+  input[type="radio"] {
+    cursor: pointer;
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  height: 200px;
+  padding: 8px;
+  background-color: #383838;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #e1e1e1;
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+  margin-top: 12px;
+  
+  &:focus {
+    border-color: #7d4acf;
+  }
+`;
+
+const FileInput = styled.input`
+  display: none;
+`;
+
+const FileInputButton = styled.button`
+  padding: 8px 16px;
+  background-color: #383838;
+  color: #e1e1e1;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 12px;
+  
+  &:hover {
+    background-color: #404040;
+  }
+`;
+
+const ErrorText = styled.p`
+  color: #ff6b6b;
+  font-size: 12px;
+  margin-top: 8px;
+`;
+
+interface Collection {
+  name: string;
+  requests: APIRequest[];
+}
+
+export default function ImportAPI(): JSX.Element {
+  const [error, setError] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [importType, setImportType] = useState<'file' | 'text'>('file');
+  const [rawText, setRawText] = useState('');
+  const { addCollection } = useCollectionStore();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const parsed = await parseImportFile(file);
+      handleParsedData(parsed);
+    } catch (err: any) {
+      setError(err.message || 'Failed to parse API file');
+    }
+  };
+
+  const handleRawTextImport = async () => {
+    setError('');
+    if (!rawText.trim()) {
+      setError('Please enter some text to import');
+      return;
+    }
+
+    try {
+      // Create a new File object from the raw text
+      const file = new File([rawText], 'import.json', { type: 'application/json' });
+      const parsed = await parseImportFile(file);
+      handleParsedData(parsed);
+    } catch (err: any) {
+      setError(err.message || 'Failed to parse API text');
+    }
+  };
+
+  const handleParsedData = (parsed: any) => {
+    let collection: Collection;
+
+    switch (parsed.type) {
+      case 'openapi':
+        collection = convertOpenAPIToCollection(parsed.source);
+        break;
+      case 'graphql':
+        collection = convertGraphQLToCollection(parsed.source);
+        break;
+      case 'raml':
+        collection = convertRAMLToCollection(parsed.source);
+        break;
+      case 'postman':
+        collection = convertPostmanToCollection(parsed.source);
+        break;
+      default:
+        throw new Error('Unsupported API format');
+    }
+
+    const collection2: APICollection = {
+      id: crypto.randomUUID(),
+      name: collection.name,
+      requests: collection.requests,
+    };
+
+    addCollection(collection2);
+    setIsModalOpen(false);
+    setRawText('');
+  };
+
+  return (
+    <>
+      <ImportButton onClick={() => setIsModalOpen(true)}>
+        Import
+      </ImportButton>
+
+      {isModalOpen && (
+        <ModalOverlay>
+          <ModalContent>
+            <ModalHeader>
+              <h2>Import Data</h2>
+              <CloseButton onClick={() => setIsModalOpen(false)}>&times;</CloseButton>
+            </ModalHeader>
+
+            <RadioGroup>
+              <RadioOption>
+                <input
+                  type="radio"
+                  name="importType"
+                  value="file"
+                  checked={importType === 'file'}
+                  onChange={(e) => setImportType(e.target.value as 'file' | 'text')}
+                />
+                Import File
+              </RadioOption>
+              <RadioOption>
+                <input
+                  type="radio"
+                  name="importType"
+                  value="text"
+                  checked={importType === 'text'}
+                  onChange={(e) => setImportType(e.target.value as 'file' | 'text')}
+                />
+                Paste Raw Text
+              </RadioOption>
+            </RadioGroup>
+
+            {importType === 'file' ? (
+              <div>
+                <FileInputButton as="label">
+                  Choose File
+                  <FileInput
+                    type="file"
+                    accept=".json,.yaml,.yml,.graphql,.raml"
+                    onChange={handleFileSelect}
+                  />
+                </FileInputButton>
+              </div>
+            ) : (
+              <div>
+                <TextArea
+                  placeholder="Paste your API specification here..."
+                  value={rawText}
+                  onChange={(e) => setRawText(e.target.value)}
+                />
+                <ImportButton
+                  onClick={handleRawTextImport}
+                  style={{ marginTop: '12px' }}
+                >
+                  Import Text
+                </ImportButton>
+              </div>
+            )}
+
+            {error && <ErrorText>{error}</ErrorText>}
+          </ModalContent>
+        </ModalOverlay>
+      )}
+      
+    </>
+  );
+}
+
+// === Converters ===
+
+function convertOpenAPIToCollection(openapi: any): Collection {
+  const requests: APIRequest[] = Object.entries(openapi.paths || {}).flatMap(([path, methods]: any) =>
+    Object.entries(methods).map(([method, detail]: any) => {
+      // Extract headers from parameters
+      const headers = (detail.parameters || [])
+        .filter((param: any) => param.in === 'header')
+        .map((param: any) => ({
+          key: param.name,
+          value: param.example || '',
+        }));
+
+      // Extract request body
+      const content = detail.requestBody?.content;
+      const body = content && content['application/json'] ? {
+        mode: 'raw' as const,
+        raw: JSON.stringify(content['application/json'].example || {}, null, 2),
+        options: {
+          raw: {
+            language: 'json' as const
+          }
+        }
+      } : undefined;
+
+      return {
+        id: crypto.randomUUID(),
+        name: detail.summary || `${method.toUpperCase()} ${path}`,
+        method: method.toUpperCase(),
+        url: path,
+        body,
+        headers,
+        queryParams: [],
+        contentType: 'application/json',
+        formData: [],
+        auth: { type: '', credentials: {} },
+      };
+    })
+  );
+
+  return {
+    name: openapi.info?.title || 'Imported OpenAPI',
+    requests,
+  };
+}
+
+function convertGraphQLToCollection(_source: any): Collection {
+  return {
+    name: 'Imported GraphQL',
+    requests: [
+      {
+        id: crypto.randomUUID(),
+        name: 'GraphQL Query',
+        method: 'POST',
+        url: '/graphql',
+        body: {
+          mode: 'raw' as const,
+          raw: JSON.stringify({ query: '{ __schema { types { name } } }' }, null, 2),
+          options: {
+            raw: {
+              language: 'json' as const
+            }
+          }
+        },
+        headers: [],
+        queryParams: [],
+        contentType: 'application/json',
+        formData: [],
+        auth: { type: '', credentials: {} },
+      },
+    ],
+  };
+}
+
+function convertRAMLToCollection(raml: any): Collection {
+  return {
+    name: raml.title || 'Imported RAML',
+    requests: [
+      {
+        id: crypto.randomUUID(),
+        name: 'Sample RAML Request',
+        method: 'GET',
+        url: '/',
+        body: undefined,
+        headers: [],
+        queryParams: [],
+        contentType: '',
+        formData: [],
+        auth: { type: '', credentials: {} },
+      },
+    ],
+  };
+}
+
+function extractRequestsFromItems(items: any[]): APIRequest[] {
+  const requests: APIRequest[] = [];
+
+  items.forEach((item) => {
+    if (item.item) {
+      requests.push(...extractRequestsFromItems(item.item));
+    } else if (item.request) {
+      const url = typeof item.request.url === 'string'
+        ? item.request.url
+        : item.request.url?.raw || '';
+
+      const authObj = item.request.auth || {};
+      const authType = authObj.type || '';
+      const credentials = authObj[authType] || {};
+
+      const headers = (item.request.header || []).map((h: any) => ({
+        key: h.key,
+        value: h.value,
+      }));
+
+      // Handle request body
+      let body;
+      if (item.request.body) {
+        const mode = item.request.body.mode;
+        switch (mode) {
+          case 'formdata':
+            body = {
+              mode: 'formdata' as const,
+              formdata: (item.request.body.formdata || []).map((item: any) => ({
+                key: item.key || '',
+                value: item.value || '',
+                type: item.type || 'text',
+                src: item.src || ''
+              }))
+            };
+            break;
+          case 'urlencoded':
+            body = {
+              mode: 'urlencoded' as const,
+              urlencoded: (item.request.body.urlencoded || []).map((item: any) => ({
+                key: item.key || '',
+                value: item.value || '',
+                type: 'text'
+              }))
+            };
+            break;
+          case 'raw':
+            body = {
+              mode: 'raw' as const,
+              raw: item.request.body.raw || '',
+              options: {
+                raw: {
+                  language: (item.request.body.options?.raw?.language || 'text') as 'json' | 'text' | 'html' | 'xml'
+                }
+              }
+            };
+            break;
+          case 'file':
+            body = {
+              mode: 'file' as const,
+              file: { src: item.request.body.file?.src || '' }
+            };
+            break;
+          default:
+            body = { mode: 'none' as const };
+        }
+      }
+
+      requests.push({
+        id: crypto.randomUUID(),
+        name: item.name || 'Postman Request',
+        method: item.request.method || 'GET',
+        url,
+        body,
+        headers,
+        queryParams: [],
+        contentType: item.request.body?.options?.raw?.language === 'json' ? 'application/json' : 'text/plain',
+        formData: [],
+        auth: {
+          type: authType,
+          credentials: Array.isArray(credentials)
+            ? Object.fromEntries(credentials.map((e: any) => [e.key, e.value]))
+            : credentials,
+        },
+      });
+    }
+  });
+
+  return requests;
+}
+
+function convertPostmanToCollection(postman: any): Collection {
+  const requests = extractRequestsFromItems(postman.item || []);
+  return {
+    name: postman.info?.name || 'Imported Postman Collection',
+    requests,
+  };
+}

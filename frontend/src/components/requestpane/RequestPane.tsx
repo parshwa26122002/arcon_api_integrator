@@ -1,24 +1,21 @@
 import React, { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import styled from 'styled-components';
-import { FiSave } from 'react-icons/fi';
 import QueryParams from './QueryParams';
 import Authorization from './Authorization';
 import Headers from './Headers';
 import RequestBody from './RequestBody';
+import { useCollectionStore, type APIRequest } from '../../store/collectionStore';
 
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
   GET: '#61affe',
   POST: '#49cc90',
   PUT: '#fca130',
-  DELETE: '#f93e3e',
-  PATCH: '#50e3c2',
-  HEAD: '#9012fe',
-  OPTIONS: '#0d5aa7'
+  DELETE: '#f93e3e'
 } as const;
 
-type HttpMethod = keyof typeof HTTP_METHODS;
+type HttpMethod = APIRequest['method'];
 
 interface StyledMethodSelectProps {
   method: HttpMethod;
@@ -101,28 +98,6 @@ const SendButton = styled.button`
   }
 `;
 
-const IconButton = styled.button`
-  padding: 8px;
-  border-radius: 4px;
-  border: none;
-  background-color: #4a4a4a;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
-  &:hover {
-    background-color: #5a5a5a;
-  }
-`;
-
-const TabContainer = styled.div`
-  border: 1px solid #4a4a4a;
-  border-radius: 6px;
-  background-color: #383838;
-`;
-
 const TabList = styled.div`
   display: flex;
   border-bottom: 1px solid #4a4a4a;
@@ -139,6 +114,7 @@ const Tab = styled.button<StyledTabProps>`
   font-size: 14px;
   border-bottom: 2px solid ${props => props.active ? '#7d4acf' : 'transparent'};
   transition: all 0.2s;
+  
   &:hover {
     color: #e1e1e1;
     background-color: #404040;
@@ -196,32 +172,37 @@ const TabContent = styled.div`
 `;
 
 const RequestPane: React.FC = () => {
-  const [method, setMethod] = useState<HttpMethod>('GET');
-  const [url, setUrl] = useState<string>('');
+  // Subscribe only to specific state values we need
+  const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
+  const activeRequestId = useCollectionStore(state => state.activeRequestId);
+  const updateRequest = useCollectionStore(state => state.updateRequest);
+  const request = useCollectionStore(state => {
+    const collection = state.collections.find(c => c.id === state.activeCollectionId);
+    return collection?.requests.find(r => r.id === state.activeRequestId) || null;
+  });
+
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
-  const [response, setResponse] = useState<string>('// Response will appear here');
-
-  const handleSend = () => {
-    // TODO: Implement actual API call
-    setResponse(JSON.stringify({
-      status: 200,
-      statusText: 'OK',
-      data: {
-        message: 'This is a sample response'
-      }
-    }, null, 2));
-  };
-
-  const handleSave = () => {
-    console.log('Saving request:', { method, url });
-  };
+  const [response] = useState<string>('// Response will appear here');
 
   const handleMethodChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setMethod(e.target.value as HttpMethod);
+    if (activeCollectionId && activeRequestId) {
+      updateRequest(activeCollectionId, activeRequestId, {
+        method: e.target.value as HttpMethod
+      });
+    }
   };
 
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUrl(e.target.value);
+    if (activeCollectionId && activeRequestId) {
+      updateRequest(activeCollectionId, activeRequestId, {
+        url: e.target.value
+      });
+    }
+  };
+
+  const handleSend = () => {
+    // TODO: Implement actual API call
+    console.log('Sending request...');
   };
 
   const renderTabContent = () => {
@@ -242,28 +223,27 @@ const RequestPane: React.FC = () => {
   return (
     <Container>
       <TopBar>
-        <MethodSelect
-          value={method}
+        <MethodSelect 
+          value={request?.method || 'GET'} 
           onChange={handleMethodChange}
-          method={method}
+          method={(request?.method || 'GET') as HttpMethod}
+          disabled={!request}
         >
-          {Object.keys(HTTP_METHODS).map((method) => (
-            <option key={method} value={method}>
-              {method}
+          {Object.keys(HTTP_METHODS).map((m) => (
+            <option key={m} value={m}>
+              {m}
             </option>
           ))}
         </MethodSelect>
-        <UrlInput
-          type="text"
+        <UrlInput 
+          type="text" 
           placeholder="Enter request URL"
-          value={url}
+          value={request?.url || ''}
           onChange={handleUrlChange}
+          disabled={!request}
         />
         <ButtonGroup>
-          <SendButton onClick={handleSend}>Send</SendButton>
-          <IconButton onClick={handleSave} title="Save Request">
-            <FiSave size={18} />
-          </IconButton>
+          <SendButton onClick={handleSend} disabled={!request}>Send</SendButton>
         </ButtonGroup>
       </TopBar>
 
@@ -274,7 +254,7 @@ const RequestPane: React.FC = () => {
               active={activeTab === 'params'}
               onClick={() => setActiveTab('params')}
             >
-              Params
+              Query Params
             </Tab>
             <Tab
               active={activeTab === 'auth'}
@@ -303,7 +283,7 @@ const RequestPane: React.FC = () => {
         <ResponseSection>
           <ResponseHeader>Response</ResponseHeader>
           <ResponseContent>
-            <pre>{response}</pre>
+            {response}
           </ResponseContent>
         </ResponseSection>
       </SplitContainer>
