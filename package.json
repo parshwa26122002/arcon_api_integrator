@@ -25,10 +25,7 @@
   "dependencies": {
     "concurrently": "^9.1.2",
     "electron": "^36.3.1",
-    "wait-on": "^8.0.3",
-    "js-yaml": "^4.1.0",
-    "uuid": "^11.1.0",
-    "zustand": "^5.0.5"
+    "wait-on": "^8.0.3"
   },
   "devDependencies": {
     "@types/electron": "^1.4.38",

@@ -86,6 +86,7 @@ const Authorization: React.FC = () => {
         credentials: {
           ...request.auth.credentials,
           [key]: value
+
         }
       }
     });
