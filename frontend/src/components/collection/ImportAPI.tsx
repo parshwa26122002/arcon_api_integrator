@@ -2,7 +2,7 @@
 import React, { useState, type JSX } from 'react';
 import styled from 'styled-components';
 import { parseImportFile } from '../../utils/importParser';
-import { useCollectionStore, type APICollection, type APIRequest, type RequestBody } from '../../store/collectionStore';
+import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type RequestBody, type Variable } from '../../store/collectionStore';
 
 const ImportButton = styled.button`
   padding: 8px 16px;
@@ -141,6 +141,8 @@ const ErrorText = styled.p`
 interface Collection {
   name: string;
   requests: APIRequest[];
+  folders?: APIFolder[];
+  variables?: Variable[];
 }
 
 export default function ImportAPI(): JSX.Element {
@@ -213,7 +215,8 @@ export default function ImportAPI(): JSX.Element {
       name: collection.name,
       description: "",
       auth: { type: "none", credentials: {} },
-      variables: [],
+      variables: collection.variables || [],
+      folders: collection.folders || [],
       requests: collection.requests,
     };
  
@@ -520,16 +523,32 @@ function convertRAMLToCollection(raml: any): Collection {
   };
 }
 
-function extractRequestsFromItems(items: any[]): APIRequest[] {
+function extractFoldersAndRequests(items: any[]): { folders: any[], requests: APIRequest[] } {
+  const folders: any[] = [];
   const requests: APIRequest[] = [];
 
   items.forEach((item) => {
     if (item.item) {
-      requests.push(...extractRequestsFromItems(item.item));
+      // This is a folder
+      const { folders: nestedFolders, requests: nestedRequests } = extractFoldersAndRequests(item.item);
+      folders.push({
+        id: crypto.randomUUID(),
+        name: item.name || "Untitled Folder",
+        description: item.description || "",
+        folders: nestedFolders,
+        requests: nestedRequests,
+        auth: item.auth ? {
+          type: item.auth.type || "none",
+          credentials: Array.isArray(item.auth[item.auth.type])
+            ? Object.fromEntries(item.auth[item.auth.type].map((e: any) => [e.key, e.value]))
+            : item.auth[item.auth.type] || {}
+        } : undefined
+      });
     } else if (item.request) {
+      // This is a request
       const url =
         typeof item.request.url === "string"
-        ? item.request.url
+          ? item.request.url
           : item.request.url?.raw || "";
 
       const authObj = item.request.auth || {};
@@ -615,13 +634,30 @@ function extractRequestsFromItems(items: any[]): APIRequest[] {
     }
   });
 
-  return requests;
+  return { folders, requests };
 }
 
-function convertPostmanToCollection(postman: any): Collection {
-  const requests = extractRequestsFromItems(postman.item || []);
+function convertPostmanToCollection(postman: any): APICollection {
+  const { folders, requests } = extractFoldersAndRequests(postman.item || []);
   return {
+    id: crypto.randomUUID(),
     name: postman.info?.name || "Imported Postman Collection",
+    description: postman.info?.description || "",
+    folders,
     requests,
+    auth: postman.auth ? {
+      type: postman.auth.type || "none",
+      credentials: Array.isArray(postman.auth[postman.auth.type])
+        ? Object.fromEntries(postman.auth[postman.auth.type].map((e: any) => [e.key, e.value]))
+        : postman.auth[postman.auth.type] || {}
+    } : {
+      type: "none",
+      credentials: {}
+    },
+    variables: postman.variable?.map((v: any) => ({
+      key: v.key || "",
+      value: v.value || "",
+      type: "string"
+    })) || []
   };
 }

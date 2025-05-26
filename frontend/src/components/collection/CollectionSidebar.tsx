@@ -1,21 +1,27 @@
 import { useState, useEffect, useRef, type JSX } from 'react';
 import styled from 'styled-components';
-import { useCollectionStore, type APIRequest, type APICollection } from '../../store/collectionStore';
+import { useCollectionStore, type APIRequest, type APICollection, type APIFolder } from '../../store/collectionStore';
 import React from 'react';
 import RenameItem from './RenameItem';
 import DeleteCollection from './DeleteCollection';
 import { FiFolder, FiFile, FiPlus, FiPlay, FiEdit, FiMoreVertical } from 'react-icons/fi';
 import { AddButton } from '../../styled-component/AddButton';
 
+// Update store type
+declare module '../../store/collectionStore' {
+  interface CollectionStoreState {
+    removeRequest: (collectionId: string, folderId: string | null, requestId: string) => void;
+    renameRequest: (collectionId: string, folderId: string | null, requestId: string, newName: string) => void;
+  }
+}
+
 interface TreeRequest extends APIRequest {
   type: 'request';
 }
 
-interface TreeFolder {
-  id: string;
-  name: string;
+interface TreeFolder extends APIFolder {
   type: 'folder';
-  items: (TreeFolder | TreeRequest)[];
+  collectionId: string;
 }
 
 const Container = styled.div`
@@ -168,41 +174,23 @@ const MethodLabel = styled.span<{ method: string }>`
 `;
 
 interface MoreOptionsProps {
-  type: 'collection' | 'folder';
-  onAddFolder?: () => void;
-  onAddRequest?: () => void;
-  onRun?: () => void;
-  onRename?: () => void;
-  onDelete?: () => void;
+  type: 'collection' | 'folder' | 'request';
   children?: React.ReactNode;
+  id: string;
+  activeMenu: string | null;
+  onMenuClick: (id: string) => void;
 }
 
 const MoreOptions: React.FC<MoreOptionsProps> = ({ 
-  children
+  type,
+  children,
+  id,
+  activeMenu,
+  onMenuClick
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, isTop: false });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isOpen &&
-        buttonRef.current &&
-        menuRef.current &&
-        !buttonRef.current.contains(event.target as Node) &&
-        !menuRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [isOpen]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -210,9 +198,8 @@ const MoreOptions: React.FC<MoreOptionsProps> = ({
       const rect = buttonRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const spaceBelow = windowHeight - rect.bottom;
-      const menuHeight = 200; // Approximate height of the menu
+      const menuHeight = type === 'request' ? 50 : 200;
 
-      // If not enough space below, show above
       const isTop = spaceBelow < menuHeight;
       
       setPosition({
@@ -221,17 +208,7 @@ const MoreOptions: React.FC<MoreOptionsProps> = ({
         isTop
       });
     }
-    setIsOpen(!isOpen);
-  };
-
-  const enhanceChild = (child: React.ReactElement<MenuItemProps>) => {
-    return React.cloneElement(child, {
-      onClick: (e: React.MouseEvent) => {
-        e.stopPropagation();
-        child.props.onClick?.(e);
-        setIsOpen(false);
-      }
-    });
+    onMenuClick(id);
   };
 
   return (
@@ -241,7 +218,7 @@ const MoreOptions: React.FC<MoreOptionsProps> = ({
       </MoreOptionsButton>
       <DropdownMenu 
         ref={menuRef}
-        isOpen={isOpen} 
+        isOpen={activeMenu === id}
         style={{ 
           position: 'fixed',
           top: `${position.top}px`,
@@ -250,190 +227,9 @@ const MoreOptions: React.FC<MoreOptionsProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {React.Children.map(children, child => 
-          React.isValidElement<MenuItemProps>(child) ? enhanceChild(child) : child
-        )}
+        {children}
       </DropdownMenu>
     </div>
-  );
-};
-
-const TreeNode: React.FC<{
-  item: TreeFolder | TreeRequest | APICollection;
-  depth: number;
-  onSelect: (item: APIRequest) => void;
-  onCollectionSelect?: (collection: APICollection) => void;
-  activeRequestId?: string;
-  activeCollectionId?: string | null;
-}> = ({ item, depth, onSelect, onCollectionSelect, activeRequestId, activeCollectionId }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const { removeCollection, renameCollection } = useCollectionStore();
-
-  const handleAddFolder = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // TODO: Implement folder addition
-    console.log('Add folder');
-  };
-
-  const handleAddRequest = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // TODO: Implement request addition
-    console.log('Add request');
-  };
-
-  const handleRunCollection = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // TODO: Implement collection run
-    console.log('Run collection');
-  };
-
-  const handleRenameSubmit = (newName: string) => {
-    if ('requests' in item) {
-      renameCollection(item.id, newName);
-      setIsRenaming(false);
-    }
-  };
-
-  const handleStartRename = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsRenaming(true);
-  };
-
-  const handleDeleteCollection = () => {
-    if ('requests' in item) {
-      removeCollection(item.id);
-    }
-  };
-  
-  const handleExportCollection = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // TODO: Implement collection export
-    console.log('Export collection');
-  };
-
-  // Handle collection
-  if ('requests' in item && !('type' in item)) {
-    const collection = item as APICollection;
-    return (
-      <>
-        <RenameItem
-          name={collection.name}
-          depth={depth}
-          isExpanded={isExpanded}
-          isEditing={isRenaming}
-          isActive={collection.id === activeCollectionId}
-          icon={<FiFolder size={14} />}
-          onToggleExpand={() => {
-            setIsExpanded(!isExpanded);
-            onCollectionSelect?.(collection);
-          }}
-          onStartEdit={() => setIsRenaming(true)}
-          onFinishEdit={handleRenameSubmit}
-          onCancelEdit={() => setIsRenaming(false)}
-          moreOptions={
-            <MoreOptions type="collection">
-              <MenuItem onClick={handleAddFolder}>
-                <FiFolder size={14} />
-                Add Folder
-              </MenuItem>
-              <MenuItem onClick={handleAddRequest}>
-                <FiPlus size={14} />
-                Add Request
-              </MenuItem>
-              <MenuItem onClick={handleRunCollection}>
-                <FiPlay size={14} />
-                Run Collection
-              </MenuItem>
-              <MenuItem onClick={handleStartRename}>
-                <FiEdit size={14} />
-                Rename
-              </MenuItem>
-              <DeleteCollection
-                collectionName={collection.name}
-                onConfirm={handleDeleteCollection}
-                onCancel={() => {}}
-              />
-              <MenuItem onClick={handleExportCollection}>
-                <FiEdit size={14} />
-                Export
-              </MenuItem>
-            </MoreOptions>
-          }
-        />
-        {isExpanded && collection.requests && collection.requests.map((request) => (
-          <TreeItem 
-            key={request.id}
-            depth={depth + 1}
-            onClick={() => onSelect(request)}
-            isActive={request.id === activeRequestId}
-          >
-            <FiFile size={14} />
-            <MethodLabel method={request.method}>{request.method}</MethodLabel>
-            <TreeItemLabel>{request.name}</TreeItemLabel>
-          </TreeItem>
-        ))}
-      </>
-    );
-  }
-
-  // Handle request
-  if ('method' in item) {
-    return (
-      <TreeItem 
-        depth={depth}
-        onClick={() => onSelect(item)}
-        isActive={item.id === activeRequestId}
-      >
-        <FiFile size={14} />
-        <MethodLabel method={item.method}>{item.method}</MethodLabel>
-        <TreeItemLabel>{item.name}</TreeItemLabel>
-      </TreeItem>
-    );
-  }
-
-  // Handle folder
-  return (
-    <>
-      <RenameItem
-        name={item.name}
-        depth={depth}
-        isExpanded={isExpanded}
-        isEditing={isRenaming}
-        icon={<FiFolder size={14} />}
-        onToggleExpand={() => setIsExpanded(!isExpanded)}
-        onStartEdit={() => setIsRenaming(true)}
-        onFinishEdit={(newName) => {
-          // TODO: Implement folder rename
-          console.log('Rename folder to:', newName);
-          setIsRenaming(false);
-        }}
-        onCancelEdit={() => setIsRenaming(false)}
-        moreOptions={
-          <MoreOptions type="folder">
-            <MenuItem onClick={handleAddFolder}>
-              <FiFolder size={14} />
-              Add Folder
-            </MenuItem>
-            <MenuItem onClick={handleAddRequest}>
-              <FiPlus size={14} />
-              Add Request
-            </MenuItem>
-          </MoreOptions>
-        }
-      />
-      {isExpanded && 'items' in item && item.items.map((childItem) => (
-        <TreeNode
-          key={childItem.id}
-          item={childItem}
-          depth={depth + 1}
-          onSelect={onSelect}
-          onCollectionSelect={onCollectionSelect}
-          activeRequestId={activeRequestId}
-          activeCollectionId={activeCollectionId}
-        />
-      ))}
-    </>
   );
 };
 
@@ -469,18 +265,56 @@ export default function CollectionSidebar(): JSX.Element {
     addCollection,
     setActiveRequest,
     setActiveCollection,
+    setActiveFolder,
     activeRequestId,
     activeCollectionId,
+    activeFolderId
   } = useCollectionStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [renamingItemId, setRenamingItemId] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
-  const handleSelectRequest = (request: APIRequest, collectionId: string) => {
-    setActiveCollection(collectionId);
-    setActiveRequest(request.id);
+  // Add click outside handler to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activeMenu && !(event.target as Element).closest('.more-options')) {
+        setActiveMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [activeMenu]);
+
+  const handleMenuClick = (id: string) => {
+    setActiveMenu(activeMenu === id ? null : id);
+  };
+
+  // Pass these props to all MoreOptions components
+  const moreOptionsProps = {
+    activeMenu,
+    onMenuClick: handleMenuClick
+  };
+
+  const handleSelectRequest = (request: APIRequest) => {
+    const collectionId = activeCollectionId;
+    if (collectionId) {
+      setActiveCollection(collectionId);
+      setActiveRequest(request.id);
+    }
   };
 
   const handleSelectCollection = (collection: APICollection) => {
     setActiveCollection(collection.id);
+    setActiveRequest(null);
+    setActiveFolder(null);
+  };
+
+  const handleSelectFolder = (folder: TreeFolder) => {
+    setActiveCollection(folder.collectionId);
+    setActiveFolder(folder.id);
     setActiveRequest(null);
   };
 
@@ -494,7 +328,8 @@ export default function CollectionSidebar(): JSX.Element {
         type: 'none',
         credentials: {}
       },
-      variables: []
+      variables: [],
+      folders: []
     };
     addCollection(newCollection);
   };
@@ -543,13 +378,396 @@ export default function CollectionSidebar(): JSX.Element {
             key={collection.id}
             item={collection}
             depth={0}
-            onSelect={(request) => handleSelectRequest(request, collection.id)}
+            onSelect={handleSelectRequest}
             onCollectionSelect={handleSelectCollection}
+            onFolderSelect={handleSelectFolder}
             activeRequestId={activeRequestId || undefined}
             activeCollectionId={activeCollectionId}
+            activeFolderId={activeFolderId}
+            renamingItemId={renamingItemId}
+            setRenamingItemId={setRenamingItemId}
+            moreOptionsProps={moreOptionsProps}
           />
         ))}
       </TreeWrapper>
     </Container>
+  );
+}
+
+const TreeNode: React.FC<{
+  item: TreeFolder | TreeRequest | APICollection;
+  depth: number;
+  onSelect: (request: APIRequest) => void;
+  onCollectionSelect?: (collection: APICollection) => void;
+  onFolderSelect?: (folder: TreeFolder) => void;
+  activeRequestId?: string;
+  activeCollectionId?: string | null;
+  activeFolderId?: string | null;
+  renamingItemId: string | null;
+  setRenamingItemId: (id: string | null) => void;
+  moreOptionsProps: {
+    activeMenu: string | null;
+    onMenuClick: (id: string) => void;
+  };
+}> = ({ item, depth, onSelect, onCollectionSelect, onFolderSelect, activeRequestId, activeCollectionId, activeFolderId, renamingItemId, setRenamingItemId, moreOptionsProps }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { 
+    removeCollection, 
+    renameCollection, 
+    removeFolder, 
+    renameFolder, 
+    setActiveFolder, 
+    setActiveCollection,
+    addFolder,
+    addRequestToFolder,
+    addRequestToCollection,
+    removeRequest,
+    renameRequest
+  } = useCollectionStore();
+
+  const handleClick = () => {
+    if ('type' in item) {
+      if (item.type === 'request') {
+        onSelect(item);
+      } else if (item.type === 'folder') {
+        setIsExpanded(!isExpanded);
+        onFolderSelect?.(item);
+      }
+    } else {
+      // It's a collection
+      onCollectionSelect?.(item);
+      setIsExpanded(!isExpanded);
+    }
+  };
+
+  const handleAddFolder = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if ('type' in item) {
+      if (item.type === 'folder') {
+        // Add folder inside another folder
+        await addFolder(item.collectionId, item.id, 'New Folder');
+        setIsExpanded(true);
+      }
+    } else {
+      // Add folder directly to collection
+      await addFolder(item.id, null, 'New Folder');
+      setIsExpanded(true);
+    }
+    moreOptionsProps.onMenuClick(''); // Close menu
+  };
+
+  const handleAddRequest = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newRequest = {
+      id: crypto.randomUUID(),
+      name: 'New Request',
+      method: 'GET',
+      url: '',
+      headers: [],
+      params: [],
+      body: null
+    };
+
+    if ('type' in item) {
+      if (item.type === 'folder') {
+        // Add request inside folder
+        await addRequestToFolder(item.collectionId, item.id, newRequest);
+        setIsExpanded(true);
+      }
+    } else {
+      // Add request directly to collection
+      await addRequestToCollection(item.id, newRequest);
+      setIsExpanded(true);
+    }
+    moreOptionsProps.onMenuClick(''); // Close menu
+  };
+
+  const handleRunCollection = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement collection run
+    console.log('Run collection');
+    moreOptionsProps.onMenuClick(''); // Close menu
+  };
+
+  const handleRunFolder = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement folder run
+    console.log('Run folder');
+    moreOptionsProps.onMenuClick(''); // Close menu
+  };
+
+  const handleRenameFinish = (newName: string) => {
+    if ('type' in item) {
+      if (item.type === 'folder') {
+        renameFolder(item.collectionId, item.id, newName);
+      }
+    } else {
+      renameCollection(item.id, newName);
+    }
+    setRenamingItemId(null);
+  };
+
+  const handleRenameClick = () => {
+    setRenamingItemId(item.id);
+    moreOptionsProps.onMenuClick(''); // Close menu
+  };
+
+  // Handle collection
+  if (!('type' in item)) {
+    return (
+      <>
+        <RenameItem
+          name={item.name}
+          depth={depth}
+          isExpanded={isExpanded}
+          isEditing={item.id === renamingItemId}
+          isActive={item.id === activeCollectionId}
+          icon={<FiFolder size={14} />}
+          onToggleExpand={() => {
+            setIsExpanded(!isExpanded);
+            onCollectionSelect?.(item);
+          }}
+          onStartEdit={() => setRenamingItemId(item.id)}
+          onFinishEdit={handleRenameFinish}
+          onCancelEdit={() => setRenamingItemId(null)}
+          moreOptions={
+            <MoreOptions type="collection" id={item.id} activeMenu={moreOptionsProps.activeMenu} onMenuClick={moreOptionsProps.onMenuClick}>
+              <MenuItem onClick={handleAddFolder}>
+                <FiFolder size={14} />
+                Add Folder
+              </MenuItem>
+              <MenuItem onClick={handleAddRequest}>
+                <FiPlus size={14} />
+                Add Request
+              </MenuItem>
+              <MenuItem onClick={handleRunCollection}>
+                <FiPlay size={14} />
+                Run Collection
+              </MenuItem>
+              <MenuItem onClick={() => {
+                setRenamingItemId(item.id);
+                moreOptionsProps.onMenuClick('');
+              }}>
+                <FiEdit size={14} />
+                Rename
+              </MenuItem>
+              <DeleteCollection
+                collectionName={item.name}
+                onConfirm={() => {
+                  removeCollection(item.id);
+                  moreOptionsProps.onMenuClick('');
+                }}
+                onCancel={() => moreOptionsProps.onMenuClick('')}
+              />
+            </MoreOptions>
+          }
+        />
+
+        {isExpanded && (
+          <>
+            {item.folders?.map((folder) => (
+              <TreeNode
+                key={folder.id}
+                item={{
+                  ...folder,
+                  type: 'folder' as const,
+                  collectionId: item.id
+                }}
+                depth={depth + 1}
+                onSelect={onSelect}
+                onFolderSelect={onFolderSelect}
+                activeRequestId={activeRequestId}
+                activeCollectionId={activeCollectionId}
+                activeFolderId={activeFolderId}
+                renamingItemId={renamingItemId}
+                setRenamingItemId={setRenamingItemId}
+                moreOptionsProps={moreOptionsProps}
+              />
+            ))}
+            {item.requests?.map((request) => (
+              <TreeNode
+                key={request.id}
+                item={{
+                  ...request,
+                  type: 'request' as const
+                }}
+                depth={depth + 1}
+                onSelect={(req) => {
+                  onSelect(req);
+                  // Only clear folder selection if we're at collection level (depth === 0)
+                  if (depth === 0) {
+                    setActiveFolder(null);
+                  }
+                }}
+                activeRequestId={activeRequestId}
+                activeCollectionId={activeCollectionId}
+                activeFolderId={activeFolderId}
+                renamingItemId={renamingItemId}
+                setRenamingItemId={setRenamingItemId}
+                moreOptionsProps={moreOptionsProps}
+              />
+            ))}
+          </>
+        )}
+      </>
+    );
+  }
+
+  // Handle folder
+  if (item.type === 'folder') {
+    return (
+      <>
+        <RenameItem
+          name={item.name}
+          depth={depth}
+          isExpanded={isExpanded}
+          isEditing={item.id === renamingItemId}
+          isActive={item.id === activeFolderId}
+          icon={<FiFolder size={14} />}
+          onToggleExpand={() => {
+            setIsExpanded(!isExpanded);
+            onFolderSelect?.(item);
+          }}
+          onStartEdit={() => setRenamingItemId(item.id)}
+          onFinishEdit={handleRenameFinish}
+          onCancelEdit={() => setRenamingItemId(null)}
+          moreOptions={
+            <MoreOptions type="folder" id={item.id} activeMenu={moreOptionsProps.activeMenu} onMenuClick={moreOptionsProps.onMenuClick}>
+              <MenuItem onClick={handleAddFolder}>
+                <FiFolder size={14} />
+                Add Folder
+              </MenuItem>
+              <MenuItem onClick={handleAddRequest}>
+                <FiPlus size={14} />
+                Add Request
+              </MenuItem>
+              <MenuItem onClick={handleRunFolder}>
+                <FiPlay size={14} />
+                Run Folder
+              </MenuItem>
+              <MenuItem onClick={() => {
+                setRenamingItemId(item.id);
+                moreOptionsProps.onMenuClick('');
+              }}>
+                <FiEdit size={14} />
+                Rename
+              </MenuItem>
+              <DeleteCollection
+                collectionName={item.name}
+                onConfirm={() => {
+                  removeFolder(item.collectionId, item.id);
+                  moreOptionsProps.onMenuClick('');
+                }}
+                onCancel={() => moreOptionsProps.onMenuClick('')}
+              />
+            </MoreOptions>
+          }
+        />
+
+        {isExpanded && (
+          <>
+            {item.folders?.map((folder) => (
+              <TreeNode
+                key={folder.id}
+                item={{
+                  ...folder,
+                  type: 'folder' as const,
+                  collectionId: item.collectionId
+                }}
+                depth={depth + 1}
+                onSelect={onSelect}
+                onFolderSelect={onFolderSelect}
+                activeRequestId={activeRequestId}
+                activeCollectionId={activeCollectionId}
+                activeFolderId={activeFolderId}
+                renamingItemId={renamingItemId}
+                setRenamingItemId={setRenamingItemId}
+                moreOptionsProps={moreOptionsProps}
+              />
+            ))}
+            {item.requests?.map((request) => (
+              <TreeNode
+                key={request.id}
+                item={{
+                  ...request,
+                  type: 'request' as const
+                }}
+                depth={depth + 1}
+                onSelect={(req) => {
+                  onSelect(req);
+                  // Only clear folder selection if we're at collection level (depth === 0)
+                  if (depth === 0) {
+                    setActiveFolder(null);
+                  }
+                }}
+                activeRequestId={activeRequestId}
+                activeCollectionId={activeCollectionId}
+                activeFolderId={activeFolderId}
+                renamingItemId={renamingItemId}
+                setRenamingItemId={setRenamingItemId}
+                moreOptionsProps={moreOptionsProps}
+              />
+            ))}
+          </>
+        )}
+      </>
+    );
+  }
+
+  // Handle request
+  return (
+    <TreeItem 
+      depth={depth} 
+      isActive={item.id === activeRequestId} 
+      onClick={handleClick}
+    >
+      <FiFile size={14} />
+      <MethodLabel method={item.method}>{item.method}</MethodLabel>
+      {item.id === renamingItemId ? (
+        <input
+          type="text"
+          defaultValue={item.name}
+          autoFocus
+          onBlur={(e) => {
+            const newName = e.target.value.trim();
+            if (newName && newName !== item.name) {
+              renameRequest(activeCollectionId!, activeFolderId ?? null, item.id, newName);
+            }
+            setRenamingItemId(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const newName = e.currentTarget.value.trim();
+              if (newName && newName !== item.name) {
+                renameRequest(activeCollectionId!, activeFolderId ?? null, item.id, newName);
+              }
+              setRenamingItemId(null);
+              e.preventDefault();
+            } else if (e.key === 'Escape') {
+              setRenamingItemId(null);
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <>
+          <TreeItemLabel>{item.name}</TreeItemLabel>
+          <MoreOptions type="request" id={item.id} activeMenu={moreOptionsProps.activeMenu} onMenuClick={moreOptionsProps.onMenuClick}>
+            <MenuItem onClick={handleRenameClick}>
+              <FiEdit size={14} />
+              Rename
+            </MenuItem>
+            <DeleteCollection
+              collectionName={item.name}
+              onConfirm={() => {
+                removeRequest(activeCollectionId!, activeFolderId ?? null, item.id);
+                moreOptionsProps.onMenuClick(''); // Close menu
+              }}
+              onCancel={() => moreOptionsProps.onMenuClick('')} // Close menu on cancel
+            />
+          </MoreOptions>
+        </>
+      )}
+    </TreeItem>
   );
 }

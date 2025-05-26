@@ -82,13 +82,23 @@ export interface Variable {
   isSelected: boolean;
 }
 
+export interface APIFolder {
+  id: string;
+  name: string;
+  description?: string;
+  auth?: AuthState;
+  folders?: APIFolder[];  // Nested folders
+  requests?: APIRequest[];
+}
+
 export interface APICollection {
   id: string;
   name: string;
   description?: string;
   auth?: AuthState;
   variables?: Variable[];
-  requests: APIRequest[];
+  folders: APIFolder[];  // Root level folders
+  requests: APIRequest[];  // Root level requests
 }
 
 export interface Request {
@@ -135,18 +145,34 @@ export interface CollectionTabState {
   variables?: Variable[];
 }
 
+export interface FolderTabState {
+  id: number;
+  type: 'folder';
+  title: string;
+  collectionId: string;
+  folderId: string;
+  description?: string;
+  auth?: { type: string; credentials: Record<string, string> };
+}
+
 interface CollectionStoreState {
   collections: APICollection[];
   activeCollectionId: string | null;
   activeRequestId: string | null;
+  activeFolderId: string | null;
   isInitialized: boolean;
 
   initialize: () => Promise<void>;
   addCollection: (collection: APICollection) => Promise<void>;
+  addFolder: (collectionId: string, parentFolderId: string | null, folderName: string) => Promise<void>;
+  addRequestToFolder: (collectionId: string, folderId: string, request: Request) => Promise<void>;
   addRequestToCollection: (collectionId: string, request: Request) => Promise<void>;
+  removeFolder: (collectionId: string, folderId: string) => Promise<void>;
   removeCollection: (id: string) => Promise<void>;
   renameCollection: (id: string, newName: string) => Promise<void>;
-  removeRequestFromCollection: (collectionId: string, requestId: string) => Promise<void>;
+  renameFolder: (collectionId: string, folderId: string, newName: string) => Promise<void>;
+  removeRequest: (collectionId: string, folderId: string | null, requestId: string) => Promise<void>;
+  renameRequest: (collectionId: string, folderId: string | null, requestId: string, newName: string) => Promise<void>;
   updateRequest: (
     collectionId: string,
     requestId: string,
@@ -156,23 +182,36 @@ interface CollectionStoreState {
     collectionId: string,
     updates: Partial<Pick<APICollection, 'description' | 'auth' | 'variables'>>
   ) => Promise<void>;
+  updateFolder: (
+    collectionId: string,
+    folderId: string,
+    updates: Partial<Pick<APIFolder, 'description' | 'auth'>>
+  ) => Promise<void>;
   setActiveCollection: (id: string | null) => void;
   setActiveRequest: (id: string | null) => void;
+  setActiveFolder: (id: string | null) => void;
   getActiveRequest: () => APIRequest | null;
   getActiveCollection: () => APICollection | null;
+  getActiveFolder: () => APIFolder | null;
 }
 
 export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
   collections: [],
   activeCollectionId: null,
   activeRequestId: null,
+  activeFolderId: null,
   isInitialized: false,
 
   initialize: async () => {
     try {
       await storageService.initialize();
       const collections = await storageService.getAllCollections();
-      set({ collections, isInitialized: true });
+      // Initialize empty folders array for existing collections if needed
+      const updatedCollections = collections.map(collection => ({
+        ...collection,
+        folders: collection.folders || [],
+      }));
+      set({ collections: updatedCollections, isInitialized: true });
     } catch (error) {
       console.error('Failed to initialize store:', error);
       set({ isInitialized: true });
@@ -184,10 +223,107 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       ...collection,
       id: uuid(),
       requests: collection.requests || [],
+      folders: collection.folders || [],
     };
 
     set((state) => ({ collections: [...state.collections, newCollection] }));
     await storageService.saveCollection(newCollection);
+  },
+
+  addFolder: async (collectionId, parentFolderId, folderName) => {
+    const newFolder: APIFolder = {
+      id: uuid(),
+      name: folderName,
+      folders: [],
+      requests: [],
+    };
+
+    set((state) => ({
+      collections: state.collections.map((collection) => {
+        if (collection.id !== collectionId) return collection;
+
+        if (!parentFolderId) {
+          // Add to root level
+          return {
+            ...collection,
+            folders: [...collection.folders, newFolder],
+          };
+        }
+
+        // Helper function to recursively find and update the parent folder
+        const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+          return folders.map((folder) => {
+            if (folder.id === parentFolderId) {
+              return {
+                ...folder,
+                folders: [...(folder.folders || []), newFolder],
+              };
+            }
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders || []),
+            };
+          });
+        };
+
+        return {
+          ...collection,
+          folders: updateFolders(collection.folders),
+        };
+      }),
+    }));
+
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
+  },
+
+  addRequestToFolder: async (collectionId, folderId, requestName) => {
+    const newRequest: APIRequest = {
+      id: uuid(),
+      name: requestName.name,
+      method: 'GET',
+      url: '',
+      headers: [],
+      queryParams: [],
+      body: undefined,
+      contentType: '',
+      formData: [],
+      auth: {type: '', credentials: {}}
+    };
+
+    set((state) => ({
+      collections: state.collections.map((collection) => {
+        if (collection.id !== collectionId) return collection;
+
+        // Helper function to recursively find and update the target folder
+        const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+          return folders.map((folder) => {
+            if (folder.id === folderId) {
+              return {
+                ...folder,
+                requests: [...(folder.requests || []), newRequest],
+              };
+            }
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders || []),
+            };
+          });
+        };
+
+        return {
+          ...collection,
+          folders: updateFolders(collection.folders || []),
+        };
+      }),
+    }));
+
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
   },
 
   removeCollection: async (id) => {
@@ -245,25 +381,6 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     }
   },
 
-  removeRequestFromCollection: async (collectionId, requestId) => {
-    set((state) => ({
-      collections: state.collections.map((c) =>
-        c.id === collectionId
-          ? {
-              ...c,
-              requests: c.requests.filter((r) => r.id !== requestId),
-            }
-          : c
-      ),
-      activeRequestId:
-        get().activeRequestId === requestId ? null : get().activeRequestId,
-    }));
-    const collection = get().collections.find(c => c.id === collectionId);
-    if (collection) {
-      await storageService.saveCollection(collection);
-    }
-  },
-
   updateRequest: async (collectionId, requestId, updatedRequest) => {
     set((state) => ({
       collections: state.collections.map((c) =>
@@ -298,8 +415,42 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     }
   },
 
+  updateFolder: async (collectionId: string, folderId: string, updates: Partial<Pick<APIFolder, 'description' | 'auth'>>) => {
+    set((state) => ({
+      collections: state.collections.map((collection) => {
+        if (collection.id !== collectionId) return collection;
+
+        // Helper function to recursively find and update the folder
+        const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+          return folders.map((folder) => {
+            if (folder.id === folderId) {
+              return {
+                ...folder,
+                ...updates,
+              };
+            }
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders || []),
+            };
+          });
+        };
+
+        return {
+          ...collection,
+          folders: updateFolders(collection.folders || []),
+        };
+      }),
+    }));
+
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
+  },
+
   setActiveCollection: (id) =>
-    set(() => ({ activeCollectionId: id, activeRequestId: null })),
+    set(() => ({ activeCollectionId: id })),
 
   setActiveRequest: (id) =>
     set(() => ({ activeRequestId: id })),
@@ -307,11 +458,218 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
   getActiveRequest: () => {
     const state = get();
     const collection = state.collections.find((c) => c.id === state.activeCollectionId);
-    return collection?.requests.find((r) => r.id === state.activeRequestId) || null;
+    if (!collection) return null;
+
+    // First check collection-level requests
+    const rootRequest = collection.requests.find((r) => r.id === state.activeRequestId);
+    if (rootRequest) return rootRequest;
+
+    // Helper function to recursively search folders
+    const findRequestInFolders = (folders: APIFolder[]): APIRequest | null => {
+      for (const folder of folders) {
+        // Check requests in current folder
+        const foundRequest = folder.requests?.find(r => r.id === state.activeRequestId);
+        if (foundRequest) return foundRequest;
+
+        // Check nested folders
+        const foundInNested = findRequestInFolders(folder.folders || []);
+        if (foundInNested) return foundInNested;
+      }
+      return null;
+    };
+
+    // Then check folder requests
+    return findRequestInFolders(collection.folders) || null;
   },
 
   getActiveCollection: () => {
     const state = get();
     return state.collections.find((c) => c.id === state.activeCollectionId) || null;
+  },
+
+  setActiveFolder: (id: string | null) => {
+    set({ activeFolderId: id });
+  },
+
+  getActiveFolder: () => {
+    const state = get();
+    if (!state.activeFolderId || !state.activeCollectionId) return null;
+
+    const collection = state.collections.find(
+      (c) => c.id === state.activeCollectionId
+    );
+    if (!collection) return null;
+
+    // Helper function to recursively find the active folder
+    const findFolder = (folders: APIFolder[]): APIFolder | null => {
+      for (const folder of folders) {
+        if (folder.id === state.activeFolderId) return folder;
+        const found = findFolder(folder.folders || []);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    return findFolder(collection.folders);
+  },
+
+  removeFolder: async (collectionId: string, folderId: string) => {
+    set((state) => ({
+      collections: state.collections.map((collection) => {
+        if (collection.id !== collectionId) return collection;
+
+        // Helper function to recursively remove the folder
+        const filterFolders = (folders: APIFolder[]): APIFolder[] => {
+          return folders
+            .filter((folder) => folder.id !== folderId)
+            .map((folder) => ({
+              ...folder,
+              folders: filterFolders(folder.folders || []),
+            }));
+        };
+
+        return {
+          ...collection,
+          folders: filterFolders(collection.folders || []),
+        };
+      }),
+    }));
+
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
+  },
+
+  renameFolder: async (collectionId: string, folderId: string, newName: string) => {
+    set((state) => ({
+      collections: state.collections.map((collection) => {
+        if (collection.id !== collectionId) return collection;
+
+        // Helper function to recursively find and rename the folder
+        const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+          return folders.map((folder) => {
+            if (folder.id === folderId) {
+              return {
+                ...folder,
+                name: newName,
+              };
+            }
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders || []),
+            };
+          });
+        };
+
+        return {
+          ...collection,
+          folders: updateFolders(collection.folders || []),
+        };
+      }),
+    }));
+
+    const collection = get().collections.find(c => c.id === collectionId);
+    if (collection) {
+      await storageService.saveCollection(collection);
+    }
+  },
+
+  removeRequest: async (collectionId: string, folderId: string | null, requestId: string) => {
+    const { collections } = get();
+    const updatedCollections = collections.map(collection => {
+      if (collection.id !== collectionId) return collection;
+
+      if (!folderId) {
+        // Remove from collection root
+        return {
+          ...collection,
+          requests: collection.requests.filter(request => request.id !== requestId)
+        };
+      }
+
+      // Remove from folder
+      const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+        return folders.map(folder => {
+          if (folder.id === folderId) {
+            return {
+              ...folder,
+              requests: folder.requests?.filter(request => request.id !== requestId) || []
+            };
+          }
+          if (folder.folders) {
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders)
+            };
+          }
+          return folder;
+        });
+      };
+
+      return {
+        ...collection,
+        folders: updateFolders(collection.folders)
+      };
+    });
+
+    set({ collections: updatedCollections });
+    // Save each modified collection
+    for (const collection of updatedCollections) {
+      if (collection.id === collectionId) {
+        await storageService.saveCollection(collection);
+      }
+    }
+  },
+
+  renameRequest: async (collectionId: string, folderId: string | null, requestId: string, newName: string) => {
+    const { collections } = get();
+    const updatedCollections = collections.map(collection => {
+      if (collection.id !== collectionId) return collection;
+
+      if (!folderId) {
+        // Rename in collection root
+        return {
+          ...collection,
+          requests: collection.requests.map(request =>
+            request.id === requestId ? { ...request, name: newName } : request
+          )
+        };
+      }
+
+      // Rename in folder
+      const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+        return folders.map(folder => {
+          if (folder.id === folderId) {
+            return {
+              ...folder,
+              requests: folder.requests?.map(request =>
+                request.id === requestId ? { ...request, name: newName } : request
+              ) || []
+            };
+          }
+          if (folder.folders) {
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders)
+            };
+          }
+          return folder;
+        });
+      };
+
+      return {
+        ...collection,
+        folders: updateFolders(collection.folders)
+      };
+    });
+
+    set({ collections: updatedCollections });
+    // Save each modified collection
+    for (const collection of updatedCollections) {
+      if (collection.id === collectionId) {
+        await storageService.saveCollection(collection);
+      }
+    }
   },
 }));

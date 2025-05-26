@@ -3,9 +3,10 @@ import { FiPlus } from 'react-icons/fi';
 import styled from 'styled-components';
 import RequestPane from '../requestpane/RequestPane';
 import CollectionPane from '../collectionpane/CollectionPane';
+import FolderPane from '../folderpane/FolderPane';
 import { AddButton } from '../../styled-component/AddButton';
 import { Tab } from '../../styled-component/Tab';
-import { useCollectionStore, type CollectionTabState, type RequestTabState } from '../../store/collectionStore';
+import { useCollectionStore, type CollectionTabState, type RequestTabState, type FolderTabState } from '../../store/collectionStore';
 import { convertRequestBodyToTabBody, convertTabBodyToRequestBody } from '../../utils/requestUtils';
 
 interface TabBarWrapperProps {
@@ -75,16 +76,19 @@ const CloseIcon = styled.span`
 `;
 
 const MainContentTabs: React.FC = () => {
-  const [tabs, setTabs] = useState<(RequestTabState | CollectionTabState)[]>([]);
+  const [tabs, setTabs] = useState<(RequestTabState | CollectionTabState | FolderTabState)[]>([]);
   const [activeTab, setActiveTab] = useState<number | null>(null);
   const [tabCounter, setTabCounter] = useState(1);
 
   const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
   const activeRequestId = useCollectionStore(state => state.activeRequestId);
+  const activeFolderId = useCollectionStore(state => state.activeFolderId);
   const getActiveRequest = useCollectionStore(state => state.getActiveRequest);
   const getActiveCollection = useCollectionStore(state => state.getActiveCollection);
+  const getActiveFolder = useCollectionStore(state => state.getActiveFolder);
   const updateRequest = useCollectionStore(state => state.updateRequest);
   const updateCollection = useCollectionStore(state => state.updateCollection);
+  const updateFolder = useCollectionStore(state => state.updateFolder);
 
   const createNewRequestTab = (collectionId?: string, requestId?: string) => {
     let newTab: RequestTabState;
@@ -144,7 +148,36 @@ const MainContentTabs: React.FC = () => {
     return newTab;
   };
 
+  const createNewFolderTab = (collectionId: string, folderId: string) => {
+    console.log('createNewFolderTab called:', { collectionId, folderId });
+    const folder = getActiveFolder();
+    console.log('Active folder:', folder);
+    if (!folder) return null;
+    
+    const newTab: FolderTabState = {
+      id: tabCounter,
+      type: 'folder',
+      title: folder.name || 'New Folder',
+      collectionId,
+      folderId,
+      description: folder.description || '',
+      auth: folder.auth || { type: 'none', credentials: {} }
+    };
+
+    console.log('Creating new folder tab:', newTab);
+    setTabs(prev => [...prev, newTab]);
+    setActiveTab(newTab.id);
+    setTabCounter(prev => prev + 1);
+    return newTab;
+  };
+
   useEffect(() => {
+    console.log('MainContentTabs useEffect:', {
+      activeCollectionId,
+      activeRequestId,
+      activeFolderId
+    });
+
     if (activeCollectionId && activeRequestId) {
       const existingTab = tabs.find(
         tab => 
@@ -157,7 +190,25 @@ const MainContentTabs: React.FC = () => {
       } else {
         createNewRequestTab(activeCollectionId, activeRequestId);
       }
-    } else if (activeCollectionId && !activeRequestId) {
+    } else if (activeCollectionId && activeFolderId) {
+      console.log('Creating/activating folder tab:', {
+        collectionId: activeCollectionId,
+        folderId: activeFolderId
+      });
+      const existingTab = tabs.find(
+        tab => 
+          tab.type === 'folder' &&
+          tab.collectionId === activeCollectionId &&
+          (tab as FolderTabState).folderId === activeFolderId
+      );
+      if (existingTab) {
+        console.log('Found existing folder tab:', existingTab);
+        setActiveTab(existingTab.id);
+      } else {
+        console.log('Creating new folder tab');
+        createNewFolderTab(activeCollectionId, activeFolderId);
+      }
+    } else if (activeCollectionId && !activeRequestId && !activeFolderId) {
       const existingTab = tabs.find(
         tab => 
           tab.type === 'collection' &&
@@ -169,7 +220,7 @@ const MainContentTabs: React.FC = () => {
         createNewCollectionTab(activeCollectionId);
       }
     }
-  }, [activeCollectionId, activeRequestId]);
+  }, [activeCollectionId, activeRequestId, activeFolderId]);
 
   const handleAddTab = () => {
     createNewRequestTab();
@@ -193,7 +244,7 @@ const MainContentTabs: React.FC = () => {
     });
   };
 
-  const handleTabStateChange = (tabId: number, newState: Partial<RequestTabState | CollectionTabState>) => {
+  const handleTabStateChange = (tabId: number, newState: Partial<RequestTabState | CollectionTabState | FolderTabState>) => {
     setTabs(prevTabs =>
       prevTabs.map(tab => {
         if (tab.id === tabId) {
@@ -226,6 +277,18 @@ const MainContentTabs: React.FC = () => {
               });
             }
             return updatedTab;
+          } else if (tab.type === 'folder') {
+            const folderTab = tab as FolderTabState;
+            const folderState = newState as Partial<FolderTabState>;
+            const updatedTab: FolderTabState = { ...folderTab, ...folderState };
+            
+            if (folderTab.collectionId && folderTab.folderId) {
+              updateFolder(folderTab.collectionId, folderTab.folderId, {
+                description: folderState.description,
+                auth: folderState.auth
+              });
+            }
+            return updatedTab;
           }
         }
         return tab;
@@ -234,6 +297,35 @@ const MainContentTabs: React.FC = () => {
   };
 
   const getCurrentTab = () => tabs.find(tab => tab.id === activeTab) || null;
+
+  const renderTabContent = () => {
+    const currentTab = getCurrentTab();
+    if (!currentTab) return null;
+
+    switch (currentTab.type) {
+      case 'request':
+        return <RequestPane tabState={currentTab} onStateChange={(state) => handleTabStateChange(currentTab.id, state)} />;
+      case 'collection':
+        return <CollectionPane tabState={currentTab} onStateChange={(state) => handleTabStateChange(currentTab.id, state)} />;
+      case 'folder':
+        const folder = getActiveFolder();
+        if (!folder) return null;
+        return (
+          <FolderPane
+            folder={folder}
+            onUpdate={(updates) => {
+              const folderState: Partial<FolderTabState> = {
+                description: updates.description,
+                auth: updates.auth
+              };
+              handleTabStateChange(currentTab.id, folderState);
+            }}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -248,7 +340,6 @@ const MainContentTabs: React.FC = () => {
             <span className="label">{tab.title}</span>
             <CloseIcon
               className="close"
-              title="Close"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCloseTab(tab.id);
@@ -258,28 +349,11 @@ const MainContentTabs: React.FC = () => {
             </CloseIcon>
           </MainTab>
         ))}
-        <AddButton onClick={handleAddTab} title="New Request">
+        <AddButton onClick={handleAddTab}>
           <FiPlus />
         </AddButton>
       </TabBarWrapper>
-
-      <div className="flex-1 p-4 bg-white overflow-auto">
-        {activeTab && getCurrentTab() ? (
-          getCurrentTab()?.type === 'request' ? (
-            <RequestPane
-              tabState={getCurrentTab() as RequestTabState}
-              onStateChange={(newState: Partial<RequestTabState>) => handleTabStateChange(activeTab, newState)}
-            />
-          ) : (
-            <CollectionPane
-              tabState={getCurrentTab() as CollectionTabState}
-              onStateChange={(newState: Partial<CollectionTabState>) => handleTabStateChange(activeTab, newState)}
-            />
-          )
-        ) : (
-          <div className="text-gray-500 text-lg">Create a new Request</div>
-        )}
-      </div>
+      {renderTabContent()}
     </div>
   );
 };
