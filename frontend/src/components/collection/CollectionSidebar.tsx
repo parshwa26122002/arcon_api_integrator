@@ -128,7 +128,12 @@ const DropdownMenu = styled.div<{ isOpen: boolean }>`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
-const MenuItem = styled.div`
+interface MenuItemProps {
+  onClick?: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}
+
+const MenuItem = styled.div<MenuItemProps>`
   padding: 6px 12px;
   display: flex;
   align-items: center;
@@ -205,7 +210,7 @@ const MoreOptions: React.FC<MoreOptionsProps> = ({
       const rect = buttonRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const spaceBelow = windowHeight - rect.bottom;
-      const menuHeight = 120; // Approximate height of the menu
+      const menuHeight = 200; // Approximate height of the menu
 
       // If not enough space below, show above
       const isTop = spaceBelow < menuHeight;
@@ -219,8 +224,18 @@ const MoreOptions: React.FC<MoreOptionsProps> = ({
     setIsOpen(!isOpen);
   };
 
+  const enhanceChild = (child: React.ReactElement<MenuItemProps>) => {
+    return React.cloneElement(child, {
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        child.props.onClick?.(e);
+        setIsOpen(false);
+      }
+    });
+  };
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div onClick={(e) => e.stopPropagation()}>
       <MoreOptionsButton ref={buttonRef} className="more-options" onClick={handleClick}>
         <FiMoreVertical size={14} />
       </MoreOptionsButton>
@@ -233,8 +248,11 @@ const MoreOptions: React.FC<MoreOptionsProps> = ({
           left: `${position.left}px`,
           transformOrigin: position.isTop ? 'bottom right' : 'top right'
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {children}
+        {React.Children.map(children, child => 
+          React.isValidElement<MenuItemProps>(child) ? enhanceChild(child) : child
+        )}
       </DropdownMenu>
     </div>
   );
@@ -244,9 +262,11 @@ const TreeNode: React.FC<{
   item: TreeFolder | TreeRequest | APICollection;
   depth: number;
   onSelect: (item: APIRequest) => void;
+  onCollectionSelect?: (collection: APICollection) => void;
   activeRequestId?: string;
-}> = ({ item, depth, onSelect, activeRequestId }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  activeCollectionId?: string | null;
+}> = ({ item, depth, onSelect, onCollectionSelect, activeRequestId, activeCollectionId }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const { removeCollection, renameCollection } = useCollectionStore();
 
@@ -292,17 +312,22 @@ const TreeNode: React.FC<{
     console.log('Export collection');
   };
 
-  // Handle collection (top-level)
-  if ('requests' in item) {
+  // Handle collection
+  if ('requests' in item && !('type' in item)) {
+    const collection = item as APICollection;
     return (
       <>
         <RenameItem
-          name={item.name}
+          name={collection.name}
           depth={depth}
           isExpanded={isExpanded}
           isEditing={isRenaming}
+          isActive={collection.id === activeCollectionId}
           icon={<FiFolder size={14} />}
-          onToggleExpand={() => setIsExpanded(!isExpanded)}
+          onToggleExpand={() => {
+            setIsExpanded(!isExpanded);
+            onCollectionSelect?.(collection);
+          }}
           onStartEdit={() => setIsRenaming(true)}
           onFinishEdit={handleRenameSubmit}
           onCancelEdit={() => setIsRenaming(false)}
@@ -325,7 +350,7 @@ const TreeNode: React.FC<{
                 Rename
               </MenuItem>
               <DeleteCollection
-                collectionName={item.name}
+                collectionName={collection.name}
                 onConfirm={handleDeleteCollection}
                 onCancel={() => {}}
               />
@@ -336,7 +361,7 @@ const TreeNode: React.FC<{
             </MoreOptions>
           }
         />
-        {isExpanded && item.requests.map((request) => (
+        {isExpanded && collection.requests && collection.requests.map((request) => (
           <TreeItem 
             key={request.id}
             depth={depth + 1}
@@ -397,13 +422,15 @@ const TreeNode: React.FC<{
           </MoreOptions>
         }
       />
-      {isExpanded && item.items.map((childItem) => (
+      {isExpanded && 'items' in item && item.items.map((childItem) => (
         <TreeNode
           key={childItem.id}
           item={childItem}
           depth={depth + 1}
           onSelect={onSelect}
+          onCollectionSelect={onCollectionSelect}
           activeRequestId={activeRequestId}
+          activeCollectionId={activeCollectionId}
         />
       ))}
     </>
@@ -443,6 +470,7 @@ export default function CollectionSidebar(): JSX.Element {
     setActiveRequest,
     setActiveCollection,
     activeRequestId,
+    activeCollectionId,
   } = useCollectionStore();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -451,13 +479,24 @@ export default function CollectionSidebar(): JSX.Element {
     setActiveRequest(request.id);
   };
 
+  const handleSelectCollection = (collection: APICollection) => {
+    setActiveCollection(collection.id);
+    setActiveRequest(null);
+  };
+
   const handleAddCollection = () => {
     const newCollection = {
       id: crypto.randomUUID(),
       name: 'New Collection',
-      requests: []
-      };
-      addCollection(newCollection);
+      requests: [],
+      description: '',
+      auth: {
+        type: 'none',
+        credentials: {}
+      },
+      variables: []
+    };
+    addCollection(newCollection);
   };
 
   const filteredCollections = collections.filter(collection => 
@@ -505,7 +544,9 @@ export default function CollectionSidebar(): JSX.Element {
             item={collection}
             depth={0}
             onSelect={(request) => handleSelectRequest(request, collection.id)}
+            onCollectionSelect={handleSelectCollection}
             activeRequestId={activeRequestId || undefined}
+            activeCollectionId={activeCollectionId}
           />
         ))}
       </TreeWrapper>

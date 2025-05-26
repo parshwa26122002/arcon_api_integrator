@@ -211,6 +211,9 @@ export default function ImportAPI(): JSX.Element {
     const collection2: APICollection = {
       id: crypto.randomUUID(),
       name: collection.name,
+      description: "",
+      auth: { type: "none", credentials: {} },
+      variables: [],
       requests: collection.requests,
     };
  

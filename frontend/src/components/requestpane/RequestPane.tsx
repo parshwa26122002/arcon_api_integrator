@@ -5,7 +5,7 @@ import QueryParams from './QueryParams';
 import Authorization from './Authorization';
 import Headers from './Headers';
 import RequestBody from './RequestBody';
-import { useCollectionStore, type HttpMethod, type TabState } from '../../store/collectionStore';
+import { useCollectionStore, type HttpMethod, type RequestTabState } from '../../store/collectionStore';
 import { Tab } from '../../styled-component/Tab';
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
@@ -151,8 +151,8 @@ const TabContent = styled.div`
 `;
 
 interface RequestPaneProps {
-  tabState: TabState;
-  onStateChange: (newState: TabState) => void;
+  tabState: RequestTabState;
+  onStateChange: (newState: RequestTabState) => void;
 }
 
 const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) => {
