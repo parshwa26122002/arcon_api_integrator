@@ -10,5 +10,10 @@
     "@types/node": "^22.15.21",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
+  },
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/proxy-server.ts",
+    "build": "tsc",
+    "start": "node dist/proxy-server.js"
   }
 }
