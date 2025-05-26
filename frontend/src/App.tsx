@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import styled from 'styled-components';
-import RequestPane from './components/requestpane/RequestPane';
 import ImportAPI from './components/collection/ImportAPI';
 import SidebarTabs from './components/sidebar/Sidebar';
 import { useCollectionStore } from './store/collectionStore';
+import MainContentTabs from './components/maincontenttabs/MainContentTabs';
 
 const AppContainer = styled.div`
   display: flex;
@@ -22,6 +22,7 @@ const LeftPanel = styled.div`
   height: 100%;
   min-width: 250px;
   max-width: 300px;
+  overflow-y: auto;  
 `;
 
 const ImportSection = styled.div`
@@ -33,16 +34,15 @@ const SidebarSection = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  height: calc(100% - 65px); /* Subtract ImportSection height */
+  min-height: 0; 
 `;
 
 const MainContent = styled.div`
   flex: 1;
-  padding: 16px;
-  overflow: hidden;
-  position: relative;
-  z-index: 1;
+  height: 100%;
+  overflow: hidden; 
+  display: flex;
+  flex-direction: column;
 `;
 
 const App: React.FC = () => {
@@ -63,7 +63,7 @@ const App: React.FC = () => {
         </SidebarSection>
       </LeftPanel>
       <MainContent>
-        <RequestPane />
+        <MainContentTabs />
       </MainContent>
     </AppContainer>
   );

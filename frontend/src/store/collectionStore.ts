@@ -2,39 +2,61 @@ import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
 import { storageService } from '../services/StorageService';
 
-interface Header {
+export interface Header {
   id: string;
   key: string;
   value: string;
+  description?: string;
+  isSelected?: boolean;
 }
 
-interface QueryParam {
+export interface QueryParam {
   id: string;
   key: string;
   value: string;
-  description: string;
-  isSelected: boolean;
+  description?: string;
+  isSelected?: boolean;
 }
 
 export interface FormDataItem {
   key: string;
-  value?: string;
-  type: string;
-  description?: string;
+  value: string;
+  type: 'text' | 'file';
+  src?: string;
+}
+
+export interface UrlEncodedItem {
+  key: string;
+  value: string;
+}
+
+export interface RawBody {
+  content: string;
+  language: string;
+}
+
+export interface FileBody {
+  name: string;
+  content: string;
   src?: string;
 }
 
 export interface RequestBody {
-  mode: 'none' | 'raw' | 'formdata' | 'urlencoded' | 'file' | 'graphql';
+  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded';
   raw?: string;
-  formdata?: FormDataItem[];
-  urlencoded?: Array<{key: string; value: string; type: string}>;
-  file?: { src: string };
   options?: {
     raw?: {
-      language: 'json' | 'html' | 'xml' | 'text'
+      language: 'json' | 'html' | 'xml' | 'text' | 'javascript'
     }
   }
+  formData?: FormDataItem[];
+  urlencoded?: UrlEncodedItem[];
+  file?: FileBody;
+}
+
+export interface AuthState {
+  type: string;
+  credentials: Record<string, string>;
 }
 
 export interface APIRequest {
@@ -47,10 +69,7 @@ export interface APIRequest {
   body?: RequestBody;
   contentType: string;
   formData: Array<{ key: string; value: string }>;
-  auth: {
-    type: string;
-    credentials: Record<string, string>;
-  };
+  auth: AuthState;
 }
 
 export interface APICollection {
@@ -59,9 +78,37 @@ export interface APICollection {
   requests: APIRequest[];
 }
 
-interface Request {
+export interface Request {
   id: string;
   name: string;
+}
+
+export type HttpMethod = APIRequest['method'];
+
+export type TabBodyType = {
+  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded';
+  raw?: string;
+  options?: {
+    raw?: {
+      language: 'json' | 'html' | 'xml' | 'text' | 'javascript';
+    };
+  };
+  formData?: Array<{ key: string; value: string; type: 'text' | 'file' }>;
+  urlencoded?: Array<{ key: string; value: string }>;
+  file?: { name: string; content: string };
+};
+
+export interface TabState {
+  id: number;
+  title: string;
+  collectionId?: string;
+  requestId?: string;
+  method: HttpMethod;
+  url: string;
+  queryParams: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
+  headers: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
+  auth: { type: string; credentials: Record<string, string> };
+  body: TabBodyType;
 }
 
 interface CollectionStoreState {

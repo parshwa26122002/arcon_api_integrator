@@ -5,6 +5,7 @@ import React from 'react';
 import RenameItem from './RenameItem';
 import DeleteCollection from './DeleteCollection';
 import { FiFolder, FiFile, FiPlus, FiPlay, FiEdit, FiMoreVertical } from 'react-icons/fi';
+import { AddButton } from '../../styled-component/AddButton';
 
 interface TreeRequest extends APIRequest {
   type: 'request';
@@ -60,6 +61,15 @@ const EmptyState = styled.div`
 const TreeWrapper = styled.div`
   min-height: min-content;
   width: 100%;
+`;
+
+const TreeItemLabel = styled.span`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1;
+  display: block;
+  font-size: 13px;
 `;
 
 const TreeItem = styled.div<{ depth: number; isActive?: boolean }>`
@@ -275,6 +285,12 @@ const TreeNode: React.FC<{
       removeCollection(item.id);
     }
   };
+  
+  const handleExportCollection = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement collection export
+    console.log('Export collection');
+  };
 
   // Handle collection (top-level)
   if ('requests' in item) {
@@ -313,6 +329,10 @@ const TreeNode: React.FC<{
                 onConfirm={handleDeleteCollection}
                 onCancel={() => {}}
               />
+              <MenuItem onClick={handleExportCollection}>
+                <FiEdit size={14} />
+                Export
+              </MenuItem>
             </MoreOptions>
           }
         />
@@ -325,7 +345,7 @@ const TreeNode: React.FC<{
           >
             <FiFile size={14} />
             <MethodLabel method={request.method}>{request.method}</MethodLabel>
-            {request.name}
+            <TreeItemLabel>{request.name}</TreeItemLabel>
           </TreeItem>
         ))}
       </>
@@ -342,7 +362,7 @@ const TreeNode: React.FC<{
       >
         <FiFile size={14} />
         <MethodLabel method={item.method}>{item.method}</MethodLabel>
-        {item.name}
+        <TreeItemLabel>{item.name}</TreeItemLabel>
       </TreeItem>
     );
   }
@@ -416,26 +436,6 @@ const SearchInput = styled.input`
   }
 `;
 
-const AddCollectionButton = styled.button`
-  padding: 8px;
-  background-color: #383838;
-  border: 1px solid #4a4a4a;
-  border-radius: 4px;
-  color: #e1e1e1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background-color: #4a4a4a;
-  }
-
-  svg {
-    font-size: 14px;
-  }
-`;
-
 export default function CollectionSidebar(): JSX.Element {
   const {
     collections,
@@ -456,8 +456,8 @@ export default function CollectionSidebar(): JSX.Element {
       id: crypto.randomUUID(),
       name: 'New Collection',
       requests: []
-    };
-    addCollection(newCollection);
+      };
+      addCollection(newCollection);
   };
 
   const filteredCollections = collections.filter(collection => 
@@ -474,9 +474,9 @@ export default function CollectionSidebar(): JSX.Element {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <AddCollectionButton onClick={handleAddCollection}>
+          <AddButton onClick={handleAddCollection}>
             <FiPlus />
-          </AddCollectionButton>
+          </AddButton>
         </SearchContainer>
         <EmptyState>
           {searchTerm ? 'No collections found' : 'No collections yet'}
@@ -494,9 +494,9 @@ export default function CollectionSidebar(): JSX.Element {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <AddCollectionButton onClick={handleAddCollection}>
+        <AddButton onClick={handleAddCollection}>
           <FiPlus />
-        </AddCollectionButton>
+        </AddButton>
       </SearchContainer>
       <TreeWrapper>
         {filteredCollections.map((collection) => (

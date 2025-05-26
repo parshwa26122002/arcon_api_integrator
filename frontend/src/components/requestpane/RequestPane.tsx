@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { ChangeEvent } from 'react';
 import styled from 'styled-components';
 import QueryParams from './QueryParams';
 import Authorization from './Authorization';
 import Headers from './Headers';
 import RequestBody from './RequestBody';
-import { useCollectionStore, type APIRequest } from '../../store/collectionStore';
-
+import { useCollectionStore, type HttpMethod, type TabState } from '../../store/collectionStore';
+import { Tab } from '../../styled-component/Tab';
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
   GET: '#61affe',
@@ -15,14 +15,10 @@ const HTTP_METHODS = {
   DELETE: '#f93e3e'
 } as const;
 
-type HttpMethod = APIRequest['method'];
+
 
 interface StyledMethodSelectProps {
   method: HttpMethod;
-}
-
-interface StyledTabProps {
-  active: boolean;
 }
 
 const Container = styled.div`
@@ -33,7 +29,7 @@ const Container = styled.div`
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  height: calc(100vh - 32px); // Full height minus padding
+  height: calc(100vh - 50px); // Full height minus padding
 `;
 
 const TopBar = styled.div`
@@ -104,23 +100,6 @@ const TabList = styled.div`
   padding: 0 16px;
 `;
 
-const Tab = styled.button<StyledTabProps>`
-  padding: 12px 24px;
-  border: none;
-  background-color: transparent;
-  color: ${props => props.active ? '#e1e1e1' : '#999999'};
-  cursor: pointer;
-  font-weight: ${props => props.active ? '600' : 'normal'};
-  font-size: 14px;
-  border-bottom: 2px solid ${props => props.active ? '#7d4acf' : 'transparent'};
-  transition: all 0.2s;
-  
-  &:hover {
-    color: #e1e1e1;
-    background-color: #404040;
-  }
-`;
-
 const SplitContainer = styled.div`
   display: flex;
   gap: 16px;
@@ -171,79 +150,127 @@ const TabContent = styled.div`
   overflow-y: auto;
 `;
 
-const RequestPane: React.FC = () => {
-  // Subscribe only to specific state values we need
-  const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
-  const activeRequestId = useCollectionStore(state => state.activeRequestId);
-  const updateRequest = useCollectionStore(state => state.updateRequest);
-  const request = useCollectionStore(state => {
-    const collection = state.collections.find(c => c.id === state.activeCollectionId);
-    return collection?.requests.find(r => r.id === state.activeRequestId) || null;
-  });
+interface RequestPaneProps {
+  tabState: TabState;
+  onStateChange: (newState: TabState) => void;
+}
 
+const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) => {
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
   const [response] = useState<string>('// Response will appear here');
 
-  const handleMethodChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, {
+  const updateRequest = useCollectionStore(state => state.updateRequest);
+
+  const handleMethodChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+    const newState = { ...tabState, method: e.target.value as HttpMethod };
+    onStateChange(newState);
+    
+    // If this tab is linked to a collection, update collection state too
+    if (tabState.collectionId && tabState.requestId) {
+      updateRequest(tabState.collectionId, tabState.requestId, {
         method: e.target.value as HttpMethod
       });
     }
-  };
+  }, [tabState, onStateChange, updateRequest]);
 
-  const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, {
+  const handleUrlChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const newState = { ...tabState, url: e.target.value };
+    onStateChange(newState);
+    
+    // If this tab is linked to a collection, update collection state too
+    if (tabState.collectionId && tabState.requestId) {
+      updateRequest(tabState.collectionId, tabState.requestId, {
         url: e.target.value
       });
     }
-  };
+  }, [tabState, onStateChange, updateRequest]);
 
-  const handleSend = () => {
-    // TODO: Implement actual API call
-    console.log('Sending request...');
-  };
+  const handleSend = useCallback(() => {
+    // Implementation for sending request
+  }, []);
 
-  const renderTabContent = () => {
+  const renderTabContent = useMemo(() => {
     switch (activeTab) {
       case 'params':
-        return <QueryParams />;
+        return (
+          <QueryParams
+            params={tabState.queryParams}
+            onChange={(newParams) => {
+              const newState = { ...tabState, queryParams: newParams };
+              onStateChange(newState);
+              if (tabState.collectionId && tabState.requestId) {
+                updateRequest(tabState.collectionId, tabState.requestId, { queryParams: newParams });
+              }
+            }}
+          />
+        );
       case 'auth':
-        return <Authorization />;
+        return (
+          <Authorization
+            auth={tabState.auth}
+            onChange={(newAuth) => {
+              const newState = { ...tabState, auth: newAuth };
+              onStateChange(newState);
+              if (tabState.collectionId && tabState.requestId) {
+                updateRequest(tabState.collectionId, tabState.requestId, { auth: newAuth });
+              }
+            }}
+          />
+        );
       case 'headers':
-        return <Headers />;
+        return (
+          <Headers
+            headers={tabState.headers}
+            onChange={(newHeaders) => {
+              const newState = { ...tabState, headers: newHeaders };
+              onStateChange(newState);
+              if (tabState.collectionId && tabState.requestId) {
+                updateRequest(tabState.collectionId, tabState.requestId, { headers: newHeaders });
+              }
+            }}
+          />
+        );
       case 'body':
-        return <RequestBody />;
+        return (
+          <RequestBody
+            body={tabState.body}
+            onChange={(newBody) => {
+              const newState = { ...tabState, body: newBody };
+              onStateChange(newState);
+              
+              if (tabState.collectionId && tabState.requestId) {
+                updateRequest(tabState.collectionId, tabState.requestId, { body: newBody });
+              }
+            }}
+          />
+        );
       default:
         return null;
     }
-  };
+  }, [activeTab, tabState, onStateChange, updateRequest]);
 
   return (
     <Container>
       <TopBar>
-        <MethodSelect 
-          value={request?.method || 'GET'} 
+        <MethodSelect
+          value={tabState.method}
           onChange={handleMethodChange}
-          method={(request?.method || 'GET') as HttpMethod}
-          disabled={!request}
+          method={tabState.method as HttpMethod}
         >
-          {Object.keys(HTTP_METHODS).map((m) => (
-            <option key={m} value={m}>
-              {m}
+          {Object.keys(HTTP_METHODS).map(method => (
+            <option key={method} value={method}>
+              {method}
             </option>
           ))}
         </MethodSelect>
-        <UrlInput 
-          type="text" 
-          placeholder="Enter request URL"
-          value={request?.url || ''}
+        <UrlInput
+          type="text"
+          value={tabState.url}
           onChange={handleUrlChange}
-          disabled={!request}
+          placeholder="Enter request URL"
         />
         <ButtonGroup>
-          <SendButton onClick={handleSend} disabled={!request}>Send</SendButton>
+          <SendButton onClick={handleSend}>Send</SendButton>
         </ButtonGroup>
       </TopBar>
 
@@ -254,7 +281,7 @@ const RequestPane: React.FC = () => {
               active={activeTab === 'params'}
               onClick={() => setActiveTab('params')}
             >
-              Query Params
+              Params
             </Tab>
             <Tab
               active={activeTab === 'auth'}
@@ -276,7 +303,7 @@ const RequestPane: React.FC = () => {
             </Tab>
           </TabList>
           <TabContent>
-            {renderTabContent()}
+            {renderTabContent}
           </TabContent>
         </RequestSection>
 
@@ -291,4 +318,4 @@ const RequestPane: React.FC = () => {
   );
 };
 
-export default RequestPane;
+export default React.memo(RequestPane);

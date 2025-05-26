@@ -3,7 +3,16 @@ import styled from 'styled-components';
 import Editor from '@monaco-editor/react';
 import { FiFile } from 'react-icons/fi';
 import { useCollectionStore } from '../../store/collectionStore';
-import type { RequestBody, FormDataItem } from '../../store/collectionStore';
+import type { 
+  RequestBody,
+  FormDataItem,
+  UrlEncodedItem,
+} from '../../store/collectionStore';
+
+interface RequestBodyProps {
+  body: RequestBody;
+  onChange: (body: RequestBody) => void;
+}
 
 const Container = styled.div`
   padding: 0.5rem;
@@ -197,31 +206,7 @@ const DeleteFileButton = styled.button`
   }
 `;
 
-// Convert Postman mode to UI mode
-const getUIMode = (postmanMode?: string): string => {
-  switch (postmanMode) {
-    case 'formdata': return 'form-data';
-    case 'urlencoded': return 'x-www-form-urlencoded';
-    case 'file': return 'binary';
-    case 'raw': return 'raw';
-    case 'none': return 'none';
-    default: return 'none';
-  }
-};
-
-// Convert UI mode to Postman mode
-const getPostmanMode = (uiMode: string): RequestBody['mode'] => {
-  switch (uiMode) {
-    case 'form-data': return 'formdata';
-    case 'x-www-form-urlencoded': return 'urlencoded';
-    case 'binary': return 'file';
-    case 'raw': return 'raw';
-    case 'none': return 'none';
-    default: return 'none';
-  }
-};
-
-const RequestBodyComponent: React.FC = () => {
+const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) => {
   const {
     activeCollectionId,
     activeRequestId,
@@ -229,21 +214,11 @@ const RequestBodyComponent: React.FC = () => {
     getActiveRequest
   } = useCollectionStore();
 
-  const [localBody, setLocalBody] = React.useState<RequestBody>({ mode: 'none' });
+  const [, setLocalBody] = React.useState<RequestBody>(body);
   const request = getActiveRequest();
   
-  console.log('Current request:', request);
-  console.log('Request body:', request?.body);
-  console.log('Request body mode:', request?.body?.mode);
-  console.log('Request body formdata:', request?.body?.formdata);
-  console.log('Request body urlencoded:', request?.body?.urlencoded);
-  
-  const body = request?.body || localBody;
-  const bodyMode = getUIMode(body?.mode);
-
   // Update local body when request changes
   useEffect(() => {
-    console.log('Request changed:', request?.body);
     if (request?.body) {
       setLocalBody(request.body);
     } else {
@@ -251,143 +226,155 @@ const RequestBodyComponent: React.FC = () => {
     }
   }, [request]);
 
-  const handleModeChange = (newMode: string) => {
-    const postmanMode = getPostmanMode(newMode);
-    const newBody: RequestBody = {
-      mode: postmanMode
-    };
+  const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMode = e.target.value as RequestBody['mode'];
+    let newBody: RequestBody = { mode: newMode };
 
-    // Initialize mode-specific properties
-    switch (postmanMode) {
-      case 'formdata':
-        newBody.formdata = [{ key: '', value: '', type: 'text' }];
-        break;
-      case 'urlencoded':
-        newBody.urlencoded = [{ key: '', value: '', type: 'text' }];
-        break;
+    switch (newMode) {
       case 'raw':
         newBody.raw = '';
-        newBody.options = { raw: { language: 'text' } };
+        newBody.options = { raw: { language: 'json' } };
+        break;  
+      case 'form-data':
+        newBody.formData = [{ key: '', value: '', type: 'text' }];
+        break;
+      case 'urlencoded':
+        newBody.urlencoded = [{ key: '', value: '' }];
         break;
       case 'file':
-        newBody.file = { src: '' };
+        newBody.file = { name: '', content: '', src: '' };
         break;
     }
 
     setLocalBody(newBody);
+    onChange(newBody);
 
     if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, {
-        body: newBody
-      });
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
     }
   };
 
-  const handleFormDataChange = (index: number, field: string, value: string) => {
-    if (!body?.formdata) return;
+  const createEmptyFormDataItem = (): FormDataItem => ({
+    key: '',
+    value: '',
+    type: 'text'
+  });
 
-    const newFormData = [...body.formdata];
-    if (index >= newFormData.length) {
-      newFormData.push({ key: '', value: '', type: 'text' });
+  const handleFormDataChange = (
+    index: number,
+    field: 'key' | 'value' | 'type',
+    value: string
+  ) => {
+    const existingFormData = body.formData || [];
+    const newFormData: FormDataItem[] = [];
+
+    // Copy existing items
+    for (let i = 0; i < existingFormData.length; i++) {
+      newFormData[i] = {...existingFormData[i]};
     }
 
-    if (field === 'type' && value === 'file') {
-      newFormData[index] = {
-        ...newFormData[index],
-        [field]: value,
-        value: '',
-        src: ''
-      };
-    } else if (field === 'type' && value === 'text') {
-      newFormData[index] = {
-        ...newFormData[index],
-        [field]: value,
-        src: '',
-        value: ''
-      };
-    } else if (field === 'file') {
-      // Handle file selection
-      newFormData[index] = {
-        ...newFormData[index],
-        src: value,
-        value: value // Store filename in value as well
-      };
+    // Ensure the target index exists
+    while (newFormData.length <= index) {
+      newFormData.push(createEmptyFormDataItem());
+    }
+
+    // Update the target item
+    if (field === 'type') {
+      newFormData[index].type = value === 'file' ? 'file' : 'text';
     } else {
-      newFormData[index] = {
-        ...newFormData[index],
-        [field]: value
-      };
+      newFormData[index][field] = value;
     }
 
-    const newBody = {
+    // Add new empty item if needed
+    if (
+      index === newFormData.length - 1 &&
+      (newFormData[index].key || newFormData[index].value)
+    ) {
+      newFormData.push(createEmptyFormDataItem());
+    }
+
+    const newBody: RequestBody = {
       ...body,
-      formdata: newFormData
+      formData: newFormData
     };
 
     setLocalBody(newBody);
+    onChange(newBody);
 
     if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, {
-        body: newBody
-      });
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
     }
   };
 
   const handleRawChange = (value: string | undefined) => {
-    if (!body) return;
-
-    const newBody = {
+    if (value === undefined) return;
+    
+    const newBody: RequestBody = {
       ...body,
-      raw: value || ''
-    };
-
-    setLocalBody(newBody);
-
-    if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, {
-        body: newBody
-      });
-    }
-  };
-
-  const handleLanguageChange = (language: string) => {
-    if (!body) return;
-
-    const newBody = {
-      ...body,
-      options: {
-        raw: { language: language as 'text' | 'html' | 'json' | 'xml' }
+      raw: value,
+      options: {  
+        ...body.options!,
+        raw: {
+          language: body.options?.raw?.language || 'json'
+        }
       }
     };
 
     setLocalBody(newBody);
+    onChange(newBody);
 
     if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, {
-        body: newBody
-      });
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
     }
   };
 
-  const handleFileChange = (src: string) => {
-    if (!body) return;
-
-    const newBody = {
+  const handleLanguageChange = (language: string) => {
+    const newBody: RequestBody = {
       ...body,
-      file: { src }
+      raw: body.raw || '',
+      options: { 
+        ...body.options!,
+        raw: {
+          language: language as 'json' | 'html' | 'xml' | 'text' | 'javascript',
+        }
+      }
     };
 
     setLocalBody(newBody);
+    onChange(newBody);
 
     if (activeCollectionId && activeRequestId) {
-      updateRequest(activeCollectionId, activeRequestId, {
-        body: newBody
-      });
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const newBody: RequestBody = {
+        ...body,
+        file: {
+          name: file.name,
+          content: reader.result as string,
+          src: file.name
+        }
+      };
+
+      setLocalBody(newBody);
+      onChange(newBody);
+
+      if (activeCollectionId && activeRequestId) {
+        updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const renderFormData = () => {
-    const formData = body?.formdata || [];
+    const formData = body.formData || [];
     
     return (
       <FormContainer>
@@ -397,11 +384,11 @@ const RequestBodyComponent: React.FC = () => {
               <Input
                 $isKeyInput
                 placeholder="Key"
-                value={item.key || ''}
+                value={item.key}
                 onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
               />
               <TypeSelect
-                value={item.type || 'text'}
+                value={item.type}
                 onChange={(e) => handleFormDataChange(index, 'type', e.target.value)}
               >
                 <option value="text">Text</option>
@@ -418,14 +405,15 @@ const RequestBodyComponent: React.FC = () => {
                       const newFormData = [...formData];
                       newFormData[index] = {
                         ...newFormData[index],
-                        src: '',
+                        src: undefined,
                         value: ''
                       };
-                      const newBody = {
+                      const newBody: RequestBody = {
                         ...body,
-                        formdata: newFormData
+                        formData: newFormData
                       };
                       setLocalBody(newBody);
+                      onChange(newBody);
                       if (activeCollectionId && activeRequestId) {
                         updateRequest(activeCollectionId, activeRequestId, { body: newBody });
                       }
@@ -439,28 +427,24 @@ const RequestBodyComponent: React.FC = () => {
                   <FiFile /> Choose File
                   <FileInput
                     type="file"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleFormDataChange(index, 'file', file.name);
-                      }
-                    }}
+                    onChange={handleFileChange}
                   />
                 </FileButton>
               )
             ) : (
               <Input
                 placeholder="Value"
-                value={item.value || ''}
+                value={item.value}
                 onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
               />
             )}
           </KeyValueRow>
         ))}
         <AddButton onClick={() => {
-          const newFormData = [...formData, { key: '', value: '', type: 'text' }];
-          const newBody = { ...body, formdata: newFormData };
+          const newFormData = [...formData, createEmptyFormDataItem()];
+          const newBody: RequestBody = { ...body, formData: newFormData };
           setLocalBody(newBody);
+          onChange(newBody);
           if (activeCollectionId && activeRequestId) {
             updateRequest(activeCollectionId, activeRequestId, { body: newBody });
           }
@@ -472,13 +456,11 @@ const RequestBodyComponent: React.FC = () => {
   };
 
   const renderBodyContent = () => {
-    console.log('Rendering body content:', bodyMode, body);
-    
-    if (!body || bodyMode === 'none') {
+    if (!body || body.mode === 'none') {
       return <NoBodyText>This request does not have a body</NoBodyText>;
     }
 
-    switch (bodyMode) {
+    switch (body.mode) {
       case 'form-data':
         return renderFormData();
 
@@ -486,7 +468,7 @@ const RequestBodyComponent: React.FC = () => {
         return (
           <EditorContainer>
             <Select 
-              value={body.options?.raw?.language || 'text'} 
+              value={body.options?.raw?.language || 'json'} 
               onChange={(e) => handleLanguageChange(e.target.value)}
             >
               <option value="text">Text</option>
@@ -494,10 +476,11 @@ const RequestBodyComponent: React.FC = () => {
               <option value="javascript">JavaScript</option>
               <option value="html">HTML</option>
               <option value="xml">XML</option>
+              <option value="text">Plain Text</option>
             </Select>
             <Editor
               height="400px"
-              defaultLanguage={body.options?.raw?.language || 'text'}
+              defaultLanguage={body.options?.raw?.language || 'json'}
               value={body.raw || ''}
               onChange={handleRawChange}
               theme="vs-dark"
@@ -513,37 +496,36 @@ const RequestBodyComponent: React.FC = () => {
           </EditorContainer>
         );
 
-      case 'binary':
+      case 'file':
         return (
           <FormContainer>
             <FileButton>
-              <FiFile /> {body.file?.src || 'Select File'}
+              <FiFile /> {body.file?.name || 'Select File'}
               <FileInput
                 type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    handleFileChange(file.name);
-                  }
-                }}
+                onChange={handleFileChange}
               />
             </FileButton>
           </FormContainer>
         );
 
-      case 'x-www-form-urlencoded':
+      case 'urlencoded':
         return (
           <FormContainer>
-            {Array.isArray(body.urlencoded) && body.urlencoded.map((item: any, index: number) => (
+            {Array.isArray(body.urlencoded) && body.urlencoded.map((item: UrlEncodedItem, index: number) => (
               <KeyValueRow key={index}>
                 <Input
                   placeholder="Key"
-                  value={item.key || ''}
+                  value={item.key}
                   onChange={(e) => {
                     const newUrlencoded = [...(body.urlencoded || [])];
                     newUrlencoded[index] = { ...item, key: e.target.value };
-                    const newBody = { ...body, urlencoded: newUrlencoded };
+                    const newBody: RequestBody = {
+                      ...body,
+                      urlencoded: newUrlencoded
+                    };
                     setLocalBody(newBody);
+                    onChange(newBody);
                     if (activeCollectionId && activeRequestId) {
                       updateRequest(activeCollectionId, activeRequestId, { body: newBody });
                     }
@@ -551,12 +533,16 @@ const RequestBodyComponent: React.FC = () => {
                 />
                 <Input
                   placeholder="Value"
-                  value={item.value || ''}
+                  value={item.value}
                   onChange={(e) => {
                     const newUrlencoded = [...(body.urlencoded || [])];
                     newUrlencoded[index] = { ...item, value: e.target.value };
-                    const newBody = { ...body, urlencoded: newUrlencoded };
+                    const newBody: RequestBody = {
+                      ...body,
+                      urlencoded: newUrlencoded
+                    };
                     setLocalBody(newBody);
+                    onChange(newBody);
                     if (activeCollectionId && activeRequestId) {
                       updateRequest(activeCollectionId, activeRequestId, { body: newBody });
                     }
@@ -565,9 +551,10 @@ const RequestBodyComponent: React.FC = () => {
               </KeyValueRow>
             ))}
             <AddButton onClick={() => {
-              const newUrlencoded = [...(body.urlencoded || []), { key: '', value: '', type: 'text' }];
-              const newBody = { ...body, urlencoded: newUrlencoded };
+              const newUrlencoded = [...(body.urlencoded || []), { key: '', value: '' }];
+              const newBody: RequestBody = { ...body, urlencoded: newUrlencoded };
               setLocalBody(newBody);
+              onChange(newBody);
               if (activeCollectionId && activeRequestId) {
                 updateRequest(activeCollectionId, activeRequestId, { body: newBody });
               }
@@ -584,12 +571,12 @@ const RequestBodyComponent: React.FC = () => {
 
   return (
     <Container>
-      <Select value={bodyMode} onChange={(e) => handleModeChange(e.target.value)}>
+      <Select value={body.mode} onChange={handleModeChange}>
         <option value="none">none</option>
         <option value="form-data">form-data</option>
-        <option value="x-www-form-urlencoded">x-www-form-urlencoded</option>
+        <option value="urlencoded">urlencoded</option>
         <option value="raw">raw</option>
-        <option value="binary">binary</option>
+        <option value="file">file</option>
       </Select>
       {renderBodyContent()}
     </Container>

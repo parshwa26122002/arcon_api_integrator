@@ -1,14 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { v4 as uuid } from 'uuid';
-import { useCollectionStore } from '../../store/collectionStore';
+import { type QueryParam } from '../../store/collectionStore';
 
-interface QueryParam {
-  id: string;
-  key: string;
-  value: string;
-  description: string;
-  isSelected: boolean;
+interface QueryParamsProps {
+  params: QueryParam[];
+  onChange: (params: QueryParam[]) => void;
 }
 
 const Container = styled.div`
@@ -79,18 +76,9 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   accent-color: #7d4acf;
 `;
 
-const QueryParams: React.FC = () => {
-  const {
-    activeCollectionId,
-    activeRequestId,
-    updateRequest,
-    getActiveRequest,
-  } = useCollectionStore();
-
-  const request = getActiveRequest();
-
+const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChange }) => {
   // Initialize params array with at least one empty row
-  let params = request?.queryParams || [{
+  let params = initialParams.length > 0 ? initialParams : [{
     id: uuid(),
     key: '',
     value: '',
@@ -113,49 +101,11 @@ const QueryParams: React.FC = () => {
     ];
   }
 
-  // Parse query params from URL when request changes
-  useEffect(() => {
-    if (!request?.url || !activeCollectionId || !activeRequestId) return;
-
-    try {
-      const url = new URL(request.url.startsWith('http') ? request.url : `http://dummy.com${request.url}`);
-      const urlParams = Array.from(url.searchParams.entries()).map(([key, value]) => ({
-        id: uuid(),
-        key,
-        value,
-        description: '',
-        isSelected: true  // Set to true for params from URL
-      }));
-
-      // Add an empty row if there are no params
-      if (urlParams.length === 0) {
-        urlParams.push({
-          id: uuid(),
-          key: '',
-          value: '',
-          description: '',
-          isSelected: false
-        });
-      }
-
-      // Only update if params are different
-      if (JSON.stringify(urlParams) !== JSON.stringify(request.queryParams)) {
-        updateRequest(activeCollectionId, activeRequestId, {
-          queryParams: urlParams
-        });
-      }
-    } catch (error) {
-      console.error('Error parsing URL:', error);
-    }
-  }, [request?.url, activeCollectionId, activeRequestId]);
-
   const handleParamChange = (
     id: string,
     field: keyof Omit<QueryParam, 'id'>,
     value: string | boolean
   ) => {
-    if (!activeCollectionId || !activeRequestId) return;
-
     const updatedParams = params.map(param => {
       if (param.id === id) {
         // Always update the specified field
@@ -171,57 +121,25 @@ const QueryParams: React.FC = () => {
       return param;
     });
 
-    // Update the request with new params
-    updateRequest(activeCollectionId, activeRequestId, {
-      queryParams: updatedParams
-    });
-
-    // Only update URL if we're changing key or value and we have a request
-    if ((field === 'key' || field === 'value') && request?.url) {
-      try {
-        const url = new URL(request.url.startsWith('http') ? request.url : `http://dummy.com${request.url}`);
-        url.search = ''; // Clear existing query params
-        
-        // Add all selected params to URL
-        updatedParams.forEach(param => {
-          if (param.isSelected && param.key) {
-            url.searchParams.append(param.key, param.value || '');
-          }
-        });
-
-        // Update the request URL, preserving the original protocol if it was relative
-        const newUrl = request.url.startsWith('http') ? url.toString() : url.toString().replace('http://dummy.com', '');
-        updateRequest(activeCollectionId, activeRequestId, {
-          url: newUrl
-        });
-      } catch (error) {
-        console.error('Error updating URL:', error);
-      }
-    }
+    onChange(updatedParams);
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!activeCollectionId || !activeRequestId) return;
-
-    const nonEmptyParams = params.filter(param => param.key || param.value || param.description);
     const updatedParams = params.map(param => ({
       ...param,
-      isSelected: nonEmptyParams.includes(param) ? e.target.checked : param.isSelected
+      isSelected: e.target.checked
     }));
-
-    updateRequest(activeCollectionId, activeRequestId, {
-      queryParams: updatedParams
-    });
+    onChange(updatedParams);
   };
 
   return (
     <Container>
-      <Title>Query Params</Title>
+      <Title>Query Parameters</Title>
       <Table>
         <TableRow>
           <CheckboxCell>
             <Checkbox
-              checked={params.length > 1 && params.slice(0, -1).every(param => param.isSelected)}
+              checked={params.every(p => p.isSelected)}
               onChange={handleSelectAll}
             />
           </CheckboxCell>
@@ -240,7 +158,7 @@ const QueryParams: React.FC = () => {
             <TableCell>
               <Input
                 type="text"
-                value={param.key || ''}
+                value={param.key}
                 onChange={(e) => handleParamChange(param.id, 'key', e.target.value)}
                 placeholder="Parameter name"
               />
@@ -248,7 +166,7 @@ const QueryParams: React.FC = () => {
             <TableCell>
               <Input
                 type="text"
-                value={param.value || ''}
+                value={param.value}
                 onChange={(e) => handleParamChange(param.id, 'value', e.target.value)}
                 placeholder="Parameter value"
               />
@@ -256,7 +174,7 @@ const QueryParams: React.FC = () => {
             <TableCell>
               <Input
                 type="text"
-                value={param.description || ''}
+                value={param.description}
                 onChange={(e) => handleParamChange(param.id, 'description', e.target.value)}
                 placeholder="Parameter description"
               />

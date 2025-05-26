@@ -1,12 +1,8 @@
 // src/components/ImportAPI.tsx
-import React, { useState, type JSX } from "react";
-import styled from "styled-components";
-import { parseImportFile } from "../../utils/importParser";
-import {
-  useCollectionStore,
-  type APICollection,
-  type APIRequest,
-} from "../../store/collectionStore";
+import React, { useState, type JSX } from 'react';
+import styled from 'styled-components';
+import { parseImportFile } from '../../utils/importParser';
+import { useCollectionStore, type APICollection, type APIRequest, type RequestBody } from '../../store/collectionStore';
 
 const ImportButton = styled.button`
   padding: 8px 16px;
@@ -17,7 +13,7 @@ const ImportButton = styled.button`
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
-
+  
   &:hover {
     background-color: #6a3eb2;
   }
@@ -49,7 +45,7 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-
+  
   h2 {
     margin: 0;
     color: #e1e1e1;
@@ -64,7 +60,7 @@ const CloseButton = styled.button`
   cursor: pointer;
   font-size: 20px;
   padding: 4px;
-
+  
   &:hover {
     color: #e1e1e1;
   }
@@ -89,11 +85,11 @@ const RadioOption = styled.label`
   padding: 4px 8px;
   border-radius: 4px;
   transition: background-color 0.2s;
-
+  
   &:hover {
     background-color: #404040;
   }
-
+  
   input[type="radio"] {
     cursor: pointer;
   }
@@ -211,18 +207,164 @@ export default function ImportAPI(): JSX.Element {
       default:
         throw new Error("Unsupported API format");
     }
-
+ 
     const collection2: APICollection = {
       id: crypto.randomUUID(),
       name: collection.name,
       requests: collection.requests,
     };
-
+ 
     addCollection(collection2);
     setIsModalOpen(false);
     setRawText("");
   };
 
+  function convertYAMLToCollection(yamlObj: any): Collection {
+    // Try OpenAPI
+    if (yamlObj.openapi && yamlObj.paths) {
+      return convertOpenAPIToCollection(yamlObj);
+    }
+    // Try RAML
+    if (yamlObj.title && yamlObj.baseUri) {
+      return convertRAMLToCollection(yamlObj);
+    }
+    throw new Error("Unsupported YAML API format");
+  }
+   
+  /**
+   * Alias for convertYAMLToCollection, for .yml files.
+   */
+  function convertYMLToCollection(ymlObj: any): Collection {
+    return convertYAMLToCollection(ymlObj);
+  }
+
+  function convertGraphQLToCollection(source: any): Collection {
+    // If you want to extract queries/mutations, use a GraphQL parser here.
+    // For now, just provide a default query and endpoint.
+    return {
+      name: source?.info?.title || "Imported GraphQL",
+      requests: [
+        {
+          id: crypto.randomUUID(),
+          name: "GraphQL Query",
+          method: "POST",
+          url: source?.servers?.[0]?.url || "/graphql",
+          body: {
+            mode: "raw" as const,
+            raw: JSON.stringify(
+              { query: "{ __schema { types { name } } }" },
+              null,
+              2
+            ),
+            options: {
+              raw: {
+                language: "json" as const,
+              },
+            },
+          },
+          headers: [
+            {
+              id: crypto.randomUUID(),
+              key: "Content-Type",
+              value: "application/json",
+            },
+          ],
+          queryParams: [],
+          contentType: "application/json",
+          formData: [],
+          auth: { type: "", credentials: {} },
+        },
+      ],
+    };
+  }
+
+  function convertOpenAPIToCollection(openapi: any): Collection {
+    const requests: APIRequest[] = [];
+   
+    Object.entries(openapi.paths || {}).forEach(([path, methods]: any) => {
+      Object.entries(methods).forEach(([method, detail]: any) => {
+        if (
+          !["get", "post", "put", "delete", "patch", "options", "head"].includes(
+            method
+          )
+        )
+          return;
+   
+        // Extract headers
+        const headers = (detail.parameters || [])
+          .filter((param: any) => param.in === "header")
+          .map((param: any) => ({
+            id: crypto.randomUUID(),
+            key: param.name,
+            value: param.example || param.default || "",
+          }));
+   
+        // Extract query parameters
+        const queryParams = (detail.parameters || [])
+          .filter((param: any) => param.in === "query")
+          .map((param: any) => ({
+            key: param.name,
+            value: param.example || param.default || "",
+          }));
+   
+        // Extract request body (prefer application/json)
+        let body;
+        const content = detail.requestBody?.content;
+        if (content) {
+          if (content["application/json"]) {
+            body = {
+              mode: "raw" as const,
+              raw: {
+                content: JSON.stringify(content["application/json"].example ||
+                  content["application/json"].examples?.[0]?.value ||
+                  {},
+                null,
+                2
+              ),
+              language: "json",
+              },
+              options: {
+                raw: {
+                  language: "json" as const,
+                },
+              },
+            };
+          } else if (content["application/x-www-form-urlencoded"]) {
+            body = {
+              mode: "urlencoded" as const,
+              urlencoded: Object.entries(
+                content["application/x-www-form-urlencoded"].schema?.properties ||
+                  {}
+              ).map(([key, prop]: any) => ({
+                key,
+                value: prop.example || "",
+                type: "text",
+              })),
+            };
+          }
+        }
+   
+        requests.push({
+          id: crypto.randomUUID(),
+          name: detail.summary || `${method.toUpperCase()} ${path}`,
+          method: method.toUpperCase() as "GET" | "POST" | "PUT" | "DELETE",
+          url: path,
+          body: body as RequestBody,
+          headers,
+          queryParams,
+          contentType: content ? Object.keys(content)[0] : "",
+          formData: [],
+          auth: { type: "", credentials: {} },
+        });
+      });
+    });
+   
+    return {
+      name: openapi.info?.title || "Imported OpenAPI",
+      requests,
+    };
+  }  
+   
   return (
     <>
       <ImportButton onClick={() => setIsModalOpen(true)}>Import</ImportButton>
@@ -301,102 +443,10 @@ export default function ImportAPI(): JSX.Element {
 
 // === Converters ===
 
-// function convertOpenAPIToCollection(openapi: any): Collection {
-//   const requests: APIRequest[] = Object.entries(openapi.paths || {}).flatMap(([path, methods]: any) =>
-//     Object.entries(methods).map(([method, detail]: any) => {
-//       // Extract headers from parameters
-//       const headers = (detail.parameters || [])
-//         .filter((param: any) => param.in === 'header')
-//         .map((param: any) => ({
-//           key: param.name,
-//           value: param.example || '',
-//         }));
-
-//       // Extract request body
-//       const content = detail.requestBody?.content;
-//       const body = content && content['application/json'] ? {
-//         mode: 'raw' as const,
-//         raw: JSON.stringify(content['application/json'].example || {}, null, 2),
-//         options: {
-//           raw: {
-//             language: 'json' as const
-//           }
-//         }
-//       } : undefined;
-
-//       return {
-//         id: crypto.randomUUID(),
-//         name: detail.summary || `${method.toUpperCase()} ${path}`,
-//         method: method.toUpperCase() as "GET" | "POST" | "PUT" | "DELETE",
-//         url: path,
-//         body,
-//         headers,
-//         queryParams: [],
-//         contentType: 'application/json',
-//         formData: [],
-//         auth: { type: '', credentials: {} },
-//       };
-//     })
-//   );
-
-//   return {
-//     name: openapi.info?.title || 'Imported OpenAPI',
-//     requests,
-//   };
-// }
-
-// function convertGraphQLToCollection(_source: any): Collection {
-//   return {
-//     name: 'Imported GraphQL',
-//     requests: [
-//       {
-//         id: crypto.randomUUID(),
-//         name: 'GraphQL Query',
-//         method: 'POST',
-//         url: '/graphql',
-//         body: {
-//           mode: 'raw' as const,
-//           raw: JSON.stringify({ query: '{ __schema { types { name } } }' }, null, 2),
-//           options: {
-//             raw: {
-//               language: 'json' as const
-//             }
-//           }
-//         },
-//         headers: [],
-//         queryParams: [],
-//         contentType: 'application/json',
-//         formData: [],
-//         auth: { type: '', credentials: {} },
-//       },
-//     ],
-//   };
-// }
-
-// // function convertRAMLToCollection(raml: any): Collection {
-// //   return {
-// //     name: raml.title || 'Imported RAML',
-// //     requests: [
-// //       {
-// //         id: crypto.randomUUID(),
-// //         name: 'Sample RAML Request',
-// //         method: 'GET',
-// //         url: '/',
-// //         body: undefined,
-// //         headers: [],
-// //         queryParams: [],
-// //         contentType: '',
-// //         formData: [],
-// //         auth: { type: '', credentials: {} },
-// //       },
-// //     ],
-// //   };
-// // }
-
 function convertRAMLToCollection(raml: any): Collection {
   const requests: APIRequest[] = [];
   const baseUri = raml.baseUri || "";
-
+ 
   Object.entries(raml).forEach(([key, value]: [string, any]) => {
     if (key.startsWith("/")) {
       // This is a resource path
@@ -445,7 +495,7 @@ function convertRAMLToCollection(raml: any): Collection {
       });
     }
   });
-
+ 
   return {
     name: raml.title || "Imported RAML",
     requests: requests.length
@@ -467,132 +517,6 @@ function convertRAMLToCollection(raml: any): Collection {
   };
 }
 
-// New functions
-function convertOpenAPIToCollection(openapi: any): Collection {
-  const requests: APIRequest[] = [];
-
-  Object.entries(openapi.paths || {}).forEach(([path, methods]: any) => {
-    Object.entries(methods).forEach(([method, detail]: any) => {
-      if (
-        !["get", "post", "put", "delete", "patch", "options", "head"].includes(
-          method
-        )
-      )
-        return;
-
-      // Extract headers
-      const headers = (detail.parameters || [])
-        .filter((param: any) => param.in === "header")
-        .map((param: any) => ({
-          id: crypto.randomUUID(),
-          key: param.name,
-          value: param.example || param.default || "",
-        }));
-
-      // Extract query parameters
-      const queryParams = (detail.parameters || [])
-        .filter((param: any) => param.in === "query")
-        .map((param: any) => ({
-          key: param.name,
-          value: param.example || param.default || "",
-        }));
-
-      // Extract request body (prefer application/json)
-      let body;
-      const content = detail.requestBody?.content;
-      if (content) {
-        if (content["application/json"]) {
-          body = {
-            mode: "raw" as const,
-            raw: JSON.stringify(
-              content["application/json"].example ||
-                content["application/json"].examples?.[0]?.value ||
-                {},
-              null,
-              2
-            ),
-            options: {
-              raw: {
-                language: "json" as const,
-              },
-            },
-          };
-        } else if (content["application/x-www-form-urlencoded"]) {
-          body = {
-            mode: "urlencoded" as const,
-            urlencoded: Object.entries(
-              content["application/x-www-form-urlencoded"].schema?.properties ||
-                {}
-            ).map(([key, prop]: any) => ({
-              key,
-              value: prop.example || "",
-              type: "text",
-            })),
-          };
-        }
-      }
-
-      requests.push({
-        id: crypto.randomUUID(),
-        name: detail.summary || `${method.toUpperCase()} ${path}`,
-        method: method.toUpperCase() as "GET" | "POST" | "PUT" | "DELETE",
-        url: path,
-        body,
-        headers,
-        queryParams,
-        contentType: content ? Object.keys(content)[0] : "",
-        formData: [],
-        auth: { type: "", credentials: {} },
-      });
-    });
-  });
-
-  return {
-    name: openapi.info?.title || "Imported OpenAPI",
-    requests,
-  };
-}
-
-function convertGraphQLToCollection(source: any): Collection {
-  // If you want to extract queries/mutations, use a GraphQL parser here.
-  // For now, just provide a default query and endpoint.
-  return {
-    name: source?.info?.title || "Imported GraphQL",
-    requests: [
-      {
-        id: crypto.randomUUID(),
-        name: "GraphQL Query",
-        method: "POST",
-        url: source?.servers?.[0]?.url || "/graphql",
-        body: {
-          mode: "raw" as const,
-          raw: JSON.stringify(
-            { query: "{ __schema { types { name } } }" },
-            null,
-            2
-          ),
-          options: {
-            raw: {
-              language: "json" as const,
-            },
-          },
-        },
-        headers: [
-          {
-            id: crypto.randomUUID(),
-            key: "Content-Type",
-            value: "application/json",
-          },
-        ],
-        queryParams: [],
-        contentType: "application/json",
-        formData: [],
-        auth: { type: "", credentials: {} },
-      },
-    ],
-  };
-}
-
 function extractRequestsFromItems(items: any[]): APIRequest[] {
   const requests: APIRequest[] = [];
 
@@ -602,7 +526,7 @@ function extractRequestsFromItems(items: any[]): APIRequest[] {
     } else if (item.request) {
       const url =
         typeof item.request.url === "string"
-          ? item.request.url
+        ? item.request.url
           : item.request.url?.raw || "";
 
       const authObj = item.request.auth || {};
@@ -649,7 +573,7 @@ function extractRequestsFromItems(items: any[]): APIRequest[] {
               options: {
                 raw: {
                   language: (item.request.body.options?.raw?.language ||
-                    "text") as "json" | "text" | "html" | "xml",
+                    "text") as "json" | "text" | "html" | "xml" | "javascript",
                 },
               },
             };
@@ -670,7 +594,7 @@ function extractRequestsFromItems(items: any[]): APIRequest[] {
         name: item.name || "Postman Request",
         method: item.request.method || "GET",
         url,
-        body,
+        body: body as RequestBody,
         headers,
         queryParams: [],
         contentType:
@@ -697,23 +621,4 @@ function convertPostmanToCollection(postman: any): Collection {
     name: postman.info?.name || "Imported Postman Collection",
     requests,
   };
-}
-
-function convertYAMLToCollection(yamlObj: any): Collection {
-  // Try OpenAPI
-  if (yamlObj.openapi && yamlObj.paths) {
-    return convertOpenAPIToCollection(yamlObj);
-  }
-  // Try RAML
-  if (yamlObj.title && yamlObj.baseUri) {
-    return convertRAMLToCollection(yamlObj);
-  }
-  throw new Error("Unsupported YAML API format");
-}
-
-/**
- * Alias for convertYAMLToCollection, for .yml files.
- */
-function convertYMLToCollection(ymlObj: any): Collection {
-  return convertYAMLToCollection(ymlObj);
 }
