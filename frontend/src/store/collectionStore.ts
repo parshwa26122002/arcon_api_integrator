@@ -23,11 +23,13 @@ export interface FormDataItem {
   value: string;
   type: 'text' | 'file';
   src?: string;
+  isSelected?: boolean;
 }
 
 export interface UrlEncodedItem {
   key: string;
   value: string;
+  isSelected?: boolean;
 }
 
 export interface RawBody {

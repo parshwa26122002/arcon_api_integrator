@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { v4 as uuid } from 'uuid';
+import { FiTrash2 } from 'react-icons/fi';
 import { type QueryParam } from '../../store/collectionStore';
 
 interface QueryParamsProps {
@@ -76,6 +77,28 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   accent-color: #7d4acf;
 `;
 
+const DeleteButton = styled.button`
+  visibility: hidden;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+
+  ${TableRow}:hover & {
+    visibility: visible;
+  }
+
+  &:hover {
+    background-color: #4a4a4a;
+    color: #e1e1e1;
+  }
+`;
+
 const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChange }) => {
   // Initialize params array with at least one empty row
   let params = initialParams.length > 0 ? initialParams : [{
@@ -132,6 +155,23 @@ const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChan
     onChange(updatedParams);
   };
 
+  const handleDeleteParam = (id: string) => {
+    let updatedParams = params.filter(param => param.id !== id);
+    
+    // Ensure there's always at least one row
+    if (updatedParams.length === 0) {
+      updatedParams = [{
+        id: uuid(),
+        key: '',
+        value: '',
+        description: '',
+        isSelected: false
+      }];
+    }
+
+    onChange(updatedParams);
+  };
+
   return (
     <Container>
       <Title>Query Parameters</Title>
@@ -146,6 +186,7 @@ const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChan
           <TableHeader>Key</TableHeader>
           <TableHeader>Value</TableHeader>
           <TableHeader>Description</TableHeader>
+          <TableHeader></TableHeader>
         </TableRow>
         {params.map((param) => (
           <TableRow key={param.id}>
@@ -178,6 +219,14 @@ const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChan
                 onChange={(e) => handleParamChange(param.id, 'description', e.target.value)}
                 placeholder="Parameter description"
               />
+            </TableCell>
+            <TableCell>
+              <DeleteButton 
+                onClick={() => handleDeleteParam(param.id)}
+                title="Delete parameter"
+              >
+                <FiTrash2 />
+              </DeleteButton>
             </TableCell>
           </TableRow>
         ))}

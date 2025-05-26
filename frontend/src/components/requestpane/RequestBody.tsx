@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import Editor from '@monaco-editor/react';
-import { FiFile } from 'react-icons/fi';
+import { FiFile, FiTrash2 } from 'react-icons/fi';
 import { useCollectionStore } from '../../store/collectionStore';
 import type { 
   RequestBody,
@@ -15,15 +15,15 @@ interface RequestBodyProps {
 }
 
 const Container = styled.div`
-  padding: 0.5rem;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 16px;
   height: 100%;
 `;
 
 const Select = styled.select`
-  padding: 0.35rem 0.5rem;
+  padding: 6px 8px;
   width: 150px;
   border: 1px solid #4a4a4a;
   border-radius: 4px;
@@ -45,42 +45,66 @@ const FileInput = styled.input`
 const FileButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.5rem;
-  background-color: #383838;
+  gap: 8px;
+  padding: 6px 8px;
+  background-color: #2d2d2d;
   border: 1px solid #4a4a4a;
   border-radius: 4px;
   cursor: pointer;
   color: #e1e1e1;
   font-size: 12px;
+  width: 100%;
   
   &:hover {
-    background-color: #404040;
-  }
-`;
-
-const KeyValueRow = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
-  align-items: center;
-
-  &:last-child {
-    margin-bottom: 0;
+    background-color: #333333;
   }
 `;
 
 const FormContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.5rem;
+  gap: 16px;
+`;
+
+const Table = styled.div`
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const TableRow = styled.div`
+  display: table-row;
+  &:hover {
+    background-color: #333333;
+  }
+`;
+
+const TableHeader = styled.div`
+  display: table-cell;
+  padding: 8px;
+  font-weight: 600;
+  color: #e1e1e1;
+  border-bottom: 1px solid #4a4a4a;
+  font-size: 12px;
+`;
+
+const TableCell = styled.div`
+  display: table-cell;
+  padding: 8px;
+  border-bottom: 1px solid #4a4a4a;
+  vertical-align: middle;
+  width: 50%;
+`;
+
+const CheckboxCell = styled(TableCell)`
+  width: 40px;
+  text-align: center;
 `;
 
 const KeyContainer = styled.div`
   display: flex;
   align-items: stretch;
-  width: 200px;
+  width: 100%;
 `;
 
 interface StyledInputProps {
@@ -88,17 +112,17 @@ interface StyledInputProps {
 }
 
 const Input = styled.input<StyledInputProps>`
-  padding: 0.4rem 0.6rem;
-  background-color: #383838;
+  width: 100%;
+  padding: 6px 8px;
+  background-color: #2d2d2d;
   border: 1px solid #4a4a4a;
   border-radius: ${props => props.$isKeyInput ? '4px 0 0 4px' : '4px'};
   color: #e1e1e1;
   font-size: 12px;
-  width: ${props => props.$isKeyInput ? '150px' : '200px'};
 
   &:focus {
     outline: none;
-    border-color: #7d4acf;
+    border-color: #6a6a6a;
   }
 
   &::placeholder {
@@ -107,38 +131,19 @@ const Input = styled.input<StyledInputProps>`
 `;
 
 const TypeSelect = styled.select`
-  padding: 0.4rem;
-  background-color: #383838;
+  padding: 6px 8px;
+  background-color: #2d2d2d;
   border: 1px solid #4a4a4a;
   border-left: none;
   border-radius: 0 4px 4px 0;
   color: #e1e1e1;
   font-size: 12px;
-  width: 50px;
+  width: 80px;
   cursor: pointer;
 
   &:focus {
     outline: none;
-    border-color: #7d4acf;
-  }
-`;
-
-const AddButton = styled.button`
-  padding: 0.35rem 0.75rem;
-  background-color: #7d4acf;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &:hover {
-    background-color: #6a3eb2;
+    border-color: #6a6a6a;
   }
 `;
 
@@ -170,13 +175,13 @@ const FileDisplay = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  background-color: #383838;
+  padding: 6px 8px;
+  background-color: #2d2d2d;
   border: 1px solid #4a4a4a;
   border-radius: 4px;
   color: #e1e1e1;
   font-size: 12px;
-  max-width: 100%;
+  width: 100%;
 `;
 
 const FileNameText = styled.span`
@@ -203,6 +208,35 @@ const DeleteFileButton = styled.button`
   
   &:hover {
     color: #ff4444;
+  }
+`;
+
+const Checkbox = styled.input.attrs({ type: 'checkbox' })`
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #7d4acf;
+`;
+
+const DeleteButton = styled.button`
+  visibility: hidden;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+
+  ${TableRow}:hover & {
+    visibility: visible;
+  }
+
+  &:hover {
+    background-color: #4a4a4a;
+    color: #e1e1e1;
   }
 `;
 
@@ -236,10 +270,10 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         newBody.options = { raw: { language: 'json' } };
         break;  
       case 'form-data':
-        newBody.formData = [{ key: '', value: '', type: 'text' }];
+        newBody.formData = [{ key: '', value: '', type: 'text', isSelected: false }];
         break;
       case 'urlencoded':
-        newBody.urlencoded = [{ key: '', value: '' }];
+        newBody.urlencoded = [{ key: '', value: '', isSelected: false }];
         break;
       case 'file':
         newBody.file = { name: '', content: '', src: '' };
@@ -257,13 +291,20 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const createEmptyFormDataItem = (): FormDataItem => ({
     key: '',
     value: '',
-    type: 'text'
+    type: 'text',
+    isSelected: false
+  });
+
+  const createEmptyUrlEncodedItem = (): UrlEncodedItem => ({
+    key: '',
+    value: '',
+    isSelected: false
   });
 
   const handleFormDataChange = (
     index: number,
-    field: 'key' | 'value' | 'type',
-    value: string
+    field: 'key' | 'value' | 'type' | 'isSelected',
+    value: string | boolean
   ) => {
     const existingFormData = body.formData || [];
     const newFormData: FormDataItem[] = [];
@@ -281,8 +322,12 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     // Update the target item
     if (field === 'type') {
       newFormData[index].type = value === 'file' ? 'file' : 'text';
+    } else if (field === 'isSelected') {
+      newFormData[index].isSelected = value as boolean;
     } else {
-      newFormData[index][field] = value;
+      newFormData[index][field] = value as string;
+      // Auto-select when content is added
+      newFormData[index].isSelected = Boolean(newFormData[index].key || newFormData[index].value);
     }
 
     // Add new empty item if needed
@@ -296,6 +341,138 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     const newBody: RequestBody = {
       ...body,
       formData: newFormData
+    };
+
+    setLocalBody(newBody);
+    onChange(newBody);
+
+    if (activeCollectionId && activeRequestId) {
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+    }
+  };
+
+  const handleUrlEncodedChange = (
+    index: number,
+    field: 'key' | 'value' | 'isSelected',
+    value: string | boolean
+  ) => {
+    const existingUrlEncoded = body.urlencoded || [];
+    const newUrlEncoded: UrlEncodedItem[] = [];
+
+    // Copy existing items
+    for (let i = 0; i < existingUrlEncoded.length; i++) {
+      newUrlEncoded[i] = {...existingUrlEncoded[i]};
+    }
+
+    // Ensure the target index exists
+    while (newUrlEncoded.length <= index) {
+      newUrlEncoded.push(createEmptyUrlEncodedItem());
+    }
+
+    // Update the target item
+    if (field === 'isSelected') {
+      newUrlEncoded[index].isSelected = value as boolean;
+    } else {
+      newUrlEncoded[index][field] = value as string;
+      // Auto-select when content is added
+      newUrlEncoded[index].isSelected = Boolean(newUrlEncoded[index].key || newUrlEncoded[index].value);
+    }
+
+    // Add new empty item if needed
+    if (
+      index === newUrlEncoded.length - 1 &&
+      (newUrlEncoded[index].key || newUrlEncoded[index].value)
+    ) {
+      newUrlEncoded.push(createEmptyUrlEncodedItem());
+    }
+
+    const newBody: RequestBody = {
+      ...body,
+      urlencoded: newUrlEncoded
+    };
+
+    setLocalBody(newBody);
+    onChange(newBody);
+
+    if (activeCollectionId && activeRequestId) {
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+    }
+  };
+
+  const handleDeleteFormDataItem = (index: number) => {
+    const formData = body.formData || [];
+    let newFormData = formData.filter((_, i) => i !== index);
+
+    // Ensure there's always at least one row
+    if (newFormData.length === 0) {
+      newFormData = [createEmptyFormDataItem()];
+    }
+
+    const newBody: RequestBody = {
+      ...body,
+      formData: newFormData
+    };
+
+    setLocalBody(newBody);
+    onChange(newBody);
+
+    if (activeCollectionId && activeRequestId) {
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+    }
+  };
+
+  const handleDeleteUrlEncodedItem = (index: number) => {
+    const urlencoded = body.urlencoded || [];
+    let newUrlEncoded = urlencoded.filter((_, i) => i !== index);
+
+    // Ensure there's always at least one row
+    if (newUrlEncoded.length === 0) {
+      newUrlEncoded = [createEmptyUrlEncodedItem()];
+    }
+
+    const newBody: RequestBody = {
+      ...body,
+      urlencoded: newUrlEncoded
+    };
+
+    setLocalBody(newBody);
+    onChange(newBody);
+
+    if (activeCollectionId && activeRequestId) {
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+    }
+  };
+
+  const handleSelectAllFormData = (checked: boolean) => {
+    const formData = body.formData || [];
+    const newFormData = formData.map(item => ({
+      ...item,
+      isSelected: checked
+    }));
+
+    const newBody: RequestBody = {
+      ...body,
+      formData: newFormData
+    };
+
+    setLocalBody(newBody);
+    onChange(newBody);
+
+    if (activeCollectionId && activeRequestId) {
+      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+    }
+  };
+
+  const handleSelectAllUrlEncoded = (checked: boolean) => {
+    const urlencoded = body.urlencoded || [];
+    const newUrlEncoded = urlencoded.map(item => ({
+      ...item,
+      isSelected: checked
+    }));
+
+    const newBody: RequestBody = {
+      ...body,
+      urlencoded: newUrlEncoded
     };
 
     setLocalBody(newBody);
@@ -374,83 +551,157 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   };
 
   const renderFormData = () => {
-    const formData = body.formData || [];
+    const formData = body.formData || [createEmptyFormDataItem()];
     
     return (
       <FormContainer>
-        {formData.map((item: FormDataItem, index: number) => (
-          <KeyValueRow key={index}>
-            <KeyContainer>
-              <Input
-                $isKeyInput
-                placeholder="Key"
-                value={item.key}
-                onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
+        <Table>
+          <TableRow>
+            <CheckboxCell>
+              <Checkbox
+                checked={formData.every(item => item.isSelected)}
+                onChange={(e) => handleSelectAllFormData(e.target.checked)}
               />
-              <TypeSelect
-                value={item.type}
-                onChange={(e) => handleFormDataChange(index, 'type', e.target.value)}
-              >
-                <option value="text">Text</option>
-                <option value="file">File</option>
-              </TypeSelect>
-            </KeyContainer>
-            {item.type === 'file' ? (
-              item.src ? (
-                <FileDisplay>
-                  <FileIcon />
-                  <FileNameText title={item.src}>{item.src}</FileNameText>
-                  <DeleteFileButton
-                    onClick={() => {
-                      const newFormData = [...formData];
-                      newFormData[index] = {
-                        ...newFormData[index],
-                        src: undefined,
-                        value: ''
-                      };
-                      const newBody: RequestBody = {
-                        ...body,
-                        formData: newFormData
-                      };
-                      setLocalBody(newBody);
-                      onChange(newBody);
-                      if (activeCollectionId && activeRequestId) {
-                        updateRequest(activeCollectionId, activeRequestId, { body: newBody });
-                      }
-                    }}
-                  >
-                    ×
-                  </DeleteFileButton>
-                </FileDisplay>
-              ) : (
-                <FileButton as="label" style={{ margin: 0 }}>
-                  <FiFile /> Choose File
-                  <FileInput
-                    type="file"
-                    onChange={handleFileChange}
+            </CheckboxCell>
+            <TableHeader>Key</TableHeader>
+            <TableHeader>Value</TableHeader>
+            <TableHeader style={{ width: '40px' }}></TableHeader>
+          </TableRow>
+          {formData.map((item: FormDataItem, index: number) => (
+            <TableRow key={index}>
+              <CheckboxCell>
+                <Checkbox
+                  checked={item.isSelected}
+                  onChange={(e) => handleFormDataChange(index, 'isSelected', e.target.checked)}
+                />
+              </CheckboxCell>
+              <TableCell>
+                <KeyContainer>
+                  <Input
+                    $isKeyInput
+                    placeholder="Key"
+                    value={item.key}
+                    onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
                   />
-                </FileButton>
-              )
-            ) : (
-              <Input
-                placeholder="Value"
-                value={item.value}
-                onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
+                  <TypeSelect
+                    value={item.type}
+                    onChange={(e) => handleFormDataChange(index, 'type', e.target.value)}
+                  >
+                    <option value="text">Text</option>
+                    <option value="file">File</option>
+                  </TypeSelect>
+                </KeyContainer>
+              </TableCell>
+              <TableCell>
+                {item.type === 'file' ? (
+                  item.src ? (
+                    <FileDisplay>
+                      <FileIcon />
+                      <FileNameText title={item.src}>{item.src}</FileNameText>
+                      <DeleteFileButton
+                        onClick={() => {
+                          const newFormData = [...formData];
+                          newFormData[index] = {
+                            ...newFormData[index],
+                            src: undefined,
+                            value: ''
+                          };
+                          const newBody: RequestBody = {
+                            ...body,
+                            formData: newFormData
+                          };
+                          setLocalBody(newBody);
+                          onChange(newBody);
+                          if (activeCollectionId && activeRequestId) {
+                            updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+                          }
+                        }}
+                      >
+                        ×
+                      </DeleteFileButton>
+                    </FileDisplay>
+                  ) : (
+                    <FileButton as="label" style={{ margin: 0 }}>
+                      <FiFile /> Choose File
+                      <FileInput
+                        type="file"
+                        onChange={handleFileChange}
+                      />
+                    </FileButton>
+                  )
+                ) : (
+                  <Input
+                    placeholder="Value"
+                    value={item.value}
+                    onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
+                  />
+                )}
+              </TableCell>
+              <TableCell style={{ width: '40px' }}>
+                <DeleteButton
+                  onClick={() => handleDeleteFormDataItem(index)}
+                  title="Delete item"
+                >
+                  <FiTrash2 />
+                </DeleteButton>
+              </TableCell>
+            </TableRow>
+          ))}
+        </Table>
+      </FormContainer>
+    );
+  };
+
+  const renderUrlEncoded = () => {
+    const urlencoded = body.urlencoded || [createEmptyUrlEncodedItem()];
+    
+    return (
+      <FormContainer>
+        <Table>
+          <TableRow>
+            <CheckboxCell>
+              <Checkbox
+                checked={urlencoded.every(item => item.isSelected)}
+                onChange={(e) => handleSelectAllUrlEncoded(e.target.checked)}
               />
-            )}
-          </KeyValueRow>
-        ))}
-        <AddButton onClick={() => {
-          const newFormData = [...formData, createEmptyFormDataItem()];
-          const newBody: RequestBody = { ...body, formData: newFormData };
-          setLocalBody(newBody);
-          onChange(newBody);
-          if (activeCollectionId && activeRequestId) {
-            updateRequest(activeCollectionId, activeRequestId, { body: newBody });
-          }
-        }}>
-          Add Row
-        </AddButton>
+            </CheckboxCell>
+            <TableHeader>Key</TableHeader>
+            <TableHeader>Value</TableHeader>
+            <TableHeader style={{ width: '40px' }}></TableHeader>
+          </TableRow>
+          {urlencoded.map((item: UrlEncodedItem, index: number) => (
+            <TableRow key={index}>
+              <CheckboxCell>
+                <Checkbox
+                  checked={item.isSelected}
+                  onChange={(e) => handleUrlEncodedChange(index, 'isSelected', e.target.checked)}
+                />
+              </CheckboxCell>
+              <TableCell>
+                <Input
+                  placeholder="Key"
+                  value={item.key}
+                  onChange={(e) => handleUrlEncodedChange(index, 'key', e.target.value)}
+                />
+              </TableCell>
+              <TableCell>
+                <Input
+                  placeholder="Value"
+                  value={item.value}
+                  onChange={(e) => handleUrlEncodedChange(index, 'value', e.target.value)}
+                />
+              </TableCell>
+              <TableCell style={{ width: '40px' }}>
+                <DeleteButton
+                  onClick={() => handleDeleteUrlEncodedItem(index)}
+                  title="Delete item"
+                >
+                  <FiTrash2 />
+                </DeleteButton>
+              </TableCell>
+            </TableRow>
+          ))}
+        </Table>
       </FormContainer>
     );
   };
@@ -510,59 +761,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         );
 
       case 'urlencoded':
-        return (
-          <FormContainer>
-            {Array.isArray(body.urlencoded) && body.urlencoded.map((item: UrlEncodedItem, index: number) => (
-              <KeyValueRow key={index}>
-                <Input
-                  placeholder="Key"
-                  value={item.key}
-                  onChange={(e) => {
-                    const newUrlencoded = [...(body.urlencoded || [])];
-                    newUrlencoded[index] = { ...item, key: e.target.value };
-                    const newBody: RequestBody = {
-                      ...body,
-                      urlencoded: newUrlencoded
-                    };
-                    setLocalBody(newBody);
-                    onChange(newBody);
-                    if (activeCollectionId && activeRequestId) {
-                      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
-                    }
-                  }}
-                />
-                <Input
-                  placeholder="Value"
-                  value={item.value}
-                  onChange={(e) => {
-                    const newUrlencoded = [...(body.urlencoded || [])];
-                    newUrlencoded[index] = { ...item, value: e.target.value };
-                    const newBody: RequestBody = {
-                      ...body,
-                      urlencoded: newUrlencoded
-                    };
-                    setLocalBody(newBody);
-                    onChange(newBody);
-                    if (activeCollectionId && activeRequestId) {
-                      updateRequest(activeCollectionId, activeRequestId, { body: newBody });
-                    }
-                  }}
-                />
-              </KeyValueRow>
-            ))}
-            <AddButton onClick={() => {
-              const newUrlencoded = [...(body.urlencoded || []), { key: '', value: '' }];
-              const newBody: RequestBody = { ...body, urlencoded: newUrlencoded };
-              setLocalBody(newBody);
-              onChange(newBody);
-              if (activeCollectionId && activeRequestId) {
-                updateRequest(activeCollectionId, activeRequestId, { body: newBody });
-              }
-            }}>
-              Add Row
-            </AddButton>
-          </FormContainer>
-        );
+        return renderUrlEncoded();
 
       default:
         return null;
