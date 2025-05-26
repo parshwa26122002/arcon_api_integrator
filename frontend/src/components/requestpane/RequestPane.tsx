@@ -156,8 +156,15 @@ interface RequestPaneProps {
 }
 
 const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) => {
+  // const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
+  // const activeRequestId = useCollectionStore(state => state.activeRequestId);
+  // const updateRequest = useCollectionStore(state => state.updateRequest);
+  const request = useCollectionStore(state => {
+    const collection = state.collections.find(c => c.id === state.activeCollectionId);
+    return collection?.requests.find(r => r.id === state.activeRequestId) || null;
+  });
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
-  const [response] = useState<string>('// Response will appear here');
+  const [response, setResponse] = useState<string>('// Response will appear here');
 
   const updateRequest = useCollectionStore(state => state.updateRequest);
 
@@ -185,9 +192,174 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     }
   }, [tabState, onStateChange, updateRequest]);
 
-  const handleSend = useCallback(() => {
-    // Implementation for sending request
-  }, []);
+  const handleSend = async () => {
+    if (!request) return;
+
+    if (!request.url) {
+      setResponse('Error: Please enter a URL');
+      return;
+    }
+
+    try {
+      // Prepare request body and determine content type
+      let bodyToSend = undefined;
+      let contentTypeHeader = request.contentType;
+
+      if (request.body) {
+        switch (request.body.mode) {
+          case 'raw':
+            bodyToSend = request.body.raw;
+            // Set content type based on raw body language
+            if (request.body.options?.raw?.language === 'json') {
+              contentTypeHeader = 'application/json';
+            } else if (request.body.options?.raw?.language === 'xml') {
+              contentTypeHeader = 'application/xml';
+            } else if (request.body.options?.raw?.language === 'html') {
+              contentTypeHeader = 'text/html';
+            } else {
+              contentTypeHeader = 'text/plain';
+            }
+            break;
+          case 'form-data':
+            const formData = new FormData();
+            request.body.formData?.forEach(item => {
+              if (item.key && item.value) {
+                formData.append(item.key, item.value);
+              }
+            });
+            bodyToSend = formData;
+            // Don't set Content-Type for FormData, browser will set it automatically with boundary
+            contentTypeHeader = '';  // Use empty string instead of undefined
+            break;
+          case 'urlencoded':
+            const params = new URLSearchParams();
+            request.body.urlencoded?.forEach(item => {
+              if (item.key && item.value) {
+                params.append(item.key, item.value);
+              }
+            });
+            bodyToSend = params.toString();
+            contentTypeHeader = 'application/x-www-form-urlencoded';
+            break;
+        }
+      }
+
+      // Initialize headers object
+      const headers: Record<string, string> = {};
+
+      // Add authorization headers based on auth type
+      if (request.auth.type === 'basic') {
+        const { username, password } = request.auth.credentials;
+        if (username && password) {
+          const base64Credentials = btoa(`${username}:${password}`);
+          headers['Authorization'] = `Basic ${base64Credentials}`;
+        }
+      } else if (request.auth.type === 'bearer') {
+        const { token } = request.auth.credentials;
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } else if (request.auth.type === 'apiKey') {
+        const { key, value } = request.auth.credentials;
+        if (key && value) {
+          headers[key] = value;
+        }
+      }
+
+      // Add custom headers from the Headers tab
+      request.headers.forEach(header => {
+        if (header.key && header.value) {
+          headers[header.key] = header.value;
+        }
+      });
+
+      // Set content type if not already set and we have a content type to set
+      if (!headers['Content-Type'] && contentTypeHeader) {
+        headers['Content-Type'] = contentTypeHeader;
+      }
+
+      // Build URL with query parameters
+      let finalUrl: URL;
+      try {
+        finalUrl = new URL(request.url);
+        request.queryParams.forEach(param => {
+          if (param.key) {
+            finalUrl.searchParams.append(param.key, param.value || '');
+          }
+        });
+      } catch (error) {
+        setResponse(`Error: Invalid URL - ${request.url}`);
+        return;
+      }
+
+      console.log('Sending request through proxy:', {
+        url: finalUrl.toString(),
+        method: request.method,
+        headers,
+        body: bodyToSend
+      });
+
+      // Prepare the proxy request body
+      let proxyBody: any = {
+        url: finalUrl.toString(),
+        method: request.method,
+        headers,
+      };
+
+      // Only add body if it exists and method is not GET
+      if (bodyToSend !== undefined && request.method !== 'GET') {
+        if (bodyToSend instanceof FormData) {
+          // Convert FormData to an object
+          const formDataObj: Record<string, string> = {};
+          bodyToSend.forEach((value, key) => {
+            formDataObj[key] = value.toString();
+          });
+          proxyBody.body = formDataObj;
+        } else {
+          proxyBody.body = bodyToSend;
+        }
+      }
+
+      // Make the request through the proxy
+      const response = await fetch('http://localhost:4000/api/proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept-Encoding': 'identity'
+        },
+        body: JSON.stringify(proxyBody)
+      });
+
+      // Handle different response types
+      try {
+        const contentType = response.headers.get('content-type');
+        const responseText = await response.text();
+        
+        if (contentType?.includes('application/json')) {
+          try {
+            const jsonData = JSON.parse(responseText);
+            setResponse(JSON.stringify(jsonData, null, 2));
+          } catch {
+            setResponse(responseText);
+          }
+        } else {
+          setResponse(responseText);
+        }
+
+        console.log('Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+      } catch (error) {
+        console.error('Failed to process response:', error);
+        setResponse(`Error: ${(error as Error).message}`);
+      }
+    } catch (error) {
+      console.error('Request failed:', error);
+      setResponse(`Error: ${(error as Error).message}`);
+    }
+  };
 
   const renderTabContent = useMemo(() => {
     switch (activeTab) {

@@ -91,6 +91,15 @@ const Input = styled.input`
 const OAuth2Form: React.FC = () => {
   const [grantType, setGrantType] = useState<OAuthGrantType>('password');
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  // const [callbackUrl, setCallbackUrl] = useState('');
+  // const [authCode, setAuthCode] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const [accessTokenUrl, setAccessTokenUrl] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [scope, setScope] = useState('');
+  const [state, setState] = useState('');
+
 
   const togglePasswordVisibility = (field: string) => {
     setShowPasswords(prev => ({
@@ -99,9 +108,62 @@ const OAuth2Form: React.FC = () => {
     }));
   };
 
+  // Step 1: Redirect user to authorization URL
   const handleGetToken = () => {
+    if (!clientId || !scope) {
+      alert('Please fill Callback URL, Client ID, and Scope');
+      return;
+    }
+    const params = new URLSearchParams({
+      redirect_uri: 'http://localhost:5173',
+      response_type: 'token',
+      client_id: clientId,
+      scope,
+      include_granted_scopes: 'true',
+      state
+    });
+    window.location.href = `${accessTokenUrl}?${params.toString()}`;
     console.log('Getting access token for grant type:', grantType);
   };
+
+  // Step 2: After redirect, extract code from URL
+  React.useEffect(() => {
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const token = params.get('access_token');
+      if (token) {
+        setAccessToken(token);
+        window.history.replaceState({}, document.title, window.location.pathname); // Clean up URL
+      }
+    }
+  }, []);
+
+  // Step 3: Exchange code for access token
+  // const fetchAccessToken = async () => {
+  //   if (!accessTokenUrl || !clientId || !clientSecret || !callbackUrl || !authCode) {
+  //     alert('Please fill all fields and get the authorization code first.');
+  //     return;
+  //   }
+  //   try {
+  //     const res = await fetch(accessTokenUrl, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  //       body: new URLSearchParams({
+  //         grant_type: 'authorization_code',
+  //         code: authCode,
+  //         redirect_uri: callbackUrl,
+  //         client_id: clientId,
+  //         client_secret: clientSecret,
+  //       })
+  //     });
+  //     const data = await res.json();
+  //     if (data.access_token) setAccessToken(data.access_token);
+  //     else alert('Failed to get access token: ' + JSON.stringify(data));
+  //   } catch (err) {
+  //     alert('Error fetching access token: ' + err);
+  //   }
+  // };
 
   const renderGrantTypeFields = () => {
     switch (grantType) {
@@ -193,40 +255,21 @@ const OAuth2Form: React.FC = () => {
       case 'code':
         return (
           <>
-            <FormGroup>
+            {/* <FormGroup>
               <Label>Callback URL</Label>
               <Input type="text" placeholder="http://localhost:8080/callback" />
-            </FormGroup>
+            </FormGroup> */}
             <FormGroup>
               <Label>Authorization URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/authorize" />
+              <Input type="text" placeholder="https://api.example.com/oauth/authorize" value={accessTokenUrl} onChange={e => setAccessTokenUrl(e.target.value)}/>
             </FormGroup>
-            <FormGroup>
+            {/* <FormGroup>
               <Label>Access Token URL</Label>
               <Input type="text" placeholder="https://api.example.com/oauth/token" />
-            </FormGroup>
-            <FormGroup>
-              <Label>Username</Label>
-              <Input type="text" placeholder="Enter username" />
-            </FormGroup>
-            <FormGroup>
-              <Label>Password</Label>
-              <InputWrapper>
-                <Input
-                  type={showPasswords.password ? 'text' : 'password'}
-                  placeholder="Enter password"
-                />
-                <ToggleButton
-                  onClick={() => togglePasswordVisibility('password')}
-                  type="button"
-                >
-                  {showPasswords.password ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                </ToggleButton>
-              </InputWrapper>
-            </FormGroup>
+            </FormGroup> */}
             <FormGroup>
               <Label>Client ID</Label>
-              <Input type="text" placeholder="Enter client ID" />
+              <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => setClientId(e.target.value)}/>
             </FormGroup>
             <FormGroup>
               <Label>Client Secret</Label>
@@ -234,6 +277,7 @@ const OAuth2Form: React.FC = () => {
                 <Input
                   type={showPasswords.clientSecret ? 'text' : 'password'}
                   placeholder="Enter client secret"
+                  value={clientSecret} onChange={e => setClientSecret(e.target.value)}
                 />
                 <ToggleButton
                   onClick={() => togglePasswordVisibility('clientSecret')}
@@ -245,11 +289,11 @@ const OAuth2Form: React.FC = () => {
             </FormGroup>
             <FormGroup>
               <Label>Scope</Label>
-              <Input type="text" placeholder="Enter scope (optional)" />
+              <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => setScope(e.target.value)}/>
             </FormGroup>
             <FormGroup>
               <Label>State</Label>
-              <Input type="text" placeholder="Enter state" />
+              <Input type="text" placeholder="Enter state"value={state} onChange={e => setState(e.target.value)} />
             </FormGroup>
           </>
         );
@@ -273,6 +317,12 @@ const OAuth2Form: React.FC = () => {
       <GetTokenButton onClick={handleGetToken}>
         Get Access Token
       </GetTokenButton>
+      {accessToken && (
+        <div style={{ marginTop: 12 }}>
+          <strong>Access Token:</strong>
+          <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
+        </div>
+      )}
     </>
   );
 };
