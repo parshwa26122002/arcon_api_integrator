@@ -183,6 +183,14 @@ const RequestPane: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
   const [response, setResponse] = useState<string>('// Response will appear here');
+  const [callbackUrl, setCallbackUrl] = useState('');
+  const [accessTokenUrl, setAccessTokenUrl] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [scope, setScope] = useState('');
+  const [state, setState] = useState('');
+  const [authCode, setAuthCode] = useState('');
+  const [accessToken, setAccessToken] = useState('');
 
   const handleMethodChange = (e: ChangeEvent<HTMLSelectElement>) => {
     if (activeCollectionId && activeRequestId) {
@@ -369,6 +377,62 @@ const RequestPane: React.FC = () => {
     }
   };
 
+  // Step 1: Redirect user to authorization URL
+  const getAuthorizationCode = () => {
+    if (!callbackUrl || !clientId || !scope) {
+      alert('Please fill Callback URL, Client ID, and Scope');
+      return;
+    }
+    const params = new URLSearchParams({
+      response_type: 'token',
+      client_id: clientId,
+      redirect_uri: callbackUrl,
+      scope,
+      include_granted_scopes: 'true',
+      state
+    });
+    window.location.href = `${accessTokenUrl}?${params.toString()}`;
+  };
+
+  // Step 2: After redirect, extract code from URL
+  React.useEffect(() => {
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const token = params.get('access_token');
+      if (token) {
+        setAccessToken(token);
+        window.history.replaceState({}, document.title, window.location.pathname); // Clean up URL
+      }
+    }
+  }, []);
+
+  // Step 3: Exchange code for access token
+  // const fetchAccessToken = async () => {
+  //   if (!accessTokenUrl || !clientId || !clientSecret || !callbackUrl || !authCode) {
+  //     alert('Please fill all fields and get the authorization code first.');
+  //     return;
+  //   }
+  //   try {
+  //     const res = await fetch(accessTokenUrl, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  //       body: new URLSearchParams({
+  //         grant_type: 'authorization_code',
+  //         code: authCode,
+  //         redirect_uri: callbackUrl,
+  //         client_id: clientId,
+  //         client_secret: clientSecret,
+  //       })
+  //     });
+  //     const data = await res.json();
+  //     if (data.access_token) setAccessToken(data.access_token);
+  //     else alert('Failed to get access token: ' + JSON.stringify(data));
+  //   } catch (err) {
+  //     alert('Error fetching access token: ' + err);
+  //   }
+  // };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'params':
@@ -440,7 +504,31 @@ const RequestPane: React.FC = () => {
             </Tab>
           </TabList>
           <TabContent>
-            {renderTabContent()}
+            {activeTab === 'auth' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 500 }}>
+                <input type="text" placeholder="Callback URL" value={callbackUrl} onChange={e => setCallbackUrl(e.target.value)} />
+                <input type="text" placeholder="Authorization/Access Token URL" value={accessTokenUrl} onChange={e => setAccessTokenUrl(e.target.value)} />
+                <input type="text" placeholder="Client ID" value={clientId} onChange={e => setClientId(e.target.value)} />
+                <input type="text" placeholder="Client Secret" value={clientSecret} onChange={e => setClientSecret(e.target.value)} />
+                <input type="text" placeholder="Scope" value={scope} onChange={e => setScope(e.target.value)} />
+                <input type="text" placeholder="State (optional)" value={state} onChange={e => setState(e.target.value)} />
+                <button onClick={getAuthorizationCode}>Get Authorization Code</button>
+                {/* {authCode && (
+                  <>
+                    <div>Authorization Code: <code>{authCode}</code></div>
+                    <button onClick={fetchAccessToken}>Exchange for Access Token</button>
+                  </>
+                )} */}
+                {accessToken && (
+                  <div style={{ marginTop: 12 }}>
+                    <strong>Access Token:</strong>
+                    <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              renderTabContent()
+            )}
           </TabContent>
         </RequestSection>
 
