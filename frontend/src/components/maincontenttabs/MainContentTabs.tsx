@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus } from 'react-icons/fi';
 import styled from 'styled-components';
 import RequestPane from '../requestpane/RequestPane';
+import CollectionPane from '../collectionpane/CollectionPane';
 import { AddButton } from '../../styled-component/AddButton';
 import { Tab } from '../../styled-component/Tab';
-import { useCollectionStore, type APIRequest, type TabState } from '../../store/collectionStore';
+import { useCollectionStore, type CollectionTabState, type RequestTabState } from '../../store/collectionStore';
 import { convertRequestBodyToTabBody, convertTabBodyToRequestBody } from '../../utils/requestUtils';
 
 interface TabBarWrapperProps {
@@ -74,23 +75,25 @@ const CloseIcon = styled.span`
 `;
 
 const MainContentTabs: React.FC = () => {
-  const [tabs, setTabs] = useState<TabState[]>([]);
+  const [tabs, setTabs] = useState<(RequestTabState | CollectionTabState)[]>([]);
   const [activeTab, setActiveTab] = useState<number | null>(null);
   const [tabCounter, setTabCounter] = useState(1);
 
   const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
   const activeRequestId = useCollectionStore(state => state.activeRequestId);
   const getActiveRequest = useCollectionStore(state => state.getActiveRequest);
+  const getActiveCollection = useCollectionStore(state => state.getActiveCollection);
   const updateRequest = useCollectionStore(state => state.updateRequest);
+  const updateCollection = useCollectionStore(state => state.updateCollection);
 
-  const createNewTab = (collectionId?: string, requestId?: string) => {
-    let newTab: TabState;
-
+  const createNewRequestTab = (collectionId?: string, requestId?: string) => {
+    let newTab: RequestTabState;
     if (collectionId && requestId) {
       const request = getActiveRequest();
       if (!request) return null;
       newTab = {
         id: tabCounter,
+        type: 'request',
         title: request.name || `New Request`,
         collectionId,
         requestId,
@@ -104,6 +107,7 @@ const MainContentTabs: React.FC = () => {
     } else {
       newTab = {
         id: tabCounter,
+        type: 'request',
         title: `New Request`,
         method: 'GET',
         url: '',
@@ -120,21 +124,55 @@ const MainContentTabs: React.FC = () => {
     return newTab;
   };
 
+  const createNewCollectionTab = (collectionId: string) => {
+    const collection = getActiveCollection();
+    if (!collection) return null;
+    
+    const newTab: CollectionTabState = {
+      id: tabCounter,
+      type: 'collection',
+      title: collection.name || 'New Collection',
+      collectionId,
+      description: collection.description || '',
+      auth: collection.auth || { type: 'none', credentials: {} },
+      variables: collection.variables || []
+    };
+
+    setTabs(prev => [...prev, newTab]);
+    setActiveTab(newTab.id);
+    setTabCounter(prev => prev + 1);
+    return newTab;
+  };
+
   useEffect(() => {
     if (activeCollectionId && activeRequestId) {
       const existingTab = tabs.find(
-        tab => tab.collectionId === activeCollectionId && tab.requestId === activeRequestId
+        tab => 
+          tab.type === 'request' &&
+          tab.collectionId === activeCollectionId && 
+          (tab as RequestTabState).requestId === activeRequestId
       );
       if (existingTab) {
         setActiveTab(existingTab.id);
       } else {
-        createNewTab(activeCollectionId, activeRequestId);
+        createNewRequestTab(activeCollectionId, activeRequestId);
+      }
+    } else if (activeCollectionId && !activeRequestId) {
+      const existingTab = tabs.find(
+        tab => 
+          tab.type === 'collection' &&
+          tab.collectionId === activeCollectionId
+      );
+      if (existingTab) {
+        setActiveTab(existingTab.id);
+      } else {
+        createNewCollectionTab(activeCollectionId);
       }
     }
   }, [activeCollectionId, activeRequestId]);
 
   const handleAddTab = () => {
-    createNewTab();
+    createNewRequestTab();
   };
 
   const handleTabClick = (id: number) => {
@@ -155,23 +193,40 @@ const MainContentTabs: React.FC = () => {
     });
   };
 
-  const handleTabStateChange = (tabId: number, newState: Partial<TabState>) => {
+  const handleTabStateChange = (tabId: number, newState: Partial<RequestTabState | CollectionTabState>) => {
     setTabs(prevTabs =>
       prevTabs.map(tab => {
         if (tab.id === tabId) {
-          const updatedTab = { ...tab, ...newState };
-          if (tab.collectionId && tab.requestId) {
-            const collectionUpdate: Partial<APIRequest> = {
-              method: newState.method,
-              url: newState.url,
-              queryParams: newState.queryParams,
-              headers: newState.headers,
-              auth: newState.auth,
-              body: newState.body ? convertTabBodyToRequestBody(newState.body) : undefined
-            };
-            updateRequest(tab.collectionId, tab.requestId, collectionUpdate);
+          if (tab.type === 'request') {
+            const requestTab = tab as RequestTabState;
+            const requestState = newState as Partial<RequestTabState>;
+            const updatedTab: RequestTabState = { ...requestTab, ...requestState };
+            
+            if (requestTab.collectionId && requestTab.requestId) {
+              updateRequest(requestTab.collectionId, requestTab.requestId, {
+                method: requestState.method,
+                url: requestState.url,
+                queryParams: requestState.queryParams,
+                headers: requestState.headers,
+                auth: requestState.auth,
+                body: requestState.body ? convertTabBodyToRequestBody(requestState.body) : undefined
+              });
+            }
+            return updatedTab;
+          } else if (tab.type === 'collection') {
+            const collectionTab = tab as CollectionTabState;
+            const collectionState = newState as Partial<CollectionTabState>;
+            const updatedTab: CollectionTabState = { ...collectionTab, ...collectionState };
+            
+            if (collectionTab.collectionId) {
+              updateCollection(collectionTab.collectionId, {
+                description: collectionState.description,
+                auth: collectionState.auth,
+                variables: collectionState.variables
+              });
+            }
+            return updatedTab;
           }
-          return updatedTab;
         }
         return tab;
       })
@@ -210,10 +265,17 @@ const MainContentTabs: React.FC = () => {
 
       <div className="flex-1 p-4 bg-white overflow-auto">
         {activeTab && getCurrentTab() ? (
-          <RequestPane
-            tabState={getCurrentTab()!}
-            onStateChange={(newState) => handleTabStateChange(activeTab, newState)}
-          />
+          getCurrentTab()?.type === 'request' ? (
+            <RequestPane
+              tabState={getCurrentTab() as RequestTabState}
+              onStateChange={(newState: Partial<RequestTabState>) => handleTabStateChange(activeTab, newState)}
+            />
+          ) : (
+            <CollectionPane
+              tabState={getCurrentTab() as CollectionTabState}
+              onStateChange={(newState: Partial<CollectionTabState>) => handleTabStateChange(activeTab, newState)}
+            />
+          )
         ) : (
           <div className="text-gray-500 text-lg">Create a new Request</div>
         )}

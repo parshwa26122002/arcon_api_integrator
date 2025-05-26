@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { v4 as uuid } from 'uuid';
+import { FiTrash2 } from 'react-icons/fi';
 import { type Header } from '../../store/collectionStore';
 
 interface HeadersProps {
@@ -76,6 +77,28 @@ const Input = styled.input`
   }
 `;
 
+const DeleteButton = styled.button`
+  visibility: hidden;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+
+  ${TableRow}:hover & {
+    visibility: visible;
+  }
+
+  &:hover {
+    background-color: #4a4a4a;
+    color: #e1e1e1;
+  }
+`;
+
 const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) => {
   // Initialize headers array with at least one empty row
   let headers = initialHeaders.length > 0 ? initialHeaders : [{
@@ -131,6 +154,23 @@ const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) 
     onChange(updatedHeaders);
   };
 
+  const handleDeleteHeader = (id: string) => {
+    let updatedHeaders = headers.filter(header => header.id !== id);
+    
+    // Ensure there's always at least one row
+    if (updatedHeaders.length === 0) {
+      updatedHeaders = [{
+        id: uuid(),
+        key: '',
+        value: '',
+        description: '',
+        isSelected: false
+      }];
+    }
+
+    onChange(updatedHeaders);
+  };
+
   return (
     <Container>
       <Title>Headers</Title>
@@ -145,6 +185,7 @@ const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) 
           <TableHeader>Key</TableHeader>
           <TableHeader>Value</TableHeader>
           <TableHeader>Description</TableHeader>
+          <TableHeader></TableHeader>
         </TableRow>
         {headers.map((header) => (
           <TableRow key={header.id}>
@@ -177,6 +218,14 @@ const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) 
                 onChange={(e) => handleHeaderChange(header.id, 'description', e.target.value)}
                 placeholder="Header description"
               />
+            </TableCell>
+            <TableCell>
+              <DeleteButton 
+                onClick={() => handleDeleteHeader(header.id)}
+                title="Delete header"
+              >
+                <FiTrash2 />
+              </DeleteButton>
             </TableCell>
           </TableRow>
         ))}

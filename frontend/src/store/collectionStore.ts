@@ -23,11 +23,13 @@ export interface FormDataItem {
   value: string;
   type: 'text' | 'file';
   src?: string;
+  isSelected?: boolean;
 }
 
 export interface UrlEncodedItem {
   key: string;
   value: string;
+  isSelected?: boolean;
 }
 
 export interface RawBody {
@@ -72,9 +74,20 @@ export interface APIRequest {
   auth: AuthState;
 }
 
+export interface Variable {
+  id: string;
+  name: string;
+  initialValue: string;
+  currentValue: string;
+  isSelected: boolean;
+}
+
 export interface APICollection {
   id: string;
   name: string;
+  description?: string;
+  auth?: AuthState;
+  variables?: Variable[];
   requests: APIRequest[];
 }
 
@@ -98,8 +111,9 @@ export type TabBodyType = {
   file?: { name: string; content: string };
 };
 
-export interface TabState {
+export interface RequestTabState {
   id: number;
+  type: 'request';
   title: string;
   collectionId?: string;
   requestId?: string;
@@ -109,6 +123,16 @@ export interface TabState {
   headers: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
   auth: { type: string; credentials: Record<string, string> };
   body: TabBodyType;
+}
+
+export interface CollectionTabState {
+  id: number;
+  type: 'collection';
+  title: string;
+  collectionId?: string;
+  description?: string;
+  auth?: { type: string; credentials: Record<string, string> };
+  variables?: Variable[];
 }
 
 interface CollectionStoreState {
@@ -127,6 +151,10 @@ interface CollectionStoreState {
     collectionId: string,
     requestId: string,
     updatedRequest: Partial<APIRequest>
+  ) => Promise<void>;
+  updateCollection: (
+    collectionId: string,
+    updates: Partial<Pick<APICollection, 'description' | 'auth' | 'variables'>>
   ) => Promise<void>;
   setActiveCollection: (id: string | null) => void;
   setActiveRequest: (id: string | null) => void;
@@ -252,6 +280,21 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     const collection = get().collections.find(c => c.id === collectionId);
     if (collection) {
       await storageService.saveCollection(collection);
+    }
+  },
+
+  updateCollection: async (collectionId, updates) => {
+    const state = get();
+    const collections = state.collections.map(collection => {
+      if (collection.id === collectionId) {
+        return { ...collection, ...updates };
+      }
+      return collection;
+    });
+    set({ collections });
+    const updatedCollection = collections.find(c => c.id === collectionId);
+    if (updatedCollection) {
+      await storageService.saveCollection(updatedCollection);
     }
   },
 
