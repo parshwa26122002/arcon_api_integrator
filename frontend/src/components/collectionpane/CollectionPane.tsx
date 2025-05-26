@@ -181,8 +181,7 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
       return [{
         id: crypto.randomUUID(),
         name: '',
-        initialValue: '',
-        currentValue: '',
+        varValue: '',
         isSelected: true
       }];
     }
@@ -196,27 +195,26 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
 
     // Check if the last row has any content
     const lastVariable = updatedVariables[updatedVariables.length - 1];
-    const isLastRowEmpty = !lastVariable.name && !lastVariable.initialValue && !lastVariable.currentValue;
+    const isLastRowEmpty = !lastVariable.name && !lastVariable.varValue;
     
     // If the last row has content, add a new empty row
     if (!isLastRowEmpty) {
       updatedVariables.push({
         id: crypto.randomUUID(),
         name: '',
-        initialValue: '',
-        currentValue: '',
+        varValue:'',
         isSelected: true
       });
     }
 
     // Remove empty rows except the last one
     const cleanedVariables = updatedVariables.filter((variable, index) => {
-      const isEmpty = !variable.name && !variable.initialValue && !variable.currentValue;
+      const isEmpty = !variable.name && !variable.varValue;
       return !isEmpty || index === updatedVariables.length - 1;
     });
 
     setVariables(cleanedVariables);
-    onStateChange({ variables: cleanedVariables.filter((v) => v.name || v.initialValue || v.currentValue) });
+    onStateChange({ variables: cleanedVariables.filter((v) => v.name || v.varValue) });
   };
 
   const handleDeleteVariable = (id: string) => {
@@ -227,14 +225,13 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
       updatedVariables = [{
         id: crypto.randomUUID(),
         name: '',
-        initialValue: '',
-        currentValue: '',
+        varValue: '',
         isSelected: true
       }];
     }
 
     setVariables(updatedVariables);
-    onStateChange({ variables: updatedVariables.filter((v) => v.name || v.initialValue || v.currentValue) });
+    onStateChange({ variables: updatedVariables.filter((v) => v.name || v.varValue) });
   };
 
   const handleDescriptionChange = (description: string) => {
@@ -297,14 +294,9 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
                     placeholder="Variable name"
                   />
                   <Input
-                    value={variable.initialValue}
-                    onChange={(e) => handleVariableChange(variable.id, 'initialValue', e.target.value)}
-                    placeholder="Initial value"
-                  />
-                  <Input
-                    value={variable.currentValue}
-                    onChange={(e) => handleVariableChange(variable.id, 'currentValue', e.target.value)}
-                    placeholder="Current value"
+                    value={variable.varValue}
+                    onChange={(e) => handleVariableChange(variable.id, 'varValue', e.target.value)}
+                    placeholder="Value"
                   />
                   <DeleteButton 
                     onClick={() => handleDeleteVariable(variable.id)}
