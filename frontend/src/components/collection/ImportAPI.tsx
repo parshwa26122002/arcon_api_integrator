@@ -523,6 +523,34 @@ function convertRAMLToCollection(raml: any): Collection {
   };
 }
 
+interface PostmanUrl {
+  protocol?: string;
+  host?: string | string[];
+  path?: string | string[];
+  query?: { key: string; value: string }[];
+  variable?: any[];
+}
+
+function buildPostmanUrl(urlObj: PostmanUrl): string {
+  const protocol = urlObj.protocol || 'https';
+
+  const host = Array.isArray(urlObj.host)
+    ? urlObj.host.join('.')
+    : urlObj.host || '';
+
+  const path = Array.isArray(urlObj.path)
+    ? urlObj.path.join('/')
+    : urlObj.path || '';
+
+  const query = (urlObj.query || [])
+    .map(({ key, value }) => `${key}=${value}`)
+    .join('&');
+
+  return `${protocol}://${host}/${path}${query ? `?${query}` : ''}`;
+}
+
+
+
 function extractFoldersAndRequests(items: any[]): { folders: any[], requests: APIRequest[] } {
   const folders: any[] = [];
   const requests: APIRequest[] = [];
@@ -549,7 +577,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
       const url =
         typeof item.request.url === "string"
           ? item.request.url
-          : item.request.url?.raw || "";
+          :item.request.url?.raw || buildPostmanUrl(item.request.url) || "";
 
       const authObj = item.request.auth || {};
       const authType = authObj.type || "";

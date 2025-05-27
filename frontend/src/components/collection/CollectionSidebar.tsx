@@ -417,7 +417,6 @@ const TreeNode: React.FC<{
     removeFolder, 
     renameFolder, 
     setActiveFolder, 
-    setActiveCollection,
     addFolder,
     addRequestToFolder,
     addRequestToCollection,
