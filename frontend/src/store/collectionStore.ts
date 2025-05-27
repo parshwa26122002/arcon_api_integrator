@@ -61,6 +61,12 @@ export interface AuthState {
   credentials: Record<string, string>;
 }
 
+export interface Response {
+  status: string;
+  code: number;
+  body: string;
+}
+
 export interface APIRequest {
   id: string;
   name: string;
@@ -72,6 +78,7 @@ export interface APIRequest {
   contentType: string;
   formData: Array<{ key: string; value: string }>;
   auth: AuthState;
+  response: Response[];
 }
 
 export interface Variable {
@@ -98,6 +105,7 @@ export interface APICollection {
   variables?: Variable[];
   folders: APIFolder[];  // Root level folders
   requests: APIRequest[];  // Root level requests
+  isNew?: boolean;  // Flag for newly created collections
 }
 
 export interface Request {
@@ -132,6 +140,15 @@ export interface RequestTabState {
   headers: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
   auth: { type: string; credentials: Record<string, string> };
   body: TabBodyType;
+  hasUnsavedChanges: boolean;
+  originalState?: {
+    method: HttpMethod;
+    url: string;
+    queryParams: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
+    headers: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
+    auth: { type: string; credentials: Record<string, string> };
+    body: TabBodyType;
+  };
 }
 
 export interface CollectionTabState {
@@ -142,6 +159,12 @@ export interface CollectionTabState {
   description?: string;
   auth?: { type: string; credentials: Record<string, string> };
   variables?: Variable[];
+  hasUnsavedChanges: boolean;
+  originalState?: {
+    description?: string;
+    auth?: { type: string; credentials: Record<string, string> };
+    variables?: Variable[];
+  };
 }
 
 export interface FolderTabState {
@@ -152,6 +175,11 @@ export interface FolderTabState {
   folderId: string;
   description?: string;
   auth?: { type: string; credentials: Record<string, string> };
+  hasUnsavedChanges: boolean;
+  originalState?: {
+    description?: string;
+    auth?: { type: string; credentials: Record<string, string> };
+  };
 }
 
 interface CollectionStoreState {
@@ -166,6 +194,7 @@ interface CollectionStoreState {
   addFolder: (collectionId: string, parentFolderId: string | null, folderName: string) => Promise<void>;
   addRequestToFolder: (collectionId: string, folderId: string, request: Request) => Promise<void>;
   addRequestToCollection: (collectionId: string, request: Request) => Promise<void>;
+  addRequestToLocation: (locationId: string, name:string, request: RequestTabState) => Promise<void>;
   removeFolder: (collectionId: string, folderId: string) => Promise<void>;
   removeCollection: (id: string) => Promise<void>;
   renameCollection: (id: string, newName: string) => Promise<void>;
@@ -289,7 +318,8 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       body: undefined,
       contentType: '',
       formData: [],
-      auth: {type: '', credentials: {}}
+      auth: {type: '', credentials: {}},
+      response: []
     };
 
     set((state) => ({
@@ -367,7 +397,8 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
                   bodyType: 'none',
                   contentType: '',
                   formData: [],
-                  auth: {type: '', credentials: {}}
+                  auth: {type: '', credentials: {}},
+                  response: []
                 },
               ],
             }
@@ -379,6 +410,67 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       await storageService.saveCollection(collection);
     }
   },
+
+  addRequestToLocation: async (locationId, name, request) => {
+    const newRequest: APIRequest = {
+      id: uuid(),
+      name: name,
+      method: request.method,
+      url: request.url,
+      headers: request.headers,
+      queryParams: request.queryParams,
+      body: request.body,
+      contentType: request.body.mode,
+      formData: request.body.formData || [],
+      auth: request.auth,
+      response: []
+    };
+  
+    let matchedCollectionId: string | undefined;
+  
+    set((state) => ({
+      collections: state.collections.map((collection) => {
+        if (collection.id === locationId) {
+          matchedCollectionId = collection.id;
+          return {
+            ...collection,
+            requests: [...(collection.requests || []), newRequest],
+          };
+        }
+  
+        // Helper to search/update folders recursively and set matchedCollectionId
+        const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+          return folders.map((folder) => {
+            if (folder.id === locationId) {
+              matchedCollectionId = collection.id;
+              return {
+                ...folder,
+                requests: [...(folder.requests || []), newRequest],
+              };
+            }
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders || []),
+            };
+          });
+        };
+  
+        return {
+          ...collection,
+          folders: updateFolders(collection.folders || []),
+        };
+      }),
+    }));
+  
+    // Save only if matched
+    if (matchedCollectionId) {
+      const updatedCollection = get().collections.find(c => c.id === matchedCollectionId);
+      if (updatedCollection) {
+        await storageService.saveCollection(updatedCollection);
+      }
+    }
+  },
+  
 
   updateRequest: async (collectionId, requestId, updatedRequest) => {
     set((state) => ({

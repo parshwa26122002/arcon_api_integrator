@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import CollectionSidebar from '../collection/CollectionSidebar';
 import { Tab } from '../../styled-component/Tab';
+// import CollectionSidebar2 from '../collection/CollectionSidebar2';
 
 const SidebarContainer = styled.div`
   background-color: #2d2d2d;

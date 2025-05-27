@@ -7,6 +7,8 @@ import Headers from './Headers';
 import RequestBody from './RequestBody';
 import { useCollectionStore, type HttpMethod, type RequestTabState } from '../../store/collectionStore';
 import { Tab } from '../../styled-component/Tab';
+import { Editor } from '@monaco-editor/react';
+import { FiSave } from 'react-icons/fi';
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
   GET: '#61affe',
@@ -29,7 +31,7 @@ const Container = styled.div`
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  height: calc(100vh - 50px); // Full height minus padding
+  height: calc(100vh - 80px); // Full height minus padding
 `;
 
 const TopBar = styled.div`
@@ -126,10 +128,38 @@ const ResponseSection = styled.div`
 `;
 
 const ResponseHeader = styled.div`
-  padding: 12px 16px;
+  padding: 6px 16px;
   border-bottom: 1px solid #4a4a4a;
   font-weight: 600;
   color: #e1e1e1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ResponseLeftSection = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const ResponseStatus = styled.span<{ code: number }>`
+  color: ${props => {
+    if (props.code >= 200 && props.code < 300) return '#49cc90'; // Success - Green
+    if (props.code >= 400) return '#f93e3e'; // Error - Red
+    return '#e1e1e1'; // Default color
+  }};
+`;
+
+const SaveIcon = styled(FiSave)`
+  cursor: pointer;
+  font-size: 18px;
+  color: #e1e1e1;
+  transition: color 0.2s;
+  
+  &:hover {
+    color: #49cc90;
+  }
 `;
 
 const ResponseContent = styled.div`
@@ -482,7 +512,19 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         <ResponseSection>
           <ResponseHeader>Response</ResponseHeader>
           <ResponseContent>
-            {response}
+          <Editor
+              defaultLanguage='json | text'
+              value={response}
+              theme="vs-dark"
+              options={{
+                minimap: { enabled: false },
+                fontSize: 12,
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                padding: { top: 8, bottom: 8 },
+                lineHeight: 18,
+              }}
+            />
           </ResponseContent>
         </ResponseSection>
       </SplitContainer>

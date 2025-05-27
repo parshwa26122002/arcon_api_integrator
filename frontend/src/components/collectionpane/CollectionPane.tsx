@@ -243,7 +243,7 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
   };
 
   const filteredVariables = variables.filter(variable =>
-    variable.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    variable.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     !variable.name // Always show empty rows
   );
 
