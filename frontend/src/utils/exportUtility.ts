@@ -42,8 +42,17 @@ function convertAuth(auth?: { type: string; credentials: Record<string, string> 
 
     return { type: auth.type };
 }
-
-function convertRequest(request: APIRequest): ExportRequestItem {
+function extractHostParts(url: string): string[] {
+    try {
+        const parsedUrl = new URL(url);
+        const hostname = parsedUrl.hostname; // e.g. "example.domain.com"
+        return hostname.split('.');
+    } catch (error) {
+        console.warn(`Invalid URL provided: "${url}". Error:`, error);
+        return [];
+    }
+}
+function convertRequest(request: APIRequest): ExportCollectionItem {
     const query: ExportKeyValueWithDescription[] = (request.queryParams || []).map(q => ({
         key: q.key,
         value: q.value,
@@ -52,7 +61,7 @@ function convertRequest(request: APIRequest): ExportRequestItem {
     const url: URLExport = {
         raw: request.url,
         protocol: request.url.split(':')[0] || '',
-        host: [],
+        host: extractHostParts(request.url),
     }
     if (query && query.length > 0) {
         url.query = query;
