@@ -140,6 +140,12 @@ export interface RequestTabState {
   headers: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
   auth: { type: string; credentials: Record<string, string> };
   body: TabBodyType;
+  response?: Array<{
+    status: string;
+    code: number;
+    body: string;
+    timestamp?: string;
+  }>;
   hasUnsavedChanges: boolean;
   originalState?: {
     method: HttpMethod;
@@ -148,6 +154,12 @@ export interface RequestTabState {
     headers: Array<{ id: string; key: string; value: string; description?: string; isSelected?: boolean }>;
     auth: { type: string; credentials: Record<string, string> };
     body: TabBodyType;
+    response?: Array<{
+      status: string;
+      code: number;
+      body: string;
+      timestamp?: string;
+    }>;
   };
 }
 
@@ -474,17 +486,48 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
 
   updateRequest: async (collectionId, requestId, updatedRequest) => {
     set((state) => ({
-      collections: state.collections.map((c) =>
-        c.id === collectionId
-          ? {
-              ...c,
-              requests: c.requests.map((r) =>
-                r.id === requestId ? { ...r, ...updatedRequest } : r
-              ),
+      collections: state.collections.map((collection) => {
+        if (collection.id !== collectionId) return collection;
+
+        // First check and update root-level requests
+        const rootRequestIndex = collection.requests.findIndex(r => r.id === requestId);
+        if (rootRequestIndex !== -1) {
+          const updatedRequests = [...collection.requests];
+          updatedRequests[rootRequestIndex] = {
+            ...collection.requests[rootRequestIndex],
+            ...updatedRequest
+          };
+          return { ...collection, requests: updatedRequests };
+        }
+
+        // If not found in root, search and update in folders
+        const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+          return folders.map(folder => {
+            if (folder.requests) {
+              const requestIndex = folder.requests.findIndex(r => r.id === requestId);
+              if (requestIndex !== -1) {
+                const updatedRequests = [...folder.requests];
+                updatedRequests[requestIndex] = {
+                  ...folder.requests[requestIndex],
+                  ...updatedRequest
+                };
+                return { ...folder, requests: updatedRequests };
+              }
             }
-          : c
-      ),
+            return {
+              ...folder,
+              folders: updateFolders(folder.folders || [])
+            };
+          });
+        };
+
+        return {
+          ...collection,
+          folders: updateFolders(collection.folders)
+        };
+      }),
     }));
+
     const collection = get().collections.find(c => c.id === collectionId);
     if (collection) {
       await storageService.saveCollection(collection);

@@ -140,7 +140,7 @@ const MainContentTabs: React.FC = () => {
   const addRequestToLocation = useCollectionStore(state => state.addRequestToLocation);
 
   const updateTabWithChanges = (tab: TabState, newState: Partial<TabState>): TabState => {
-    if (isRequestTab(tab) && ('method' in newState || 'url' in newState || 'queryParams' in newState || 'headers' in newState || 'auth' in newState || 'body' in newState)) {
+    if (isRequestTab(tab) && ('method' in newState || 'url' in newState || 'queryParams' in newState || 'headers' in newState || 'auth' in newState || 'body' in newState || 'response' in newState)) {
       return { ...tab, ...newState } as RequestTabState;
     } else if (isCollectionTab(tab) && ('description' in newState || 'auth' in newState || 'variables' in newState)) {
       return { ...tab, ...newState } as CollectionTabState;
@@ -206,6 +206,7 @@ const MainContentTabs: React.FC = () => {
         headers: request.headers || [],
         auth: request.auth || { type: 'none', credentials: {} },
         body: convertRequestBodyToTabBody(request.body),
+        response: request.response || [],
         hasUnsavedChanges: false,
         originalState: {
           method: request.method || 'GET',
@@ -213,7 +214,8 @@ const MainContentTabs: React.FC = () => {
           queryParams: request.queryParams || [],
           headers: request.headers || [],
           auth: request.auth || { type: 'none', credentials: {} },
-          body: convertRequestBodyToTabBody(request.body)
+          body: convertRequestBodyToTabBody(request.body),
+          response: request.response || []
         }
       };
     } else {
@@ -388,7 +390,8 @@ const MainContentTabs: React.FC = () => {
         queryParams: tab.queryParams,
         headers: tab.headers,
         auth: tab.auth,
-        body: requestBody
+        body: requestBody,
+        response: tab.response || []
       });
     } else if (isCollectionTab(tab)) {
       await updateCollection(tab.collectionId, {

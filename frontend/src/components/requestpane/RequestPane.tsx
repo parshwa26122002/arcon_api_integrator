@@ -186,15 +186,25 @@ interface RequestPaneProps {
 }
 
 const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) => {
-  // const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
-  // const activeRequestId = useCollectionStore(state => state.activeRequestId);
-  // const updateRequest = useCollectionStore(state => state.updateRequest);
   const request = useCollectionStore(state => {
     const collection = state.collections.find(c => c.id === state.activeCollectionId);
     return collection?.requests.find(r => r.id === state.activeRequestId) || null;
   });
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
-  const [response, setResponse] = useState<string>('// Response will appear here');
+  
+  // Move response state into tabState updates
+  const updateTabResponse = useCallback((responseText: string, status: string, code: number) => {
+    const newState = {
+      ...tabState,
+      response: [{
+        body: responseText,
+        status: status,
+        code: code,
+        timestamp: new Date().toISOString()
+      }]
+    };
+    onStateChange(newState);
+  }, [tabState, onStateChange]);
 
   const updateRequest = useCollectionStore(state => state.updateRequest);
 
@@ -226,7 +236,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     if (!request) return;
 
     if (!request.url) {
-      setResponse('Error: Please enter a URL');
+      updateTabResponse('Error: Please enter a URL', 'Error', 0);
       return;
     }
 
@@ -318,7 +328,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
           }
         });
       } catch (error) {
-        setResponse(`Error: Invalid URL - ${request.url}`);
+        updateTabResponse(`Error: Invalid URL - ${request.url}`, 'Error', 0);
         return;
       }
 
@@ -360,36 +370,51 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         body: JSON.stringify(proxyBody)
       });
 
-      // Handle different response types
       try {
         const contentType = response.headers.get('content-type');
         const responseText = await response.text();
         
+        let formattedResponse = responseText;
         if (contentType?.includes('application/json')) {
           try {
             const jsonData = JSON.parse(responseText);
-            setResponse(JSON.stringify(jsonData, null, 2));
+            formattedResponse = JSON.stringify(jsonData, null, 2);
           } catch {
-            setResponse(responseText);
+            formattedResponse = responseText;
           }
-        } else {
-          setResponse(responseText);
         }
 
-        console.log('Response received:', {
-          status: response.status,
-          statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries())
-        });
+        updateTabResponse(
+          formattedResponse,
+          response.statusText,
+          response.status
+        );
+
       } catch (error) {
         console.error('Failed to process response:', error);
-        setResponse(`Error: ${(error as Error).message}`);
+        updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0);
       }
     } catch (error) {
       console.error('Request failed:', error);
-      setResponse(`Error: ${(error as Error).message}`);
+      updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0);
     }
   };
+
+  const SaveResponse = useCallback(() => {
+    if (!tabState.collectionId || !tabState.requestId || !request || !tabState.response) return;
+  
+    const latestResponse = {
+      status: tabState.response[0].status,
+      code: tabState.response[0].code,
+      body: tabState.response[0].body,
+      timestamp: new Date().toISOString(),
+    };
+  
+    // Overwrite response array with just the latest response
+    updateRequest(tabState.collectionId, tabState.requestId, {
+      response: [latestResponse],
+    });
+  }, [request, tabState, updateRequest]);
 
   const renderTabContent = useMemo(() => {
     switch (activeTab) {
@@ -510,11 +535,21 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         </RequestSection>
 
         <ResponseSection>
-          <ResponseHeader>Response</ResponseHeader>
+          <ResponseHeader>
+            <ResponseLeftSection>
+              <span>Response</span>
+              <ResponseStatus code={tabState.response?.[0]?.code || 0}>
+                {tabState.response?.[0]?.code !== 0 && `${tabState.response?.[0]?.code} ${tabState.response?.[0]?.status}`}
+              </ResponseStatus>
+            </ResponseLeftSection>
+            {tabState.response?.[0]?.code !== 0 && tabState.collectionId && tabState.requestId && 
+              <SaveIcon onClick={SaveResponse} title="Save Response" />
+            }
+          </ResponseHeader>
           <ResponseContent>
-          <Editor
+            <Editor
               defaultLanguage='json | text'
-              value={response}
+              value={tabState.response?.[0]?.body || ''}
               theme="vs-dark"
               options={{
                 minimap: { enabled: false },
