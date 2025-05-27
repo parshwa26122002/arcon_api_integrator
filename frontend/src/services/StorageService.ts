@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import type { IDBPDatabase } from 'idb';
-import type { APICollection } from '../store/collectionStore';
+import type { APICollection, ExportCollection } from '../store/collectionStore';
 
 const DB_NAME = 'arcon_api_db';
 const DB_VERSION = 1;
@@ -128,6 +128,10 @@ class StorageService {
       throw new Error('Electron APIs not available');
     }
     await window.electron.deleteCollection(id);
+  }
+
+    async exportCollection(api: APICollection): Promise<void> {
+      
   }
 }
 

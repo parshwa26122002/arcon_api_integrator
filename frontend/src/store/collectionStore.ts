@@ -2,6 +2,126 @@ import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
 import { storageService } from '../services/StorageService';
 
+export interface Info {
+    _postman_id: string,
+    name: string,
+    description?: string,
+    schema: string,
+    _exporter_id: string
+}
+export interface ExportKeyValue {
+    key: string;
+    value: string;
+}
+export interface ExportHeader {
+    key: string;
+    value: string;
+    description?: string;
+    type: string;
+}
+
+export interface ExportKeyValueType {
+    key: string;
+    value: string;
+    type: string;
+}
+export interface ExportKeyValueWithDescription {
+    key: string;
+    value: string;
+    description?: string;
+}
+export interface ExportKeyValueWithDescriptionType {
+    key: string;
+    value: string;
+    description?: string;
+    type: string;
+}
+//export interface QueryParam {
+//    key: string;
+//    value: string;
+//}
+export interface URLExport {
+    raw: string;
+    protocol: string;
+    host: string[];
+    query?: ExportKeyValueWithDescription[];
+}
+export interface ExportAuth {
+    type: string;
+    bearer?: ExportKeyValueType[];
+    apikey?: ExportKeyValueType[];
+    basic?: ExportKeyValueType[];
+}
+export interface ExportFolderItem {
+    name: string;
+    description?: string;
+    item?: ExportCollectionItem[];
+    auth?: ExportAuth; 
+}
+export interface ExportBodyGraphql {
+    query: string;
+    variables: string;
+}
+export interface ExportBodyOptions {
+    raw: {
+        language: 'json' | 'html' | 'xml' | 'text' | 'javascript';
+    };
+}
+export interface ExportBodyFormData {
+    key: string;
+    value?: string;
+    type: 'text' | 'file';
+    src?: string;
+}
+export type ExportBody =
+    {
+        mode: 'urlencoded';
+        urlencoded: ExportKeyValueWithDescriptionType[];
+    }
+    | {
+        mode: 'formdata';
+        formdata: ExportBodyFormData[];
+    }
+    | {
+        mode: 'raw';
+        raw: string;
+        options?: ExportBodyOptions;
+    }
+    | {
+        mode: 'file';
+        file: { src: string };
+    }
+    | {
+        mode: 'graphql';
+        graphql: ExportBodyGraphql;
+    };
+export interface RequestObject {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    header: ExportHeader[];
+    body?: ExportBody;
+    url: URLExport;
+    auth?: ExportAuth;
+    description?: string;
+}
+export interface ExportRequestItem {
+    name: string;
+    request: RequestObject;
+    response: Record<string, unknown>[];
+}
+export type ExportCollectionItem = ExportFolderItem | ExportRequestItem;
+export interface ExportCollection {
+    info: Info;
+    item: ExportCollectionItem[];
+    auth: ExportAuth;
+    variable?: ExportKeyValueType[];
+}
+export interface ResponseExport {
+    originalRequest: RequestObject;
+    header: ExportHeader[];
+    body?: string;
+    status: string;
+    code: number;
+}
 export interface Header {
   id: string;
   key: string;
