@@ -249,6 +249,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   } = useCollectionStore();
 
   const [, setLocalBody] = React.useState<RequestBody>(body);
+  const [isPretty, setIsPretty] = React.useState(false);
   const request = getActiveRequest();
   
   // Update local body when request changes
@@ -729,10 +730,25 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
               <option value="xml">XML</option>
               <option value="text">Plain Text</option>
             </Select>
+            {body.options?.raw?.language === 'json' && <label style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px' }}>
+              <input type="checkbox" checked={isPretty} onChange={() => setIsPretty(!isPretty)} />
+              Pretty Print
+            </label>}
+
             <Editor
               height="400px"
               defaultLanguage={body.options?.raw?.language || 'json'}
-              value={body.raw || ''}
+              value={
+                isPretty && body.options?.raw?.language === 'json'
+                  ? (() => {
+                      try {
+                        return JSON.stringify(JSON.parse(body.raw || ''), null, 2);
+                      } catch {
+                        return body.raw || '';
+                      }
+                    })()
+                  : body.raw || ''
+              }
               onChange={handleRawChange}
               theme="vs-dark"
               options={{

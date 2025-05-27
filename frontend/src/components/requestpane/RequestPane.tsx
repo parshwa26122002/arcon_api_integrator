@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import type { ChangeEvent } from 'react';
 import styled from 'styled-components';
 import QueryParams from './QueryParams';
@@ -8,7 +8,8 @@ import RequestBody from './RequestBody';
 import { useCollectionStore, type HttpMethod, type RequestTabState } from '../../store/collectionStore';
 import { Tab } from '../../styled-component/Tab';
 import { Editor } from '@monaco-editor/react';
-import { FiSave } from 'react-icons/fi';
+import { editor } from 'monaco-editor';
+import { FiCopy, FiSave, FiSearch, FiTrash2 } from 'react-icons/fi';
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
   GET: '#61affe',
@@ -151,15 +152,23 @@ const ResponseStatus = styled.span<{ code: number }>`
   }};
 `;
 
-const SaveIcon = styled(FiSave)`
+const IconButton = styled.button`
+  background: none;
+  border: none;
+  color: #ccc;
   cursor: pointer;
-  font-size: 18px;
-  color: #e1e1e1;
-  transition: color 0.2s;
-  
+  padding: 6px;
+  display: flex;
+  align-items: center;
+
   &:hover {
     color: #49cc90;
   }
+`;
+
+const ResponseActions = styled.div`
+  display: flex;
+  gap: 8px;
 `;
 
 const ResponseContent = styled.div`
@@ -191,6 +200,9 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     return collection?.requests.find(r => r.id === state.activeRequestId) || null;
   });
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
+  const [isResponseSaved, setIsResponseSaved] = useState(true);
+  const [showSearch, setShowSearch] = useState(false);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   
   // Move response state into tabState updates
   const updateTabResponse = useCallback((responseText: string, status: string, code: number) => {
@@ -398,6 +410,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       console.error('Request failed:', error);
       updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0);
     }
+    setIsResponseSaved(false);
   };
 
   const SaveResponse = useCallback(() => {
@@ -414,6 +427,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     updateRequest(tabState.collectionId, tabState.requestId, {
       response: [latestResponse],
     });
+    setIsResponseSaved(true);
   }, [request, tabState, updateRequest]);
 
   const renderTabContent = useMemo(() => {
@@ -538,18 +552,44 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
           <ResponseHeader>
             <ResponseLeftSection>
               <span>Response</span>
-              <ResponseStatus code={tabState.response?.[0]?.code || 0}>
-                {tabState.response?.[0]?.code !== 0 && `${tabState.response?.[0]?.code} ${tabState.response?.[0]?.status}`}
-              </ResponseStatus>
+              {tabState.response && tabState.response.length > 0 ? (
+                <ResponseStatus code={tabState.response[0].code}>
+                  {`${tabState.response[0].code} ${tabState.response[0].status}`}
+                </ResponseStatus>
+              ) : (
+                ''
+              )}
             </ResponseLeftSection>
-            {tabState.response?.[0]?.code !== 0 && tabState.collectionId && tabState.requestId && 
-              <SaveIcon onClick={SaveResponse} title="Save Response" />
-            }
+
+            <ResponseActions>
+            <IconButton title="Search" onClick={() => { setShowSearch(prev => !prev);
+                setTimeout(() => { if (editorRef.current) { editorRef.current?.getAction('actions.find')?.run();}
+                }, 100); // Give time for the input to render
+                }}>
+                <FiSearch />
+              </IconButton>
+              <IconButton title="Copy" onClick={() => navigator.clipboard.writeText(tabState.response?.[0]?.body || '')}><FiCopy /></IconButton>
+              <IconButton title="Clear" onClick={() => onStateChange({ ...tabState, response: [] })}><FiTrash2 /></IconButton>
+              {tabState.response?.[0]?.code !== 0 && tabState.collectionId && tabState.requestId && (
+                <IconButton title="Save" style={{ opacity: isResponseSaved ? 0.5 : 1, pointerEvents: isResponseSaved ? 'none' : 'auto',
+                }} onClick={!isResponseSaved ? SaveResponse : undefined}><FiSave /></IconButton>
+              )}
+            </ResponseActions>
           </ResponseHeader>
           <ResponseContent>
             <Editor
-              defaultLanguage='json | text'
-              value={tabState.response?.[0]?.body || ''}
+              onMount={(editor) => (editorRef.current = editor)}
+              defaultLanguage="json"
+              value={
+                (() => {
+                  try {
+                    const raw = tabState.response?.[0]?.body || '';
+                    return JSON.stringify(JSON.parse(raw), null, 2);
+                  } catch {
+                    return tabState.response?.[0]?.body || '';
+                  }
+                })()
+              }
               theme="vs-dark"
               options={{
                 minimap: { enabled: false },
@@ -558,6 +598,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                 scrollBeyondLastLine: false,
                 padding: { top: 8, bottom: 8 },
                 lineHeight: 18,
+                wordWrap: 'on'
               }}
             />
           </ResponseContent>
