@@ -15,7 +15,10 @@ const HTTP_METHODS = {
   GET: '#61affe',
   POST: '#49cc90',
   PUT: '#fca130',
-  DELETE: '#f93e3e'
+  DELETE: '#f93e3e',
+  PATCH: '#fca130',
+  OPTIONS: '#959da5',
+  HEAD: '#959da5'
 } as const;
 
 

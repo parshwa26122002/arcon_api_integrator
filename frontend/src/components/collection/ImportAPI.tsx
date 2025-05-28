@@ -279,6 +279,7 @@ export default function ImportAPI(): JSX.Element {
           contentType: "application/json",
           formData: [],
           auth: { type: "", credentials: {} },
+          response: [],
         },
       ],
     };
@@ -361,6 +362,7 @@ export default function ImportAPI(): JSX.Element {
           contentType: content ? Object.keys(content)[0] : "",
           formData: [],
           auth: { type: "", credentials: {} },
+          response: [],
         });
       });
     });
@@ -496,6 +498,7 @@ function convertRAMLToCollection(raml: any): Collection {
             contentType: "application/json",
             formData: [],
             auth: { type: "", credentials: {} },
+            response: []
           });
         }
       });
@@ -518,6 +521,7 @@ function convertRAMLToCollection(raml: any): Collection {
             contentType: "",
             formData: [],
             auth: { type: "", credentials: {} },
+            response: [],
           },
         ],
   };
@@ -658,6 +662,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
             ? Object.fromEntries(credentials.map((e: any) => [e.key, e.value]))
             : credentials,
         },
+        response: [],
       });
     }
   });
