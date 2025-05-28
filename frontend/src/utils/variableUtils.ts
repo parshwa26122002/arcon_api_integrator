@@ -8,13 +8,18 @@ import type {
   RequestBody,
   AuthState
 } from '../store/collectionStore';
+import { replaceDynamicVariables } from './dynamicVariables';
 
 export const replaceVariables = (text: string, variables: Variable[] = []): string => {
   if (!text) return text;
   
-  return text.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-    const variable = variables.find(v => v.name === key && v.isSelected);
-    return variable ? variable.currentValue : match;
+  // First process dynamic variables (starting with $)
+  let processedText = replaceDynamicVariables(text);
+  
+  // Then process collection variables (in {{...}})
+  return processedText.replace(/\{\{([^}]+)\}\}/g, (match, variableName) => {
+    const variable = variables.find(v => v.name === variableName.trim());
+    return variable?.currentValue || match;
   });
 };
 
@@ -68,7 +73,27 @@ export const processRequestWithVariables = (request: APIRequest, variables: Vari
     switch (body.mode) {
       case 'raw':
         if (body.raw) {
-          body.raw = replaceVariables(body.raw, variables);
+          // Handle different raw body formats
+          switch (body.options?.raw?.language) {
+            case 'json':
+              try {
+                const jsonObj = JSON.parse(body.raw);
+                const processedJson = processValue(jsonObj);
+                body.raw = JSON.stringify(processedJson);
+              } catch {
+                // If JSON parsing fails, treat as regular string
+                body.raw = replaceVariables(body.raw, variables);
+              }
+              break;
+            case 'xml':
+            case 'html':
+            case 'javascript':
+            case 'text':
+            default:
+              // For all other formats, do direct string replacement
+              body.raw = replaceVariables(body.raw, variables);
+              break;
+          }
         }
         break;
       case 'form-data':
