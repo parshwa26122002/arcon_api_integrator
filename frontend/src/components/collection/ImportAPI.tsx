@@ -2,7 +2,7 @@
 import React, { useState, type JSX } from 'react';
 import styled from 'styled-components';
 import { parseImportFile } from '../../utils/importParser';
-import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type RequestBody, type Variable } from '../../store/collectionStore';
+import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
 
 const ImportButton = styled.button`
   padding: 8px 16px;
@@ -209,7 +209,7 @@ export default function ImportAPI(): JSX.Element {
       default:
         throw new Error("Unsupported API format");
     }
- 
+
     const collection2: APICollection = {
       id: crypto.randomUUID(),
       name: collection.name,
@@ -219,7 +219,7 @@ export default function ImportAPI(): JSX.Element {
       folders: collection.folders || [],
       requests: collection.requests,
     };
- 
+
     addCollection(collection2);
     setIsModalOpen(false);
     setRawText("");
@@ -236,7 +236,7 @@ export default function ImportAPI(): JSX.Element {
     }
     throw new Error("Unsupported YAML API format");
   }
-   
+
   /**
    * Alias for convertYAMLToCollection, for .yml files.
    */
@@ -287,7 +287,7 @@ export default function ImportAPI(): JSX.Element {
 
   function convertOpenAPIToCollection(openapi: any): Collection {
     const requests: APIRequest[] = [];
-   
+
     Object.entries(openapi.paths || {}).forEach(([path, methods]: any) => {
       Object.entries(methods).forEach(([method, detail]: any) => {
         if (
@@ -296,7 +296,7 @@ export default function ImportAPI(): JSX.Element {
           )
         )
           return;
-   
+
         // Extract headers
         const headers = (detail.parameters || [])
           .filter((param: any) => param.in === "header")
@@ -305,7 +305,7 @@ export default function ImportAPI(): JSX.Element {
             key: param.name,
             value: param.example || param.default || "",
           }));
-   
+
         // Extract query parameters
         const queryParams = (detail.parameters || [])
           .filter((param: any) => param.in === "query")
@@ -313,7 +313,7 @@ export default function ImportAPI(): JSX.Element {
             key: param.name,
             value: param.example || param.default || "",
           }));
-   
+
         // Extract request body (prefer application/json)
         let body;
         const content = detail.requestBody?.content;
@@ -325,10 +325,10 @@ export default function ImportAPI(): JSX.Element {
                 content: JSON.stringify(content["application/json"].example ||
                   content["application/json"].examples?.[0]?.value ||
                   {},
-                null,
-                2
-              ),
-              language: "json",
+                  null,
+                  2
+                ),
+                language: "json",
               },
               options: {
                 raw: {
@@ -341,7 +341,7 @@ export default function ImportAPI(): JSX.Element {
               mode: "urlencoded" as const,
               urlencoded: Object.entries(
                 content["application/x-www-form-urlencoded"].schema?.properties ||
-                  {}
+                {}
               ).map(([key, prop]: any) => ({
                 key,
                 value: prop.example || "",
@@ -350,7 +350,7 @@ export default function ImportAPI(): JSX.Element {
             };
           }
         }
-   
+
         requests.push({
           id: crypto.randomUUID(),
           name: detail.summary || `${method.toUpperCase()} ${path}`,
@@ -366,13 +366,13 @@ export default function ImportAPI(): JSX.Element {
         });
       });
     });
-   
+
     return {
       name: openapi.info?.title || "Imported OpenAPI",
       requests,
     };
-  }  
-   
+  }
+
   return (
     <>
       <ImportButton onClick={() => setIsModalOpen(true)}>Import</ImportButton>
@@ -454,7 +454,7 @@ export default function ImportAPI(): JSX.Element {
 function convertRAMLToCollection(raml: any): Collection {
   const requests: APIRequest[] = [];
   const baseUri = raml.baseUri || "";
- 
+
   Object.entries(raml).forEach(([key, value]: [string, any]) => {
     if (key.startsWith("/")) {
       // This is a resource path
@@ -504,26 +504,26 @@ function convertRAMLToCollection(raml: any): Collection {
       });
     }
   });
- 
+
   return {
     name: raml.title || "Imported RAML",
     requests: requests.length
       ? requests
       : [
-          {
-            id: crypto.randomUUID(),
-            name: "Sample RAML Request",
-            method: "GET",
-            url: "/",
-            body: undefined,
-            headers: [],
-            queryParams: [],
-            contentType: "",
-            formData: [],
-            auth: { type: "", credentials: {} },
-            response: [],
-          },
-        ],
+        {
+          id: crypto.randomUUID(),
+          name: "Sample RAML Request",
+          method: "GET",
+          url: "/",
+          body: undefined,
+          headers: [],
+          queryParams: [],
+          contentType: "",
+          formData: [],
+          auth: { type: "", credentials: {} },
+          response: [],
+        },
+      ],
   };
 }
 
@@ -558,7 +558,7 @@ function buildPostmanUrl(urlObj: PostmanUrl): string {
 function extractFoldersAndRequests(items: any[]): { folders: any[], requests: APIRequest[] } {
   const folders: any[] = [];
   const requests: APIRequest[] = [];
-
+  let queryparams: QueryParam[]
   items.forEach((item) => {
     if (item.item) {
       // This is a folder
@@ -582,6 +582,12 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
       if (typeof item.request.url === "string") {
         url = item.request.url;
       } else if (typeof item.request.url === "object" && item.request.url !== null) {
+        queryparams = (item.request.url.query || [])
+          .map((param: any) => ({
+            id: crypto.randomUUID(),
+            key: param.key,
+            value: param.value || param.default || "",
+          }));
         url = item.request.url.raw || buildPostmanUrl(item.request.url);
       }
 
@@ -652,7 +658,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
         url,
         body: body as RequestBody,
         headers,
-        queryParams: [],
+        queryParams: queryparams || [],
         contentType:
           item.request.body?.options?.raw?.language === "json"
             ? "application/json"
