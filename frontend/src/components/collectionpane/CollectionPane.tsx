@@ -171,22 +171,27 @@ interface CollectionPaneProps {
   onStateChange: (newState: Partial<CollectionTabState>) => void;
 }
 
+const emptyVariable: Variable = {
+  id: crypto.randomUUID(),
+  name: '',
+  initialValue: '',
+  currentValue: '',
+  isSelected: true
+};
+
 const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'auth' | 'variables'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [variables, setVariables] = useState<Variable[]>(() => {
     const initialVars = tabState.variables || [];
-    // Always ensure there's at least one empty row
-    if (initialVars.length === 0) {
-      return [{
-        id: crypto.randomUUID(),
-        name: '',
-        varValue: '',
-        isSelected: true
-      }];
-    }
-    return initialVars;
+    return initialVars.length === 0 ? [emptyVariable] : initialVars;
   });
+
+  // Add useEffect to update variables when collection changes
+  React.useEffect(() => {
+    const collectionVars = tabState.variables || [];
+    setVariables(collectionVars.length === 0 ? [emptyVariable] : collectionVars);
+  }, [tabState.collectionId, tabState.variables]);
 
   const handleVariableChange = (id: string, field: keyof Variable, value: string | boolean) => {
     const updatedVariables = variables.map(variable =>
@@ -195,26 +200,27 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
 
     // Check if the last row has any content
     const lastVariable = updatedVariables[updatedVariables.length - 1];
-    const isLastRowEmpty = !lastVariable.name && !lastVariable.varValue;
+    const lastRowEmpty = !lastVariable.name && !lastVariable.initialValue && !lastVariable.currentValue;
     
     // If the last row has content, add a new empty row
-    if (!isLastRowEmpty) {
-      updatedVariables.push({
-        id: crypto.randomUUID(),
-        name: '',
-        varValue:'',
-        isSelected: true
-      });
+    if (!lastRowEmpty) {
+      updatedVariables.push({...emptyVariable, id: crypto.randomUUID()});
     }
 
     // Remove empty rows except the last one
     const cleanedVariables = updatedVariables.filter((variable, index) => {
-      const isEmpty = !variable.name && !variable.varValue;
-      return !isEmpty || index === updatedVariables.length - 1;
+      const rowEmpty = !variable.name && !variable.initialValue && !variable.currentValue;
+      return !rowEmpty || index === updatedVariables.length - 1;
     });
 
     setVariables(cleanedVariables);
-    onStateChange({ variables: cleanedVariables.filter((v) => v.name || v.varValue) });
+    // Update the collection store with the new variables
+    onStateChange({ 
+      variables: cleanedVariables.filter(
+        (v) => v.name || v.initialValue || v.currentValue
+      ),
+      collectionId: tabState.collectionId 
+    });
   };
 
   const handleDeleteVariable = (id: string) => {
@@ -222,16 +228,17 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
     
     // Ensure there's always at least one row
     if (updatedVariables.length === 0) {
-      updatedVariables = [{
-        id: crypto.randomUUID(),
-        name: '',
-        varValue: '',
-        isSelected: true
-      }];
+      updatedVariables = [{...emptyVariable, id: crypto.randomUUID()}];
     }
 
     setVariables(updatedVariables);
-    onStateChange({ variables: updatedVariables.filter((v) => v.name || v.varValue) });
+    // Update the collection store with the new variables
+    onStateChange({ 
+      variables: updatedVariables.filter(
+        (v) => v.name || v.initialValue || v.currentValue
+      ),
+      collectionId: tabState.collectionId 
+    });
   };
 
   const handleDescriptionChange = (description: string) => {
@@ -294,9 +301,9 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
                     placeholder="Variable name"
                   />
                   <Input
-                    value={variable.varValue}
-                    onChange={(e) => handleVariableChange(variable.id, 'varValue', e.target.value)}
-                    placeholder="Value"
+                    value={variable.currentValue}
+                    onChange={(e) => handleVariableChange(variable.id, 'currentValue', e.target.value)}
+                    placeholder="Current value"
                   />
                   <DeleteButton 
                     onClick={() => handleDeleteVariable(variable.id)}

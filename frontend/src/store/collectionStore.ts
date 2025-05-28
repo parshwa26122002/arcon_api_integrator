@@ -84,7 +84,8 @@ export interface APIRequest {
 export interface Variable {
   id: string;
   name: string;
-  varValue: string;
+  initialValue: string;
+  currentValue: string;
   isSelected: boolean;
 }
 
@@ -167,7 +168,7 @@ export interface CollectionTabState {
   id: number;
   type: 'collection';
   title: string;
-  collectionId?: string;
+  collectionId: string;
   description?: string;
   auth?: { type: string; credentials: Record<string, string> };
   variables?: Variable[];
