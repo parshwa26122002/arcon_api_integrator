@@ -587,6 +587,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
             id: crypto.randomUUID(),
             key: param.key,
             value: param.value || param.default || "",
+            description: param.description || "",
           }));
         url = item.request.url.raw || buildPostmanUrl(item.request.url);
       }
