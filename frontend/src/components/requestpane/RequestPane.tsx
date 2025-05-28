@@ -5,12 +5,11 @@ import QueryParams from './QueryParams';
 import Authorization from './Authorization';
 import Headers from './Headers';
 import RequestBody from './RequestBody';
-import { useCollectionStore, type HttpMethod, type RequestTabState, type Variable, type FormDataItem, type Header, type QueryParam } from '../../store/collectionStore';
+import { useCollectionStore, type HttpMethod, type RequestTabState } from '../../store/collectionStore';
 import { Tab } from '../../styled-component/Tab';
 import { Editor } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import { FiCopy, FiSave, FiSearch, FiTrash2 } from 'react-icons/fi';
-import { processRequestWithVariables, validateVariables } from '../../utils/variableHandler';
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
   GET: '#61affe',
@@ -221,29 +220,34 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
 
   const updateRequest = useCollectionStore(state => state.updateRequest);
 
-  // Get collection variables
-  const getCollectionVariables = useCollectionStore(state => {
-    const collection = state.collections.find(c => c.id === tabState.collectionId);
-    return collection?.variables || [];
-  });
+  const handleMethodChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+    const newState = { ...tabState, method: e.target.value as HttpMethod };
+    onStateChange(newState);
+    
+    // If this tab is linked to a collection, update collection state too
+    if (tabState.collectionId && tabState.requestId) {
+      updateRequest(tabState.collectionId, tabState.requestId, {
+        method: e.target.value as HttpMethod
+      });
+    }
+  }, [tabState, onStateChange, updateRequest]);
+
+  const handleUrlChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const newState = { ...tabState, url: e.target.value };
+    onStateChange(newState);
+    
+    // If this tab is linked to a collection, update collection state too
+    if (tabState.collectionId && tabState.requestId) {
+      updateRequest(tabState.collectionId, tabState.requestId, {
+        url: e.target.value
+      });
+    }
+  }, [tabState, onStateChange, updateRequest]);
 
   const handleSend = async () => {
     if (!request) return;
 
-    // Get collection variables
-    const variables = getCollectionVariables;
-
-    // Validate variables before sending
-    const validation = validateVariables(request, variables);
-    if (!validation.isValid) {
-      updateTabResponse(`Error: Missing variables: ${validation.missingVariables.join(', ')}`, 'Error', 0);
-      return;
-    }
-
-    // Process request with variable substitution
-    const processedRequest = processRequestWithVariables(request, variables);
-
-    if (!processedRequest.url) {
+    if (!request.url) {
       updateTabResponse('Error: Please enter a URL', 'Error', 0);
       return;
     }
@@ -251,18 +255,18 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     try {
       // Prepare request body and determine content type
       let bodyToSend = undefined;
-      let contentTypeHeader = processedRequest.contentType;
+      let contentTypeHeader = request.contentType;
 
-      if (processedRequest.body) {
-        switch (processedRequest.body.mode) {
+      if (request.body) {
+        switch (request.body.mode) {
           case 'raw':
-            bodyToSend = processedRequest.body.raw;
+            bodyToSend = request.body.raw;
             // Set content type based on raw body language
-            if (processedRequest.body.options?.raw?.language === 'json') {
+            if (request.body.options?.raw?.language === 'json') {
               contentTypeHeader = 'application/json';
-            } else if (processedRequest.body.options?.raw?.language === 'xml') {
+            } else if (request.body.options?.raw?.language === 'xml') {
               contentTypeHeader = 'application/xml';
-            } else if (processedRequest.body.options?.raw?.language === 'html') {
+            } else if (request.body.options?.raw?.language === 'html') {
               contentTypeHeader = 'text/html';
             } else {
               contentTypeHeader = 'text/plain';
@@ -270,17 +274,18 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
             break;
           case 'form-data':
             const formData = new FormData();
-            processedRequest.body.formData?.forEach((item: FormDataItem) => {
+            request.body.formData?.forEach(item => {
               if (item.key && item.value) {
                 formData.append(item.key, item.value);
               }
             });
             bodyToSend = formData;
-            contentTypeHeader = '';
+            // Don't set Content-Type for FormData, browser will set it automatically with boundary
+            contentTypeHeader = '';  // Use empty string instead of undefined
             break;
           case 'urlencoded':
             const params = new URLSearchParams();
-            processedRequest.body.urlencoded?.forEach((item: { key: string; value: string }) => {
+            request.body.urlencoded?.forEach(item => {
               if (item.key && item.value) {
                 params.append(item.key, item.value);
               }
@@ -295,26 +300,26 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       const headers: Record<string, string> = {};
 
       // Add authorization headers based on auth type
-      if (processedRequest.auth.type === 'basic') {
-        const { username, password } = processedRequest.auth.credentials;
+      if (request.auth.type === 'basic') {
+        const { username, password } = request.auth.credentials;
         if (username && password) {
           const base64Credentials = btoa(`${username}:${password}`);
           headers['Authorization'] = `Basic ${base64Credentials}`;
         }
-      } else if (processedRequest.auth.type === 'bearer') {
-        const { token } = processedRequest.auth.credentials;
+      } else if (request.auth.type === 'bearer') {
+        const { token } = request.auth.credentials;
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
-      } else if (processedRequest.auth.type === 'apiKey') {
-        const { key, value } = processedRequest.auth.credentials;
+      } else if (request.auth.type === 'apiKey') {
+        const { key, value } = request.auth.credentials;
         if (key && value) {
           headers[key] = value;
         }
       }
 
       // Add custom headers from the Headers tab
-      processedRequest.headers.forEach((header: Header) => {
+      request.headers.forEach(header => {
         if (header.key && header.value) {
           headers[header.key] = header.value;
         }
@@ -328,8 +333,8 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       // Build URL with query parameters
       let finalUrl: URL;
       try {
-        finalUrl = new URL(processedRequest.url);
-        processedRequest.queryParams.forEach((param: QueryParam) => {
+        finalUrl = new URL(request.url);
+        request.queryParams.forEach(param => {
           if (param.key) {
             finalUrl.searchParams.append(param.key, param.value || '');
           }
@@ -341,7 +346,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
 
       console.log('Sending request through proxy:', {
         url: finalUrl.toString(),
-        method: processedRequest.method,
+        method: request.method,
         headers,
         body: bodyToSend
       });
@@ -349,12 +354,12 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       // Prepare the proxy request body
       let proxyBody: any = {
         url: finalUrl.toString(),
-        method: processedRequest.method,
+        method: request.method,
         headers,
       };
 
       // Only add body if it exists and method is not GET
-      if (bodyToSend !== undefined && processedRequest.method !== 'GET') {
+      if (bodyToSend !== undefined && request.method !== 'GET') {
         if (bodyToSend instanceof FormData) {
           // Convert FormData to an object
           const formDataObj: Record<string, string> = {};
@@ -407,7 +412,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     }
     setIsResponseSaved(false);
   };
-  
+
   const SaveResponse = useCallback(() => {
     if (!tabState.collectionId || !tabState.requestId || !request || !tabState.response) return;
   
@@ -490,17 +495,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       <TopBar>
         <MethodSelect
           value={tabState.method}
-          onChange={(e) => {
-            const newState = { ...tabState, method: e.target.value as HttpMethod };
-            onStateChange(newState);
-            
-            // If this tab is linked to a collection, update collection state too
-            if (tabState.collectionId && tabState.requestId) {
-              updateRequest(tabState.collectionId, tabState.requestId, {
-                method: e.target.value as HttpMethod
-              });
-            }
-          }}
+          onChange={handleMethodChange}
           method={tabState.method as HttpMethod}
         >
           {Object.keys(HTTP_METHODS).map(method => (
@@ -512,17 +507,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         <UrlInput
           type="text"
           value={tabState.url}
-          onChange={(e) => {
-            const newState = { ...tabState, url: e.target.value };
-            onStateChange(newState);
-            
-            // If this tab is linked to a collection, update collection state too
-            if (tabState.collectionId && tabState.requestId) {
-              updateRequest(tabState.collectionId, tabState.requestId, {
-                url: e.target.value
-              });
-            }
-          }}
+          onChange={handleUrlChange}
           placeholder="Enter request URL"
         />
         <ButtonGroup>
