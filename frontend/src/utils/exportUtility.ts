@@ -1,4 +1,4 @@
-import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportRequestItem, ExportKeyValueWithDescription, URLExport, ExportBody } from '../store/collectionStore';
+import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportKeyValueWithDescription, URLExport, ExportBody } from '../store/collectionStore';
 
 function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefined {
     if (!variables) return undefined;
@@ -137,7 +137,7 @@ function convertFolder(folder: APIFolder): ExportCollectionItem {
     };
 }
 
-export function convertAPICollectionToExportCollection(api: APICollection): ExportCollection {
+function convertAPICollectionToExportCollection(api: APICollection): ExportCollection {
     const info: Info = {
         _postman_id: api.id,
         name: api.name,
@@ -161,4 +161,27 @@ export function convertAPICollectionToExportCollection(api: APICollection): Expo
     }
     return exportCollection;
     
+}
+export function exportCollectionAsJson(apiCollection: APICollection) {
+    const exportObj = convertAPICollectionToExportCollection(apiCollection);
+    const json = JSON.stringify(exportObj, null, 2);
+    const filename = `${exportObj.info.name || 'collection'}.json`;
+
+    if (typeof window !== 'undefined' && (window as any).electron && typeof (window as any).electron.saveJsonFile === 'function') {
+        (window as any).electron.saveJsonFile(json, filename);
+        return;
+    }
+
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
 }
