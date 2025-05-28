@@ -233,6 +233,7 @@ interface CollectionStoreState {
   getActiveRequest: () => APIRequest | null;
   getActiveCollection: () => APICollection | null;
   getActiveFolder: () => APIFolder | null;
+  findRequestLocation: (requestId: string) => { collectionId: string; folderId: string | null } | null;
 }
 
 export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
@@ -435,13 +436,14 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       contentType: request.body.mode,
       formData: request.body.formData || [],
       auth: request.auth,
-      response: []
+      response: request.response || []
     };
   
     let matchedCollectionId: string | undefined;
   
     set((state) => ({
       collections: state.collections.map((collection) => {
+        console.log(state.collections);
         if (collection.id === locationId) {
           matchedCollectionId = collection.id;
           return {
@@ -806,4 +808,33 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       }
     }
   },
+
+  findRequestLocation: (requestId: string): { collectionId: string; folderId: string | null } | null => {
+    const state = get();
+  
+    for (const collection of state.collections) {
+      // Root-level request
+      if (collection.requests.some(req => req.id === requestId)) {
+        return { collectionId: collection.id, folderId: null };
+      }
+  
+      // Recursive folder search
+      const searchFolders = (folders: APIFolder[]): { collectionId: string; folderId: string } | null => {
+        for (const folder of folders) {
+          if (folder.requests?.some(req => req.id === requestId)) {
+            return { collectionId: collection.id, folderId: folder.id };
+          }
+          const foundInNested = searchFolders(folder.folders || []);
+          if (foundInNested) return foundInNested;
+        }
+        return null;
+      };
+  
+      const found = searchFolders(collection.folders);
+      if (found) return found;
+    }
+  
+    return null;
+  },
+  
 }));

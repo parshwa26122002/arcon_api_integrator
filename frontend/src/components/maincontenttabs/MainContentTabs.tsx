@@ -134,6 +134,9 @@ const MainContentTabs: React.FC = () => {
   const getActiveRequest = useCollectionStore(state => state.getActiveRequest);
   const getActiveCollection = useCollectionStore(state => state.getActiveCollection);
   const getActiveFolder = useCollectionStore(state => state.getActiveFolder);
+  const setActiveRequest = useCollectionStore(state => state.setActiveRequest);
+  const setActiveCollection = useCollectionStore(state => state.setActiveCollection);
+  const setActiveFolder = useCollectionStore(state => state.setActiveFolder);
   const updateRequest = useCollectionStore(state => state.updateRequest);
   const updateCollection = useCollectionStore(state => state.updateCollection);
   const updateFolder = useCollectionStore(state => state.updateFolder);
@@ -229,7 +232,7 @@ const MainContentTabs: React.FC = () => {
         headers: [],
         auth: { type: 'none', credentials: {} },
         body: { mode: 'none' },
-        hasUnsavedChanges: true,
+        hasUnsavedChanges: false,
         originalState: {
           method: 'GET',
           url: '',
@@ -368,13 +371,34 @@ const MainContentTabs: React.FC = () => {
   };
 
   const closeTab = (id: number) => {
-    setTabs(prev => prev.filter(t => t.id !== id));
-    if (activeTab === id) {
-      const remainingTabs = tabs.filter(t => t.id !== id);
-      setActiveTab(remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null);
-    }
+    setTabs(prevTabs => {
+      const tabIndex = prevTabs.findIndex(t => t.id === id);
+      const closingTab = prevTabs.find(t => t.id === id);
+      const newTabs = prevTabs.filter(t => t.id !== id);
+  
+      // Update active tab
+      if (activeTab === id) {
+        const nextTab = newTabs[tabIndex] || newTabs[tabIndex - 1] || null;
+        setActiveTab(nextTab ? nextTab.id : null);
+  
+        // 🧠 Reset sidebar state based on the closed tab type
+        if (closingTab?.type === 'request') {
+          setActiveRequest(null);
+          setActiveFolder(null);
+          setActiveCollection(null);
+        } else if (closingTab?.type === 'folder') {
+          setActiveFolder(null);
+          setActiveCollection(null);
+        } else if (closingTab?.type === 'collection') {
+          setActiveCollection(null);
+        }
+      }
+  
+      return newTabs;
+    });
   };
-
+  
+  
   const handleSaveTab = async (tab: TabState) => {
     if (!tab.collectionId) {
       setShowSaveModal(true);
@@ -443,6 +467,9 @@ const MainContentTabs: React.FC = () => {
       }
       return updatedTab;
     }));
+
+    //close tab
+    closeTab(tab.id);
   };
 
   const getCurrentTab = () => tabs.find(tab => tab.id === activeTab) || null;
@@ -550,13 +577,37 @@ const MainContentTabs: React.FC = () => {
           setShowUnsavedModal(false);
           setTabToClose(null);
         }}
-        onDiscard={() => {
-          if (tabToClose !== null) {
-            closeTab(tabToClose);
+        onDiscard ={() => {
+          const tab = tabs.find(t => t.id === tabToClose);
+          if (!tab) return;
+        
+          // Revert store
+          if (isRequestTab(tab) && tab.originalState && tab.collectionId && tab.requestId) {
+            updateRequest(tab.collectionId, tab.requestId, {
+              method: tab.originalState.method,
+              url: tab.originalState.url,
+              queryParams: tab.originalState.queryParams,
+              headers: tab.originalState.headers,
+              auth: tab.originalState.auth,
+              body: {
+                mode: tab.originalState.body.mode,
+                raw: tab.originalState.body.raw,
+                options: tab.originalState.body.options,
+                formData: tab.originalState.body.formData,
+                urlencoded: tab.originalState.body.urlencoded,
+                file: tab.originalState.body.file,
+              },
+              response: tab.originalState.response || [],
+            });
           }
+          
+          // Close the tab after discard
+          // setTabs(prev => prev.filter(t => t.id !== tabToClose));
+          closeTab(tab.id);
+          // Hide modal
           setShowUnsavedModal(false);
-            setTabToClose(null);
-          }}
+        }}
+        
         />
       )}
 

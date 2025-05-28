@@ -17,6 +17,7 @@ declare module '../../store/collectionStore' {
 
 interface TreeRequest extends APIRequest {
   type: 'request';
+  collectionId: string;
 }
 
 interface TreeFolder extends APIFolder {
@@ -268,7 +269,8 @@ export default function CollectionSidebar(): JSX.Element {
     setActiveFolder,
     activeRequestId,
     activeCollectionId,
-    activeFolderId
+    activeFolderId,
+    findRequestLocation
   } = useCollectionStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [renamingItemId, setRenamingItemId] = useState<string | null>(null);
@@ -299,24 +301,63 @@ export default function CollectionSidebar(): JSX.Element {
   };
 
   const handleSelectRequest = (request: APIRequest) => {
-    const collectionId = activeCollectionId;
-    if (collectionId) {
-      setActiveCollection(collectionId);
+    const location = findRequestLocation(request.id);
+    if (!location) return;
+  
+    const isSameRequest = activeRequestId === request.id;
+  
+    if (isSameRequest) {
+      // Force refresh
+      setActiveCollection(null);
+      setActiveFolder(null);
+      setActiveRequest(null);
+  
+      setTimeout(() => {
+        setActiveCollection(location.collectionId);
+        setActiveFolder(location.folderId);
+        setActiveRequest(request.id);
+      }, 0);
+    } else {
+      setActiveCollection(location.collectionId);
+      setActiveFolder(location.folderId);
       setActiveRequest(request.id);
     }
   };
+  
 
   const handleSelectCollection = (collection: APICollection) => {
-    setActiveCollection(collection.id);
-    setActiveRequest(null);
-    setActiveFolder(null);
+    if (activeCollectionId === collection.id && !activeRequestId && !activeFolderId) {
+      // Force re-selection
+      setActiveCollection(null);
+      setActiveRequest(null);
+      setActiveFolder(null);
+      setTimeout(() => {
+        setActiveCollection(collection.id);
+      }, 0);
+    } else {
+      setActiveCollection(collection.id);
+      setActiveRequest(null);
+      setActiveFolder(null);
+    }
   };
-
+  
   const handleSelectFolder = (folder: TreeFolder) => {
-    setActiveCollection(folder.collectionId);
-    setActiveFolder(folder.id);
-    setActiveRequest(null);
+    if (activeFolderId === folder.id) {
+      // Force re-selection
+      setActiveFolder(null);
+      setActiveRequest(null);
+      setActiveCollection(null);
+      setTimeout(() => {
+        setActiveCollection(folder.collectionId);
+        setActiveFolder(folder.id);
+      }, 0);
+    } else {
+      setActiveCollection(folder.collectionId);
+      setActiveFolder(folder.id);
+      setActiveRequest(null);
+    }
   };
+  
 
   const handleAddCollection = () => {
     const newCollection = {
@@ -588,7 +629,8 @@ const TreeNode: React.FC<{
                 key={request.id}
                 item={{
                   ...request,
-                  type: 'request' as const
+                  type: 'request' as const,
+                  collectionId: item.id
                 }}
                 depth={depth + 1}
                 onSelect={(req) => {
@@ -689,7 +731,8 @@ const TreeNode: React.FC<{
                 key={request.id}
                 item={{
                   ...request,
-                  type: 'request' as const
+                  type: 'request' as const,
+                  collectionId: item.collectionId
                 }}
                 depth={depth + 1}
                 onSelect={(req) => {

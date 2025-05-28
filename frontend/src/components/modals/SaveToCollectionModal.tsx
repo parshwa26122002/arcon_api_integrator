@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { useCollectionStore } from '../../store/collectionStore';
-import { FiChevronRight, FiChevronDown, FiFolder } from 'react-icons/fi';
+import { useCollectionStore, type APICollection } from '../../store/collectionStore';
+import { FiChevronRight, FiFolder } from 'react-icons/fi';
 import { v4 as uuid } from 'uuid';
 
 const ModalOverlay = styled.div`
@@ -281,8 +281,9 @@ const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({
   const [name, setName] = useState('');
   const [selectedLocationId, setselectedLocationId] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [collections, setCollections] = useState(useCollectionStore.getState().collections);
-  const addCollection = useCollectionStore(state => state.addCollection);
+  const collections = useCollectionStore(state => state.collections);
+  const addCollection = useCollectionStore(state => state.addCollection);  
+  const updateCollection = useCollectionStore(state => state.updateCollection);
 
   const handleToggleExpand = (id: string) => {
     setExpandedNodes(prev => {
@@ -300,35 +301,33 @@ const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({
     setExpandedNodes(new Set([id]));
   };
 
-  const handleNewCollection = () => {
-    const newCollection = {
+  const handleNewCollection = async () => {
+    const newCollection: APICollection = {
       id: uuid(),
       name: 'New Collection',
       folders: [],
       requests: [],
-      isNew: true
+      isNew: true,
     };
-    setCollections([...collections, newCollection]);
+    await addCollection(newCollection); // directly saves + updates store
     setselectedLocationId(newCollection.id);
+    console.log('newCollection', newCollection);
   };
+  
 
   const handleRename = async (id: string, newName: string) => {
-    const updatedCollections = collections.map(collection => {
-      if (collection.id === id) {
-        // Remove isNew flag and update name
-        const { isNew, ...rest } = collection;
-        return { ...rest, name: newName };
-      }
-      return collection;
-    });
-    setCollections(updatedCollections);
-
-    // Find the renamed collection and save it
-    const renamedCollection = updatedCollections.find(c => c.id === id);
-    if (renamedCollection) {
-      await addCollection(renamedCollection);
-    }
+    const collection = collections.find(c => c.id === id);
+    if (!collection) return;
+  
+    const updatedCollection = {
+      ...collection,
+      name: newName,
+      isNew: undefined, // strip the flag
+    };
+  
+    await updateCollection(id, updatedCollection); // this will update + persist
   };
+  
 
   if (!isOpen) return null;
 
@@ -381,6 +380,7 @@ const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({
               disabled={!name || !selectedLocationId}
               onClick={() => {
                 if (name && selectedLocationId) {
+                  console.log('selectedLocationId', selectedLocationId);
                   onSave(name, selectedLocationId);
                   onClose();
                 }

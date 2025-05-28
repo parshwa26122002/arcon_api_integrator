@@ -570,7 +570,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
               </IconButton>
               <IconButton title="Copy" onClick={() => navigator.clipboard.writeText(tabState.response?.[0]?.body || '')}><FiCopy /></IconButton>
               <IconButton title="Clear" onClick={() => onStateChange({ ...tabState, response: [] })}><FiTrash2 /></IconButton>
-              {tabState.response?.[0]?.code !== 0 && tabState.collectionId && tabState.requestId && (
+              {tabState.response?.[0]?.code !== 0 && (
                 <IconButton title="Save" style={{ opacity: isResponseSaved ? 0.5 : 1, pointerEvents: isResponseSaved ? 'none' : 'auto',
                 }} onClick={!isResponseSaved ? SaveResponse : undefined}><FiSave /></IconButton>
               )}
