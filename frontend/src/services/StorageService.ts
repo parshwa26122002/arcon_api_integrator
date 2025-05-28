@@ -56,8 +56,8 @@ class StorageService {
 
   async saveCollection(collection: APICollection): Promise<void> {
     console.log('StorageService: Saving collection', collection);
-    if (this.isElectron) {
-      await this.saveCollectionToFile(collection);
+    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
+      await window.electron.saveCollection(collection);
     } else {
       await this.saveCollectionToIndexedDB(collection);
     }
@@ -72,19 +72,21 @@ class StorageService {
     console.log('StorageService: Saved to IndexedDB successfully');
   }
 
-  private async saveCollectionToFile(collection: APICollection): Promise<void> {
-    if (!window.electron) {
-      throw new Error('Electron APIs not available');
-    }
-    await window.electron.saveCollection(collection);
-  }
-
   async getAllCollections(): Promise<APICollection[]> {
     console.log('StorageService: Getting all collections');
-    if (this.isElectron) {
-      return this.getAllCollectionsFromFiles();
+    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
+      return window.electron.getAllCollectionsFromFiles();
     } else {
       return this.getAllCollectionsFromIndexedDB();
+    }
+  }
+
+  async getCollectionByID(id: string): Promise<APICollection> {
+    console.log('StorageService: Getting collections by id');
+    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
+        return window.electron.getCollectionByIdFromFiles(id);
+    } else {
+        return this.getCollectionByIdFromIndexedDB(id);
     }
   }
 
@@ -98,17 +100,21 @@ class StorageService {
     return collections;
   }
 
-  private async getAllCollectionsFromFiles(): Promise<APICollection[]> {
-    if (!window.electron) {
-      throw new Error('Electron APIs not available');
+
+  private async getCollectionByIdFromIndexedDB(id: string): Promise<APICollection> {
+    console.log('StorageService: Getting collections from IndexedDB');
+    if (!this.db) {
+        throw new Error('Database not initialized');
     }
-    return window.electron.getAllCollections();
+    const collections = await this.db.get(COLLECTION_STORE, id);
+    console.log('StorageService: Retrieved collections from IndexedDB:', collections);
+    return collections;
   }
 
   async deleteCollection(id: string): Promise<void> {
     console.log('StorageService: Deleting collection', id);
-    if (this.isElectron) {
-      await this.deleteCollectionFile(id);
+    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
+      await window.electron.deleteCollection(id);
     } else {
       await this.deleteCollectionFromIndexedDB(id);
     }
@@ -123,12 +129,6 @@ class StorageService {
     console.log('StorageService: Deleted from IndexedDB successfully');
   }
 
-  private async deleteCollectionFile(id: string): Promise<void> {
-    if (!window.electron) {
-      throw new Error('Electron APIs not available');
-    }
-    await window.electron.deleteCollection(id);
-  }
 
 }
 

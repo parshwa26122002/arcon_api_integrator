@@ -1,5 +1,5 @@
 import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportKeyValueWithDescription, URLExport, ExportBody } from '../store/collectionStore';
-
+import { storageService } from '../services/StorageService';
 function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefined {
     if (!variables) return undefined;
     return variables.map(v => ({
@@ -162,13 +162,18 @@ function convertAPICollectionToExportCollection(api: APICollection): ExportColle
     return exportCollection;
     
 }
-export function exportCollectionAsJson(apiCollection: APICollection) {
+export async function exportCollectionAsJson(id: string) {
+    await storageService.initialize();
+    const apiCollection: APICollection | null = await storageService.getCollectionByID(id);
+    if (!apiCollection) {
+        return;
+    }
     const exportObj = convertAPICollectionToExportCollection(apiCollection);
     const json = JSON.stringify(exportObj, null, 2);
     const filename = `${exportObj.info.name || 'collection'}.json`;
 
-    if (typeof window !== 'undefined' && (window as any).electron && typeof (window as any).electron.saveJsonFile === 'function') {
-        (window as any).electron.saveJsonFile(json, filename);
+    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
+        window.electron.saveJsonFile(json, filename);
         return;
     }
 

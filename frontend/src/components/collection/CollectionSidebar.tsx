@@ -552,7 +552,7 @@ const TreeNode: React.FC<{
                 Rename
               </MenuItem>
               <MenuItem onClick={() => {
-                exportCollectionAsJson(item);
+                exportCollectionAsJson(item.id);
                 moreOptionsProps.onMenuClick('');
               }}>
                 <FiFile size={14} />
