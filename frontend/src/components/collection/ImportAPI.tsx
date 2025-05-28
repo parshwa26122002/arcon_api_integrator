@@ -578,10 +578,12 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
       });
     } else if (item.request) {
       // This is a request
-      const url =
-        typeof item.request.url === "string"
-          ? item.request.url
-          :item.request.url?.raw || buildPostmanUrl(item.request.url) || "";
+      let url = "";
+      if (typeof item.request.url === "string") {
+        url = item.request.url;
+      } else if (typeof item.request.url === "object" && item.request.url !== null) {
+        url = item.request.url.raw || buildPostmanUrl(item.request.url);
+      }
 
       const authObj = item.request.auth || {};
       const authType = authObj.type || "";
