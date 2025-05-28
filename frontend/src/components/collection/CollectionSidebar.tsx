@@ -290,6 +290,11 @@ export default function CollectionSidebar(): JSX.Element {
     };
   }, [activeMenu]);
 
+  useEffect(() => {
+    console.log('Renaming ID changed to:', renamingItemId);
+  }, [renamingItemId]);
+  
+
   const handleMenuClick = (id: string) => {
     setActiveMenu(activeMenu === id ? null : id);
   };
@@ -373,6 +378,7 @@ export default function CollectionSidebar(): JSX.Element {
       folders: []
     };
     addCollection(newCollection);
+    setRenamingItemId(newCollection.id);
   };
 
   const filteredCollections = collections.filter(collection => 
@@ -482,44 +488,39 @@ const TreeNode: React.FC<{
 
   const handleAddFolder = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    let newFolderID = '';
     if ('type' in item) {
       if (item.type === 'folder') {
         // Add folder inside another folder
-        await addFolder(item.collectionId, item.id, 'New Folder');
+        newFolderID = await addFolder(item.collectionId, item.id);
         setIsExpanded(true);
       }
     } else {
       // Add folder directly to collection
-      await addFolder(item.id, null, 'New Folder');
+      newFolderID = await addFolder(item.id, null);
       setIsExpanded(true);
     }
     moreOptionsProps.onMenuClick(''); // Close menu
+    setRenamingItemId(newFolderID);
   };
 
   const handleAddRequest = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newRequest = {
-      id: crypto.randomUUID(),
-      name: 'New Request',
-      method: 'GET',
-      url: '',
-      headers: [],
-      params: [],
-      body: null
-    };
-
+    let newRequestID = '';
     if ('type' in item) {
       if (item.type === 'folder') {
         // Add request inside folder
-        await addRequestToFolder(item.collectionId, item.id, newRequest);
+        newRequestID = await addRequestToFolder(item.collectionId, item.id);
         setIsExpanded(true);
       }
     } else {
       // Add request directly to collection
-      await addRequestToCollection(item.id, newRequest);
+      newRequestID = await addRequestToCollection(item.id);
       setIsExpanded(true);
     }
     moreOptionsProps.onMenuClick(''); // Close menu
+    setRenamingItemId(newRequestID);
   };
 
   const handleRunCollection = (e: React.MouseEvent) => {
@@ -813,3 +814,4 @@ const TreeNode: React.FC<{
     </TreeItem>
   );
 }
+

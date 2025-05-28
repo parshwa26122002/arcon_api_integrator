@@ -203,9 +203,9 @@ interface CollectionStoreState {
 
   initialize: () => Promise<void>;
   addCollection: (collection: APICollection) => Promise<void>;
-  addFolder: (collectionId: string, parentFolderId: string | null, folderName: string) => Promise<void>;
-  addRequestToFolder: (collectionId: string, folderId: string, request: Request) => Promise<void>;
-  addRequestToCollection: (collectionId: string, request: Request) => Promise<void>;
+  addFolder: (collectionId: string, parentFolderId: string | null) => Promise<string>;
+  addRequestToFolder: (collectionId: string, folderId: string) => Promise<string>;
+  addRequestToCollection: (collectionId: string) => Promise<string>;
   addRequestToLocation: (locationId: string, name:string, request: RequestTabState) => Promise<void>;
   removeFolder: (collectionId: string, folderId: string) => Promise<void>;
   removeCollection: (id: string) => Promise<void>;
@@ -262,7 +262,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
   addCollection: async (collection: APICollection) => {
     const newCollection = {
       ...collection,
-      id: uuid(),
+      id: collection.id ?? uuid(),
       requests: collection.requests || [],
       folders: collection.folders || [],
     };
@@ -271,14 +271,13 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     await storageService.saveCollection(newCollection);
   },
 
-  addFolder: async (collectionId, parentFolderId, folderName) => {
+  addFolder: async (collectionId, parentFolderId) => {
     const newFolder: APIFolder = {
-      id: uuid(),
-      name: folderName,
+      id: crypto.randomUUID(),
+      name: 'New Folder',
       folders: [],
       requests: [],
     };
-
     set((state) => ({
       collections: state.collections.map((collection) => {
         if (collection.id !== collectionId) return collection;
@@ -318,12 +317,13 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     if (collection) {
       await storageService.saveCollection(collection);
     }
+    return newFolder.id;
   },
 
-  addRequestToFolder: async (collectionId, folderId, requestName) => {
+  addRequestToFolder: async (collectionId, folderId) => {
     const newRequest: APIRequest = {
       id: uuid(),
-      name: requestName.name,
+      name: 'New Request',
       method: 'GET',
       url: '',
       headers: [],
@@ -366,6 +366,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     if (collection) {
       await storageService.saveCollection(collection);
     }
+    return newRequest.id;
   },
 
   removeCollection: async (id) => {
@@ -391,7 +392,21 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     }
   },
 
-  addRequestToCollection: async (collectionId, requestName) => {
+  addRequestToCollection: async (collectionId) => {
+    const newRequest: APIRequest = {
+      id: uuid(),
+      name: 'New Request',
+      method: 'GET',
+      url: '',
+      headers: [],
+      queryParams: [],
+      body: undefined,
+      contentType: '',
+      formData: [],
+      auth: {type: '', credentials: {}},
+      response: []
+    };
+
     set((state) => ({
       collections: state.collections.map((c) =>
         c.id === collectionId
@@ -399,20 +414,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
               ...c,
               requests: [
                 ...c.requests,
-                {
-                  id: uuid(),
-                  name: requestName.name,
-                  method: 'GET',
-                  url: '',
-                  headers: [],
-                  queryParams: [],
-                  body: undefined,
-                  bodyType: 'none',
-                  contentType: '',
-                  formData: [],
-                  auth: {type: '', credentials: {}},
-                  response: []
-                },
+                newRequest
               ],
             }
           : c
@@ -422,6 +424,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     if (collection) {
       await storageService.saveCollection(collection);
     }
+    return newRequest.id;
   },
 
   addRequestToLocation: async (locationId, name, request) => {

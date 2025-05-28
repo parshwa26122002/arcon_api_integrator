@@ -6,7 +6,7 @@ import CollectionPane from '../collectionpane/CollectionPane';
 import FolderPane from '../folderpane/FolderPane';
 import { AddButton } from '../../styled-component/AddButton';
 import { Tab } from '../../styled-component/Tab';
-import { useCollectionStore, type CollectionTabState, type RequestTabState, type FolderTabState, type APIFolder } from '../../store/collectionStore';
+import { useCollectionStore, type CollectionTabState, type RequestTabState, type FolderTabState, type APIFolder, type APIRequest } from '../../store/collectionStore';
 import { convertRequestBodyToTabBody, convertTabBodyToRequestBody } from '../../utils/requestUtils';
 import UnsavedChangesModal from '../modals/UnsavedChangesModal';
 import SaveToCollectionModal from '../modals/SaveToCollectionModal';
@@ -127,7 +127,7 @@ const MainContentTabs: React.FC = () => {
   const [tabToClose, setTabToClose] = useState<number | null>(null);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-
+  const collections = useCollectionStore(state => state.collections);
   const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
   const activeRequestId = useCollectionStore(state => state.activeRequestId);
   const activeFolderId = useCollectionStore(state => state.activeFolderId);
@@ -351,6 +351,92 @@ const MainContentTabs: React.FC = () => {
       }
     }
   }, [activeCollectionId, activeRequestId, activeFolderId]);
+
+  useEffect(() => {
+    setTabs(prevTabs => {
+      const removedTabIds: number[] = [];
+      
+      const updatedTabs = prevTabs
+        .map((tab) => {
+          if (isRequestTab(tab)) {
+            const collection = collections.find(c => c.id === tab.collectionId);
+            if (!collection) {
+              removedTabIds.push(tab.id);
+              return null;
+            }
+            const allRequests: APIRequest[] = [
+              ...(collection.requests || []),
+              ...flattenFolders(collection.folders),
+            ];
+            const request = allRequests.find(r => r.id === tab.requestId);
+            if (!request) {
+              removedTabIds.push(tab.id);
+              return null;
+            }
+            return tab.title !== request.name ? { ...tab, title: request.name } : tab;
+  
+          } else if (isFolderTab(tab)) {
+            const collection = collections.find(c => c.id === tab.collectionId);
+            if (!collection) {
+              removedTabIds.push(tab.id);
+              return null;
+            }
+            const folder = findFolderById(collection.folders, tab.folderId);
+            if (!folder) {
+              removedTabIds.push(tab.id);
+              return null;
+            }
+            return tab.title !== folder.name ? { ...tab, title: folder.name } : tab;
+  
+          } else if (isCollectionTab(tab)) {
+            const collection = collections.find(c => c.id === tab.collectionId);
+            if (!collection) {
+              removedTabIds.push(tab.id);
+              return null;
+            }
+            return tab.title !== collection.name ? { ...tab, title: collection.name } : tab;
+          }
+  
+          return tab;
+        })
+        .filter(Boolean) as typeof prevTabs;
+  
+      if (removedTabIds.length > 0) {
+        // Find index of the first removed tab
+        const firstRemovedIndex = prevTabs.findIndex(tab => removedTabIds.includes(tab.id));
+        // Try to activate the previous one, or the next one in line
+        const fallbackTab = 
+          updatedTabs[firstRemovedIndex - 1] ||
+          updatedTabs[firstRemovedIndex] ||
+          updatedTabs[updatedTabs.length - 1] ||
+          null;
+  
+        setActiveTab(fallbackTab?.id ?? null);
+      }
+  
+      return updatedTabs;
+    });
+  }, [collections]);
+  
+  function flattenFolders(folders: APIFolder[]): APIRequest[] {
+    const result: APIRequest[] = [];
+    for (const folder of folders) {
+      result.push(...(folder.requests || []));
+      if (folder.folders) {
+        result.push(...flattenFolders(folder.folders));
+      }
+    }
+    return result;
+  }  
+  
+  function findFolderById(folders: APIFolder[], id: string): APIFolder | null {
+    for (const folder of folders) {
+      if (folder.id === id) return folder;
+      const found = findFolderById(folder.folders || [], id);
+      if (found) return found;
+    }
+    return null;
+  }  
 
   const handleAddTab = () => {
     createNewRequestTab();
