@@ -449,11 +449,24 @@ function renderCollectionHTML(col: APICollection | null): string {
 
         const headersTable = renderKeyValueBlock('Headers', headers);
         const queryParamsTable = renderKeyValueBlock('Query Parameters', queryParams);
-        let  authSection = ''
-        if (request.auth && Object.keys(request.auth.credentials).length > 0) {
-            authSection = renderAuth(request.auth);
+        const requestAuthType = request.auth?.type || '';
+        let authSection = ''
+        if (requestAuthType === '' || requestAuthType === 'inheritCollection') {
+            authSection = `<div class="sub-section">
+        <h5>Authentication (Inherit From Parent)</h5>
+        <p class="description">This Request Inherits Auhtorization From Parent</p>
+      </div>`;
         }
-
+        else if (requestAuthType == 'noAuth') {
+            authSection = 'No Authentication Is Required.';
+        }
+        else {
+            authSection = request.auth && Object.keys(request.auth.credentials).length > 0 ? renderAuth(request.auth) : `<div class="sub-section">
+        <h5>Authentication (Inherit From Parent)</h5>
+        <p class="description">This Request Inherits Auhtorization From Parent</p>
+      </div>`;
+        }
+        
         let bodySection = '';
         if (request.body && request.body.mode !== 'none') {
             const { mode } = request.body;
@@ -516,11 +529,28 @@ function renderCollectionHTML(col: APICollection | null): string {
     }
 
     function renderFolder(folder: APIFolder): string {
+        const folderAuthType = folder.auth?.type || '';
+        let folderAuth = '';
+        if (folderAuthType === '' || folderAuthType === 'inheritCollection') {
+            folderAuth = `<div class="sub-section">
+        <h5>Authentication (Inherit From Parent)</h5>
+        <p class="description">This Folder Inherits Auhtorization From Parent</p>
+      </div>`;
+        }
+        else if (folderAuthType == 'noAuth') {
+            folderAuth = 'No Authentication Is Required.';
+        }
+        else {
+            folderAuth = folder.auth && Object.keys(folder.auth.credentials).length > 0 ? renderAuth(folder.auth) : `<div class="sub-section">
+        <h5>Authentication (Inherit From Parent)</h5>
+        <p class="description">This Folder Inherits Auhtorization From Parent</p>
+      </div>`;
+        }
         const folderHeader = `
         <div class="folder-block">
           <h3>📁 ${folder.name}</h3>
           ${folder.description ? `<p class="description">${folder.description}</p>` : ''}
-          ${ folder.auth && Object.keys(folder.auth).length > 0 && renderAuth(folder.auth) }
+          ${folderAuth}
       `;
 
         const nestedFolders = folder.folders && folder.folders.length
@@ -662,7 +692,7 @@ function renderCollectionHTML(col: APICollection | null): string {
       <div id="container">
         <h1>${col.name}</h1>
         <p class="description">${col.description || ''}</p>
-        ${renderAuth(col.auth)}
+        ${!col.auth || col.auth.type === 'noAuth' || col.auth.type === 'inheritCollection' ? '' : renderAuth(col.auth)}
 
         <div class="section">
           <h2>Variables</h2>
