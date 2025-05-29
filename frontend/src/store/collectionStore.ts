@@ -872,7 +872,7 @@ export function getNearestParentAuth(requestId: string): AuthState | undefined {
       // Traverse from deepest to root to find the nearest auth
       for (let i = folderPath.length - 1; i >= 0; i--) {
         const folder = folderPath[i];
-        if (folder && folder.auth && folder.auth.type) {
+        if (folder && folder.auth && folder.auth.type != 'noAuth') {
           return folder.auth;
         }
       }
