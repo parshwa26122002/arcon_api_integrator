@@ -647,6 +647,17 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
               file: { src: item.request.body.file?.src || "" },
             };
             break;
+          case "graphql":
+            console.log('Parsing GraphQL body:', item.request.body.graphql);
+            body = {
+              mode: "graphql" as const,
+              graphql: {
+                query: item.request.body.graphql?.query || "",
+                variables: item.request.body.graphql?.variables || "",
+              },
+            };
+            console.log('Parsed GraphQL body:', body);
+            break;
           default:
             body = { mode: "none" as const };
         }

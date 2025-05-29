@@ -38,6 +38,14 @@ export const convertRequestBodyToTabBody = (requestBody: any): TabBodyType => {
           content: ''
         }
       } : { mode: 'none' };
+    case 'graphql':
+      return {
+        mode: 'graphql',
+        graphql: {
+          query: requestBody.graphql?.query || '',
+          variables: requestBody.graphql?.variables || '',
+        }
+      };
     default:
       return { mode: 'none' };
   }

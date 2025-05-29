@@ -44,7 +44,7 @@ export interface FileBody {
 }
 
 export interface RequestBody {
-  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded';
+  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded' | 'graphql';
   raw?: string;
   options?: {
     raw?: {
@@ -54,6 +54,12 @@ export interface RequestBody {
   formData?: FormDataItem[];
   urlencoded?: UrlEncodedItem[];
   file?: FileBody;
+  graphql?: GraphQLBody;
+}
+
+export interface GraphQLBody {
+  query: string;
+  variables: string;
 }
 
 export interface AuthState {
@@ -116,7 +122,7 @@ export interface Request {
 export type HttpMethod = APIRequest['method'];
 
 export type TabBodyType = {
-  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded';
+  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded' | 'graphql';
   raw?: string;
   options?: {
     raw?: {
@@ -126,6 +132,7 @@ export type TabBodyType = {
   formData?: Array<{ key: string; value: string; type: 'text' | 'file' }>;
   urlencoded?: Array<{ key: string; value: string }>;
   file?: { name: string; content: string };
+  graphql?: { query: string; variables: string };
 };
 
 export interface RequestTabState {
