@@ -314,6 +314,15 @@ export interface FolderTabState {
   };
 }
 
+export interface DocumentationTabState {
+    id: number;
+    type: 'documentation';
+    title: string;
+    collectionId: string;
+    content: string;
+    hasUnsavedChanges: boolean;
+}
+
 interface CollectionStoreState {
   collections: APICollection[];
   activeCollectionId: string | null;

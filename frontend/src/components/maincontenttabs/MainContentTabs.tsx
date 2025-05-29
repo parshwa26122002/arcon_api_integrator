@@ -6,11 +6,13 @@ import CollectionPane from '../collectionpane/CollectionPane';
 import FolderPane from '../folderpane/FolderPane';
 import { AddButton } from '../../styled-component/AddButton';
 import { Tab } from '../../styled-component/Tab';
-import { useCollectionStore, type CollectionTabState, type RequestTabState, type FolderTabState, type APIFolder } from '../../store/collectionStore';
+import { useCollectionStore, type CollectionTabState, type RequestTabState, type FolderTabState, type APIFolder, type DocumentationTabState } from '../../store/collectionStore';
 import { convertRequestBodyToTabBody, convertTabBodyToRequestBody } from '../../utils/requestUtils';
 import UnsavedChangesModal from '../modals/UnsavedChangesModal';
 import SaveToCollectionModal from '../modals/SaveToCollectionModal';
 import PaneHeader from '../paneheader/PaneHeader';
+import DocumentationPane from '../documentationpane/DocumentationPane';
+
 
 const ScrollbarArea = styled.div`
   width: 100%;
@@ -114,7 +116,7 @@ const TabWrapper = styled.div`
   }
 `;
 
-type TabState = RequestTabState | CollectionTabState | FolderTabState;
+type TabState = RequestTabState | CollectionTabState | FolderTabState | DocumentationTabState;
 
 const isRequestTab = (tab: TabState): tab is RequestTabState => tab.type === 'request';
 const isCollectionTab = (tab: TabState): tab is CollectionTabState => tab.type === 'collection';
@@ -295,6 +297,22 @@ const MainContentTabs: React.FC = () => {
       }
     };
 
+    setTabs(prev => [...prev, newTab]);
+    setActiveTab(newTab.id);
+    setTabCounter(prev => prev + 1);
+    return newTab;
+  };
+
+  const createDocumentationTab = (collectionId: string, title: string, content: string = '') => {
+    const newTab: DocumentationTabState = {
+      id: tabCounter,
+      type: 'documentation',
+      title,
+      collectionId,
+      content,
+      hasUnsavedChanges: false,
+
+    };
     setTabs(prev => [...prev, newTab]);
     setActiveTab(newTab.id);
     setTabCounter(prev => prev + 1);
@@ -492,6 +510,8 @@ const MainContentTabs: React.FC = () => {
             <CollectionPane
               tabState={currentTab}
               onStateChange={(newState: Partial<CollectionTabState>) => handleTabStateChange(currentTab.id, newState)}
+              openDocumentationTab={(collectionId, title, content) => createDocumentationTab(collectionId, title, content)}
+
             />
           );
         case 'folder': {
@@ -518,6 +538,12 @@ const MainContentTabs: React.FC = () => {
             />
           );
         }
+        case 'documentation':
+            return (
+                <DocumentationPane
+                    tabState={currentTab as DocumentationTabState}
+                />
+            );
       }
     })();
 

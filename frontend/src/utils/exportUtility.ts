@@ -190,3 +190,40 @@ export async function exportCollectionAsJson(id: string) {
         URL.revokeObjectURL(url);
     }, 0);
 }
+
+
+export function exportAsHTML(title: string, content: string) {
+    const html = `<html><head><title>${title}</title></head><body>${content}</body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
+    const filename = `${title}.html`;
+
+    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
+        window.electron.saveJsonFile(html, filename);
+        return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+}
+
+export function exportAsPDF(title: string, content: string) {
+    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
+        window.electron.saveJsonFile(title, content); //change this to the correct method for saving PDF in your Electron app
+        return;
+    }
+    // Web fallback: open print dialog
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`<html><head><title>${title}</title></head><body>${content}</body></html>`);
+        printWindow.document.close();
+        printWindow.print();
+    }
+}
