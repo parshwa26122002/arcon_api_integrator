@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import styled from 'styled-components';
-import { type AuthState } from '../../store/collectionStore';
+import { type AuthState, getNearestParentAuth } from '../../store/collectionStore';
 type OAuthGrantType = 'password' | 'client' | 'code' | 'oauth1';
 
 interface AuthorizationProps {
+  requestId: string | undefined;
   auth: AuthState;
   onChange: (auth: AuthState) => void;
 }
@@ -581,7 +582,7 @@ const GetTokenButton = styled.button`
   }
 `;
 
-const Authorization: React.FC<AuthorizationProps> = ({ auth, onChange }) => {
+const Authorization: React.FC<AuthorizationProps> = ({ requestId, auth, onChange }) => {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
     let newCredentials: Record<string, string> = {};
@@ -620,7 +621,192 @@ const Authorization: React.FC<AuthorizationProps> = ({ auth, onChange }) => {
   const renderAuthFields = () => {
     switch (auth.type) {
       case 'inheritCollection':
-        return <NoAuthMessage>Using authorization configuration from collection</NoAuthMessage>;
+        const parentAuth = getNearestParentAuth(requestId as string);
+        // return <NoAuthMessage>Using authorization configuration from collection</NoAuthMessage>;
+        if (!parentAuth) {
+          return <NoAuthMessage>No parent authorization configuration found</NoAuthMessage>;
+        }
+        switch (parentAuth.type) {
+      
+      case 'noAuth':
+        return <NoAuthMessage>No Authorization</NoAuthMessage>;
+        
+      case 'basic':
+        return (
+          <>
+            <FormGroup>
+              <Label>Username</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.username || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Password</Label>
+              <Input
+                type="password"
+                value={parentAuth.credentials.password || ''}
+                disabled
+              />
+            </FormGroup>
+          </>
+        );
+
+      case 'bearer':
+        return (
+          <FormGroup>
+            <Label>Token</Label>
+            <Input
+              type="text"
+              value={parentAuth.credentials.token || ''}
+              disabled
+            />
+          </FormGroup>
+        );
+
+      case 'oauth2':
+        return <OAuth2Form />;
+
+      case 'oauth1':
+        return (
+          <>
+            <FormGroup>
+              <Label>Request Token URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.requestTokenUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Authorize URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.authorizeUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Access Token URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.accessTokenUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Consumer Key</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.consumerKey || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Consumer Secret</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.consumerSecret || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Token (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.oauthToken || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Token Secret (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.oauthTokenSecret || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Callback URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.callbackUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Signature Method</Label>
+              <Select
+                value={parentAuth.credentials.signatureMethod || 'HMAC-SHA1'}
+                disabled
+                >
+                <option value="HMAC-SHA1">HMAC-SHA1</option>
+                <option value="PLAINTEXT">PLAINTEXT</option>
+              </Select>
+            </FormGroup>
+            <FormGroup>
+              <Label>Nonce (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.nonce || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Timestamp (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.timestamp || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Version</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.version || '1.0'}
+                disabled
+              />
+            </FormGroup>
+          </>
+        );
+
+      case 'apiKey':
+        return (
+          <>
+            <FormGroup>
+              <Label>Key</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.key || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Value</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.value || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Add to</Label>
+              <Select
+                value={parentAuth.credentials.in || 'header'}
+                disabled
+              >
+                <option value="header">Header</option>
+                <option value="query">Query Parameter</option>
+              </Select>
+            </FormGroup>
+          </>
+        );
+
+      default:
+        return null;
+    }
       
       case 'noAuth':
         return <NoAuthMessage>No Authorization</NoAuthMessage>;

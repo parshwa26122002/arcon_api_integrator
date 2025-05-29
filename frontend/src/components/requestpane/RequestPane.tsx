@@ -451,6 +451,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       case 'auth':
         return (
           <Authorization
+            requestId={tabState.requestId}
             auth={tabState.auth}
             onChange={(newAuth) => {
               const newState = { ...tabState, auth: newAuth };
