@@ -33,7 +33,8 @@ const Container = styled.div`
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  height: calc(100vh - 80px); // Full height minus padding
+  height: calc(100vh - 80px);
+  min-height: 0; // Enable proper flex behavior
 `;
 
 const TopBar = styled.div`
@@ -43,6 +44,7 @@ const TopBar = styled.div`
   background-color: #383838;
   padding: 8px;
   border-radius: 6px;
+  flex-shrink: 0; // Prevent shrinking
 `;
 
 const MethodSelect = styled.select<StyledMethodSelectProps>`
@@ -108,7 +110,8 @@ const SplitContainer = styled.div`
   display: flex;
   gap: 16px;
   flex: 1;
-  min-height: 0; // Important for proper scrolling
+  min-height: 0; // Enable scrolling
+  overflow: hidden; // Prevent overall container overflow
 `;
 
 const RequestSection = styled.div`
@@ -118,6 +121,8 @@ const RequestSection = styled.div`
   background-color: #383838;
   border-radius: 6px;
   border: 1px solid #4a4a4a;
+  min-height: 0; // Enable scrolling
+  overflow: hidden; // Contain overflow
 `;
 
 const ResponseSection = styled.div`
@@ -127,6 +132,8 @@ const ResponseSection = styled.div`
   background-color: #383838;
   border-radius: 6px;
   border: 1px solid #4a4a4a;
+  min-height: 0; // Enable scrolling
+  overflow: hidden; // Contain overflow
 `;
 
 const ResponseHeader = styled.div`
@@ -187,7 +194,8 @@ const TabContent = styled.div`
   padding: 20px;
   color: #e1e1e1;
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto; // Make tab content scrollable
+  min-height: 0; // Enable scrolling
 `;
 
 interface RequestPaneProps {
