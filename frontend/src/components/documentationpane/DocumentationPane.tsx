@@ -383,8 +383,67 @@ interface DocumentationPaneProps {
 //}
 
 function renderCollectionHTML(col: APICollection | null): string {
+    const dummyval = 'Value'
     if (!col) return '<div>Loading...</div>';
-
+    const colAuthType = col.auth?.type || '';
+    let colAuth = '';
+    if (colAuthType === '' || colAuthType === 'inheritCollection' || colAuthType === 'none' || colAuthType === 'noAuth') {
+        colAuth = `<div class="sub-section">
+                  <h5> Authorization (No Authorization) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong></strong> No Authrization Required </div>
+                      </div>
+                  </div>
+                </div>
+              `;
+    }
+    else if (colAuthType === 'basic') {
+        colAuth = `<div class="sub-section">
+                  <h5> Authorization (Basic Auth) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong>User Name:</strong> User </div>
+                        <div><strong>Password:</strong> User Password</div>
+                      </div>
+                  </div>
+                </div>
+              `;
+    }
+    else if (colAuthType === 'apiKey') {
+        
+        colAuth = `<div class="sub-section">
+                  <h5> Authorization (API Key) </h5>
+                  <div class="kv-container">
+                       ${col.auth && Object.entries(col.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+    }
+    else if (colAuthType === 'bearer') {
+        colAuth = `<div class="sub-section">
+                  <h5> Authorization (Bearer) </h5>
+                  <div class="kv-container">
+                       <div><strong>token:</strong> Add Token</div>
+                  </div>
+                </div>
+              `;
+    }
+    else {
+        colAuth = `<div class="sub-section">
+                  <h5> Authorization (Inherit From Parent) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong></strong> This Request Inherit Authorization Form Parent </div>
+                      </div>
+                  </div>
+                </div>
+              `;
+    }
     function renderKeyValueTable(title: string, items: { key: string; value: string; description?: string }[]): string {
         const filtered = items.filter(item => item.key && item.value);
         if (filtered.length === 0) return '';
@@ -427,21 +486,21 @@ function renderCollectionHTML(col: APICollection | null): string {
   `;
     }
 
-    function renderAuth(auth?: AuthState): string {
-        if (!auth) return '';
-        const rows = Object.entries(auth.credentials)
-            .map(([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`)
-            .join('');
-        return `
-      <div class="sub-section">
-        <h5>Authentication (${auth.type})</h5>
-        <table>
-          <thead><tr><th>Key</th><th>Value</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    `;
-    }
+    //function renderAuth(auth?: AuthState): string {
+    //    if (!auth) return '';
+    //    const rows = Object.entries(auth.credentials)
+    //        .map(([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`)
+    //        .join('');
+    //    return `
+    //  <div class="sub-section">
+    //    <h5>Authentication (${auth.type})</h5>
+    //    <table>
+    //      <thead><tr><th>Key</th><th>Value</th></tr></thead>
+    //      <tbody>${rows}</tbody>
+    //    </table>
+    //  </div>
+    //`;
+    //}
 
     function renderRequest(request: APIRequest): string {
         const headers = request.headers?.filter(h => h.isSelected !== false && h.key && h.value) || [];
@@ -451,20 +510,72 @@ function renderCollectionHTML(col: APICollection | null): string {
         const queryParamsTable = renderKeyValueBlock('Query Parameters', queryParams);
         const requestAuthType = request.auth?.type || '';
         let authSection = ''
-        if (requestAuthType === '' || requestAuthType === 'inheritCollection') {
+        if (requestAuthType === '' || requestAuthType === 'inheritCollection' || requestAuthType === 'none') {
             authSection = `<div class="sub-section">
-        <h5>Authentication (Inherit From Parent)</h5>
-        <p class="description">This Request Inherits Auhtorization From Parent</p>
-      </div>`;
+                  <h5> Authorization (Inherit From Parent) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong></strong> This Request Inherit Authorization Form Parent </div>
+                      </div>
+                  </div>
+                </div>
+              `;
         }
-        else if (requestAuthType == 'noAuth') {
-            authSection = 'No Authentication Is Required.';
+        else if (requestAuthType === 'noAuth') {
+            authSection = `<div class="sub-section">
+                  <h5> Authorization (No Authorization) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong></strong> No Authrization Required </div>
+                      </div>
+                  </div>
+                </div>
+              `;
+        }
+        else if (requestAuthType === 'basic') {
+            authSection = `<div class="sub-section">
+                  <h5> Authorization (Basic Auth) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong>User Name:</strong> User </div>
+                        <div><strong>Password:</strong> User Password </div>
+                      </div>
+                  </div>
+                </div>
+              `;
+        }
+        else if (requestAuthType === 'apiKey') {
+            authSection = `<div class="sub-section">
+                  <h5> Authorization (API Key) </h5>
+                  <div class="kv-container">
+                       ${request.auth && Object.entries(request.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+        }
+        else if (requestAuthType === 'bearer') {
+            authSection = `<div class="sub-section">
+                  <h5> Authorization (Bearer) </h5>
+                  <div class="kv-container">
+                       <div><strong>token:</strong> Add Token </div>
+                  </div>
+                </div>
+              `;
         }
         else {
-            authSection = request.auth && Object.keys(request.auth.credentials).length > 0 ? renderAuth(request.auth) : `<div class="sub-section">
-        <h5>Authentication (Inherit From Parent)</h5>
-        <p class="description">This Request Inherits Auhtorization From Parent</p>
-      </div>`;
+            authSection = `<div class="sub-section">
+                  <h5> Authorization (Inherit From Parent) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong></strong> This Request Inherit Authorization Form Parent </div>
+                      </div>
+                  </div>
+                </div>
+              `;
         }
         
         let bodySection = '';
@@ -473,11 +584,11 @@ function renderCollectionHTML(col: APICollection | null): string {
 
             if (mode === 'raw' && request.body.raw) {
                 bodySection = `
-        <div class="sub-section">
-          <h5>Body (Raw)</h5>
-          <pre>${request.body.raw}</pre>
-        </div>
-      `;
+                    <div class="sub-section">
+                        <h5>Body (Raw)</h5>
+                        <pre>${request.body.raw}</pre>
+                    </div>
+                    `;
             } else if (mode === 'form-data' && request.body.formData?.length) {
                 const filtered = request.body.formData.filter(i => i.isSelected !== false && i.key && i.value);
                 if (filtered.length) {
@@ -490,12 +601,12 @@ function renderCollectionHTML(col: APICollection | null): string {
                 }
             } else if (mode === 'file' && request.body.file && request.body.file.name) {
                 bodySection = `
-        <div class="sub-section">
-          <h5>Body (File)</h5>
-          <p><strong>Name:</strong> ${request.body.file.name}</p>
-          ${request.body.file.src ? `<p><strong>Source:</strong> ${request.body.file.src}</p>` : ''}
-        </div>
-      `;
+                        <div class="sub-section">
+                          <h5>Body (File)</h5>
+                          <p><strong>Name:</strong> ${request.body.file.name}</p>
+                          ${request.body.file.src ? `<p><strong>Source:</strong> ${request.body.file.src}</p>` : ''}
+                        </div>
+                      `;
             }
         }
 
@@ -531,20 +642,72 @@ function renderCollectionHTML(col: APICollection | null): string {
     function renderFolder(folder: APIFolder): string {
         const folderAuthType = folder.auth?.type || '';
         let folderAuth = '';
-        if (folderAuthType === '' || folderAuthType === 'inheritCollection') {
+        if (folderAuthType === '' || folderAuthType === 'inheritCollection' || folderAuthType === 'none') {
             folderAuth = `<div class="sub-section">
-        <h5>Authentication (Inherit From Parent)</h5>
-        <p class="description">This Folder Inherits Auhtorization From Parent</p>
-      </div>`;
+                  <h5> Authorization (Inherit From Parent) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong></strong> This Folder Inherit Authorization Form Parent </div>
+                      </div>
+                  </div>
+                </div>
+              `;
         }
-        else if (folderAuthType == 'noAuth') {
-            folderAuth = 'No Authentication Is Required.';
+        else if (folderAuthType === 'noAuth') {
+            folderAuth = `<div class="sub-section">
+                  <h5> Authorization (No Authorization) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong></strong> No Authrization Required </div>
+                      </div>
+                  </div>
+                </div>
+              `;
+        }
+        else if (folderAuthType === 'basic') {
+            folderAuth = `<div class="sub-section">
+                  <h5> Authorization (Basic Auth) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong>User Name:</strong> User </div>
+                        <div><strong>Password:</strong> User Password </div>
+                      </div>
+                  </div>
+                </div>
+              `;
+        }
+        else if (folderAuthType === 'apiKey') {
+            folderAuth = `<div class="sub-section">
+                  <h5> Authorization (API Key) </h5>
+                  <div class="kv-container">
+                       ${folder.auth && Object.entries(folder.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+        }
+        else if (folderAuthType === 'bearer') {
+            folderAuth = `<div class="sub-section">
+                  <h5> Authorization (Bearer) </h5>
+                  <div class="kv-container">
+                       <div><strong>token:</strong> Add token </div>
+                  </div>
+                </div>
+              `;
         }
         else {
-            folderAuth = folder.auth && Object.keys(folder.auth.credentials).length > 0 ? renderAuth(folder.auth) : `<div class="sub-section">
-        <h5>Authentication (Inherit From Parent)</h5>
-        <p class="description">This Folder Inherits Auhtorization From Parent</p>
-      </div>`;
+            folderAuth = `<div class="sub-section">
+                  <h5> Authorization (Inherit From Parent) </h5>
+                  <div class="kv-container">
+                      <div class="kv-item">
+                        <div><strong>Inherit:</strong> This Request Inherit Authorization Form Parent </div>
+                      </div>
+                  </div>
+                </div>
+              `;
         }
         const folderHeader = `
         <div class="folder-block">
@@ -692,7 +855,7 @@ function renderCollectionHTML(col: APICollection | null): string {
       <div id="container">
         <h1>${col.name}</h1>
         <p class="description">${col.description || ''}</p>
-        ${!col.auth || col.auth.type === 'noAuth' || col.auth.type === 'inheritCollection' ? '' : renderAuth(col.auth)}
+        ${colAuth}
 
         <div class="section">
           <h2>Variables</h2>
