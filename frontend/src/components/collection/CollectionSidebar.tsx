@@ -6,6 +6,7 @@ import RenameItem from './RenameItem';
 import DeleteCollection from './DeleteCollection';
 import { FiFolder, FiFile, FiPlus, FiPlay, FiEdit, FiMoreVertical } from 'react-icons/fi';
 import { AddButton } from '../../styled-component/AddButton';
+import { exportCollectionAsJson } from '../../utils/exportUtility';
 
 // Update store type
 declare module '../../store/collectionStore' {
@@ -590,6 +591,13 @@ const TreeNode: React.FC<{
               }}>
                 <FiEdit size={14} />
                 Rename
+              </MenuItem>
+              <MenuItem onClick={() => {
+                    exportCollectionAsJson(item.id);
+                    moreOptionsProps.onMenuClick('');
+              }}>
+                <FiFile size={14} />
+                Export
               </MenuItem>
               <DeleteCollection
                 collectionName={item.name}
