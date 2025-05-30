@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import Editor from '@monaco-editor/react';
 import { FiFile, FiTrash2, FiSearch } from 'react-icons/fi';
 import { useCollectionStore } from '../../store/collectionStore';
-import { getDynamicVariablesList } from '../../utils/dynamicVariables';
+import { getDynamicVariablesList, setVariableConfigurations } from '../../utils/dynamicVariables';
 import type { 
   RequestBody,
   FormDataItem,
@@ -18,7 +18,17 @@ interface RequestBodyProps {
 interface VariableConfig {
   minLength: string;
   maxLength: string;
+  minValue: string;
+  maxValue: string;
+  exactLength: string;
+  allowUnderscore: boolean;
+  // Password specific configs
+  minSpecialChars: string;
+  maxSpecialChars: string;
+  minNumbers: string;
+  maxNumbers: string;
   show: boolean;
+  type: 'length' | 'range' | 'exact' | 'username' | 'password';
 }
 
 interface VariableConfigs {
@@ -233,6 +243,15 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   accent-color: #7d4acf;
 `;
 
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e1e1e1;
+  font-size: 14px;
+  cursor: pointer;
+`;
+
 const DeleteButton = styled.button`
   visibility: hidden;
   background: none;
@@ -384,11 +403,31 @@ const ApplyAllButton = styled(ApplyButton)`
   }
 `;
 
+const ErrorMessage = styled.div`
+  color: #ff4444;
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 8px;
+  background-color: rgba(255, 68, 68, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 68, 68, 0.2);
+`;
+
 const BottomSection = styled.div`
   flex-shrink: 0;
   border-top: 1px solid #4a4a4a;
   padding-top: 16px;
   margin-top: auto;
+`;
+
+const InvalidVariableMessage = styled.div`
+  color: #ff4444;
+  font-size: 12px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: rgba(255, 68, 68, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 68, 68, 0.2);
 `;
 
 const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) => {
@@ -405,13 +444,68 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const [showLengthConfig, setShowLengthConfig] = useState(false);
   const [minLength, setMinLength] = useState('2');
   const [maxLength, setMaxLength] = useState('10');
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [invalidVariables, setInvalidVariables] = useState<string[]>([]);
+
+  const defaultConfig = {
+    minLength: '0',
+    maxLength: '0',
+    minValue: '0',
+    maxValue: '0',
+    exactLength: '0',
+    allowUnderscore: true,
+    minSpecialChars: '1',
+    maxSpecialChars: '3',
+    minNumbers: '1',
+    maxNumbers: '3',
+    show: false,
+  };
+
   const [variableConfigs, setVariableConfigs] = useState<VariableConfigs>({
-    '$randomLastName': { minLength: '2', maxLength: '10', show: false },
-    '$randomFirstName': { minLength: '2', maxLength: '10', show: false },
-    '$randomFullName': { minLength: '2', maxLength: '20', show: false },
-    '$randomJobTitle': { minLength: '5', maxLength: '30', show: false }
+    // Text-based variables (length restrictions)
+    '$randomLastName': { ...defaultConfig, minLength: '2', maxLength: '10', type: 'length' },
+    '$randomFirstName': { ...defaultConfig, minLength: '2', maxLength: '10', type: 'length' },
+    '$randomFullName': { ...defaultConfig, minLength: '2', maxLength: '20', type: 'length' },
+    '$randomJobTitle': { ...defaultConfig, minLength: '5', maxLength: '30', type: 'length' },
+    '$randomStreetName': { ...defaultConfig, minLength: '5', maxLength: '30', type: 'length' },
+    '$randomStreetAddress': { ...defaultConfig, minLength: '10', maxLength: '50', type: 'length' },
+    '$randomAlphaNumeric': { ...defaultConfig, minLength: '5', maxLength: '15', type: 'length' },
+    '$randomHexaDecimal': { ...defaultConfig, minLength: '4', maxLength: '12', type: 'length' },
+    // Numeric variables (range restrictions)
+    '$randomInt': { ...defaultConfig, minValue: '0', maxValue: '100000', type: 'range' },
+    '$randomFloat': { ...defaultConfig, minValue: '0', maxValue: '100000', type: 'range' },
+    '$randomPrice': { ...defaultConfig, minValue: '0', maxValue: '1000', type: 'range' },
+    // Exact length variables
+    '$randomBankAccount': { ...defaultConfig, exactLength: '10', type: 'exact' },
+    // Username configuration
+    '$randomUserName': { 
+      ...defaultConfig, 
+      minLength: '5', 
+      maxLength: '15',
+      type: 'username',
+      allowUnderscore: true
+    },
+    // Password configuration
+    '$randomPassword': { 
+      ...defaultConfig, 
+      minLength: '8', 
+      maxLength: '16',
+      type: 'password'
+    },
   });
-  
+
+  // Reset configurations when request changes
+  useEffect(() => {
+    setVariableConfigs(prev => {
+      const resetConfigs = Object.keys(prev).reduce((acc, key) => ({
+        ...acc,
+        [key]: { ...prev[key], show: false }
+      }), {} as VariableConfigs);
+      return resetConfigs;
+    });
+    setValidationError(null);
+  }, [activeRequestId, body]);
+
   // Update local body when request changes
   useEffect(() => {
     if (request?.body) {
@@ -419,6 +513,58 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     } else {
       setLocalBody({ mode: 'none' });
     }
+  }, [request]);
+
+  const checkDynamicVariables = () => {
+    if (!request) return;
+
+    const requestString = JSON.stringify(request);
+    const dynamicVars = getDynamicVariablesList();
+    
+    // Find all potential dynamic variables in the request
+    const variablePattern = /\$[a-zA-Z]+/g;
+    const foundPotentialVars = requestString.match(variablePattern) || [];
+    
+    // Find invalid variables (those not in the dynamicVars list)
+    const invalidVars = foundPotentialVars.filter(
+      variable => !dynamicVars.includes(variable)
+    );
+    
+    setInvalidVariables(invalidVars);
+    
+    // Reset all configurations first
+    setVariableConfigs(prev => {
+      const newConfigs = { ...prev };
+      Object.keys(newConfigs).forEach(key => {
+        newConfigs[key] = { ...newConfigs[key], show: false };
+      });
+      
+      // Only show configurations for valid variables found in the current request
+      dynamicVars.forEach(variable => {
+        const patterns = [
+          variable,
+          `{${variable}}`,
+          `{{${variable}}}`,
+        ];
+        if (patterns.some(pattern => requestString.includes(pattern))) {
+          if (newConfigs[variable]) {
+            newConfigs[variable] = { ...newConfigs[variable], show: true };
+          }
+        }
+      });
+      
+      return newConfigs;
+    });
+  };
+
+  // Reset invalid variables when request changes
+  useEffect(() => {
+    setInvalidVariables([]);
+  }, [activeRequestId, body]);
+
+  // Check for dynamic variables when request changes
+  useEffect(() => {
+    checkDynamicVariables();
   }, [request]);
 
   const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -711,43 +857,10 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     reader.readAsDataURL(file);
   };
 
-  const checkDynamicVariables = () => {
-    const request = getActiveRequest();
-    if (!request) return;
-
-    const requestString = JSON.stringify(request);
-    const dynamicVars = getDynamicVariablesList();
-    
-    const foundVariables = dynamicVars.filter(variable => {
-      const patterns = [
-        variable,
-        `{${variable}}`,
-        `{{${variable}}}`,
-      ];
-      return patterns.some(pattern => requestString.includes(pattern));
-    });
-
-    // Update show status for each variable
-    const newConfigs = { ...variableConfigs };
-    Object.keys(variableConfigs).forEach(varName => {
-      newConfigs[varName] = {
-        ...newConfigs[varName],
-        show: foundVariables.includes(varName)
-      };
-    });
-    setVariableConfigs(newConfigs);
-
-    if (foundVariables.length > 0) {
-      console.log('Found dynamic variables in request:', foundVariables);
-    } else {
-      console.log('No dynamic variables found in request');
-    }
-  };
-
-  const handleLengthChange = (
+  const handleConfigChange = (
     varName: string,
-    field: 'minLength' | 'maxLength',
-    value: string
+    field: keyof VariableConfig,
+    value: string | boolean
   ) => {
     setVariableConfigs(prev => ({
       ...prev,
@@ -759,45 +872,215 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   };
 
   const handleApplyAllConfigs = () => {
-    const activeConfigs = Object.entries(variableConfigs)
+    // Validate configurations before applying
+    const invalidConfigs = Object.entries(variableConfigs)
       .filter(([_, config]) => config.show)
-      .map(([varName, config]) => ({
-        variable: varName,
-        minLength: parseInt(config.minLength),
-        maxLength: parseInt(config.maxLength)
-      }));
+      .filter(([_, config]) => {
+        if (config.type === 'length' || config.type === 'username') {
+          const min = parseInt(config.minLength);
+          const max = parseInt(config.maxLength);
+          return min > max;
+        } else if (config.type === 'range') {
+          const min = parseFloat(config.minValue);
+          const max = parseFloat(config.maxValue);
+          return min > max;
+        } else if (config.type === 'password') {
+          const minLength = parseInt(config.minLength);
+          const maxLength = parseInt(config.maxLength);
+          const minSpecial = parseInt(config.minSpecialChars);
+          const maxSpecial = parseInt(config.maxSpecialChars);
+          const minNums = parseInt(config.minNumbers);
+          const maxNums = parseInt(config.maxNumbers);
+          
+          return minLength > maxLength || 
+                 minSpecial > maxSpecial || 
+                 minNums > maxNums ||
+                 minSpecial + minNums > maxLength;
+        } else { // type === 'exact'
+          const length = parseInt(config.exactLength);
+          return length <= 0;
+        }
+      })
+      .map(([varName]) => varName);
 
-    console.log('Applying all configurations:', activeConfigs);
+    if (invalidConfigs.length > 0) {
+      setValidationError(`Invalid configurations: ${invalidConfigs.map(name => {
+        const config = variableConfigs[name];
+        if (config.type === 'exact') {
+          return `${name} must have a positive length`;
+        } else if (config.type === 'password') {
+          return `${name} has invalid min/max values or required characters exceed max length`;
+        }
+        return `${name} has min value greater than max value`;
+      }).join(', ')}`);
+      return;
+    }
+
+    setValidationError(null);
+    const configs = Object.entries(variableConfigs)
+      .filter(([_, config]) => config.show)
+      .reduce((acc, [varName, config]) => ({
+        ...acc,
+        [varName]: config.type === 'password'
+          ? {
+              minLength: parseInt(config.minLength),
+              maxLength: parseInt(config.maxLength),
+              minSpecialChars: parseInt(config.minSpecialChars),
+              maxSpecialChars: parseInt(config.maxSpecialChars),
+              minNumbers: parseInt(config.minNumbers),
+              maxNumbers: parseInt(config.maxNumbers)
+            }
+          : config.type === 'length' || config.type === 'username'
+          ? {
+              minLength: parseInt(config.minLength),
+              maxLength: parseInt(config.maxLength),
+              ...(config.type === 'username' && { allowUnderscore: config.allowUnderscore })
+            }
+          : config.type === 'range'
+          ? {
+              minValue: parseFloat(config.minValue),
+              maxValue: parseFloat(config.maxValue)
+            }
+          : {
+              exactLength: parseInt(config.exactLength)
+            }
+      }), {});
+
+    setVariableConfigurations(configs);
+    console.log('Applied variable configurations:', configs);
   };
 
   const renderVariableForm = (varName: string) => {
     if (!variableConfigs[varName].show) return null;
+
+    const config = variableConfigs[varName];
+    const isRange = config.type === 'range';
+    const isExact = config.type === 'exact';
+    const isUsername = config.type === 'username';
+    const isPassword = config.type === 'password';
 
     return (
       <LengthConfigForm key={varName}>
         <VariableNameLabel>
           Variable: {varName}
         </VariableNameLabel>
-        <FormRow>
-          <Label>Min Length:</Label>
-          <NumberInput
-            type="number"
-            min="1"
-            max="500"
-            value={variableConfigs[varName].minLength}
-            onChange={(e) => handleLengthChange(varName, 'minLength', e.target.value)}
-          />
-        </FormRow>
-        <FormRow>
-          <Label>Max Length:</Label>
-          <NumberInput
-            type="number"
-            min="1"
-            max="500"
-            value={variableConfigs[varName].maxLength}
-            onChange={(e) => handleLengthChange(varName, 'maxLength', e.target.value)}
-          />
-        </FormRow>
+        {isExact ? (
+          <FormRow>
+            <Label>Exact Length:</Label>
+            <NumberInput
+              type="number"
+              min="1"
+              step="1"
+              value={config.exactLength}
+              onChange={(e) => handleConfigChange(varName, 'exactLength', e.target.value)}
+            />
+          </FormRow>
+        ) : isPassword ? (
+          <>
+            <FormRow>
+              <Label>Min Length:</Label>
+              <NumberInput
+                type="number"
+                min="1"
+                step="1"
+                value={config.minLength}
+                onChange={(e) => handleConfigChange(varName, 'minLength', e.target.value)}
+              />
+            </FormRow>
+            <FormRow>
+              <Label>Max Length:</Label>
+              <NumberInput
+                type="number"
+                min="1"
+                step="1"
+                value={config.maxLength}
+                onChange={(e) => handleConfigChange(varName, 'maxLength', e.target.value)}
+              />
+            </FormRow>
+            <FormRow>
+              <Label>Min Special Chars:</Label>
+              <NumberInput
+                type="number"
+                min="0"
+                step="1"
+                value={config.minSpecialChars}
+                onChange={(e) => handleConfigChange(varName, 'minSpecialChars', e.target.value)}
+              />
+            </FormRow>
+            <FormRow>
+              <Label>Max Special Chars:</Label>
+              <NumberInput
+                type="number"
+                min="0"
+                step="1"
+                value={config.maxSpecialChars}
+                onChange={(e) => handleConfigChange(varName, 'maxSpecialChars', e.target.value)}
+              />
+            </FormRow>
+            <FormRow>
+              <Label>Min Numbers:</Label>
+              <NumberInput
+                type="number"
+                min="0"
+                step="1"
+                value={config.minNumbers}
+                onChange={(e) => handleConfigChange(varName, 'minNumbers', e.target.value)}
+              />
+            </FormRow>
+            <FormRow>
+              <Label>Max Numbers:</Label>
+              <NumberInput
+                type="number"
+                min="0"
+                step="1"
+                value={config.maxNumbers}
+                onChange={(e) => handleConfigChange(varName, 'maxNumbers', e.target.value)}
+              />
+            </FormRow>
+          </>
+        ) : (
+          <>
+            <FormRow>
+              <Label>{isRange ? 'Min Value:' : 'Min Length:'}</Label>
+              <NumberInput
+                type={isRange ? 'number' : 'number'}
+                min="0"
+                step={isRange ? 'any' : '1'}
+                value={isRange ? config.minValue : config.minLength}
+                onChange={(e) => handleConfigChange(
+                  varName,
+                  isRange ? 'minValue' : 'minLength',
+                  e.target.value
+                )}
+              />
+            </FormRow>
+            <FormRow>
+              <Label>{isRange ? 'Max Value:' : 'Max Length:'}</Label>
+              <NumberInput
+                type={isRange ? 'number' : 'number'}
+                min="0"
+                step={isRange ? 'any' : '1'}
+                value={isRange ? config.maxValue : config.maxLength}
+                onChange={(e) => handleConfigChange(
+                  varName,
+                  isRange ? 'maxValue' : 'maxLength',
+                  e.target.value
+                )}
+              />
+            </FormRow>
+            {isUsername && (
+              <FormRow>
+                <CheckboxLabel>
+                  <Checkbox
+                    checked={config.allowUnderscore}
+                    onChange={(e) => handleConfigChange(varName, 'allowUnderscore', e.target.checked)}
+                  />
+                  Allow Underscore
+                </CheckboxLabel>
+              </FormRow>
+            )}
+          </>
+        )}
       </LengthConfigForm>
     );
   };
@@ -1049,11 +1332,16 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         </Select>
       </TopControls>
 
-      <BodyContentWrapper>
+      <BodyContentWrapper style={{ minHeight: renderBodyContent() ? '300px' : '0' }}>
         {renderBodyContent()}
       </BodyContentWrapper>
 
       <BottomSection>
+        {invalidVariables.length > 0 && (
+          <InvalidVariableMessage>
+            Invalid dynamic variables found: {invalidVariables.join(', ')}
+          </InvalidVariableMessage>
+        )}
         <CheckVariablesButton onClick={checkDynamicVariables}>
           Check Dynamic Variables
         </CheckVariablesButton>
@@ -1061,11 +1349,28 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         {hasActiveConfigs && (
           <>
             <ConfigFormsContainer>
+              {renderVariableForm('$randomUserName')}
               {renderVariableForm('$randomLastName')}
               {renderVariableForm('$randomFirstName')}
               {renderVariableForm('$randomFullName')}
               {renderVariableForm('$randomJobTitle')}
+              {renderVariableForm('$randomStreetName')}
+              {renderVariableForm('$randomStreetAddress')}
+              {renderVariableForm('$randomAlphaNumeric')}
+              {renderVariableForm('$randomHexaDecimal')}
+              {renderVariableForm('$randomInt')}
+              {renderVariableForm('$randomFloat')}
+              {renderVariableForm('$randomPrice')}
+              {renderVariableForm('$randomBankAccount')}
+              {renderVariableForm('$randomPassword')}
             </ConfigFormsContainer>
+            {validationError && (
+              <ErrorMessage>
+                {validationError.split('\n').map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+              </ErrorMessage>
+            )}
             <ApplyAllButton onClick={handleApplyAllConfigs}>
               Apply All Configurations
             </ApplyAllButton>
