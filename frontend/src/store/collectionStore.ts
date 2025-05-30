@@ -212,7 +212,8 @@ export interface APIRequest {
 export interface Variable {
   id: string;
   name: string;
-  varValue: string;
+  initialValue: string;
+  currentValue: string;
   isSelected: boolean;
 }
 

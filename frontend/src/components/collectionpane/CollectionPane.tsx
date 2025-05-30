@@ -177,64 +177,53 @@ interface CollectionPaneProps {
 const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange, openDocumentationTab }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'auth' | 'variables'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
-  const [variables, setVariables] = useState<Variable[]>(() => {
-    const initialVars = tabState.variables || [];
-    // Always ensure there's at least one empty row
-    if (initialVars.length === 0) {
-      return [{
-        id: crypto.randomUUID(),
-        name: '',
-        varValue: '',
-        isSelected: true
-      }];
-    }
-    return initialVars;
-  });
 
   const handleVariableChange = (id: string, field: keyof Variable, value: string | boolean) => {
-    const updatedVariables = variables.map(variable =>
+    const currentVariables = tabState.variables || [];
+    const updatedVariables = currentVariables.map(variable =>
       variable.id === id ? { ...variable, [field]: value } : variable
     );
 
     // Check if the last row has any content
     const lastVariable = updatedVariables[updatedVariables.length - 1];
-    const isLastRowEmpty = !lastVariable.name && !lastVariable.varValue;
+    const isLastRowEmpty = !lastVariable?.name && !lastVariable?.initialValue && !lastVariable?.currentValue;
     
     // If the last row has content, add a new empty row
-    if (!isLastRowEmpty) {
+    if (!isLastRowEmpty || updatedVariables.length === 0) {
       updatedVariables.push({
         id: crypto.randomUUID(),
         name: '',
-        varValue:'',
+        initialValue: '',
+        currentValue: '',
         isSelected: true
       });
     }
 
     // Remove empty rows except the last one
     const cleanedVariables = updatedVariables.filter((variable, index) => {
-      const isEmpty = !variable.name && !variable.varValue;
+      const isEmpty = !variable.name && !variable.initialValue && !variable.currentValue;
       return !isEmpty || index === updatedVariables.length - 1;
     });
 
-    setVariables(cleanedVariables);
-    onStateChange({ variables: cleanedVariables.filter((v) => v.name || v.varValue) });
+    onStateChange({ variables: cleanedVariables });
   };
 
   const handleDeleteVariable = (id: string) => {
-    let updatedVariables = variables.filter(variable => variable.id !== id);
+    const currentVariables = tabState.variables || [];
+    let updatedVariables = currentVariables.filter(variable => variable.id !== id);
     
-    // Ensure there's always at least one row
+    // Ensure there's always at least one empty row
     if (updatedVariables.length === 0) {
       updatedVariables = [{
         id: crypto.randomUUID(),
         name: '',
-        varValue: '',
+        initialValue: '',
+        currentValue: '',
         isSelected: true
       }];
     }
 
-    setVariables(updatedVariables);
-    onStateChange({ variables: updatedVariables.filter((v) => v.name || v.varValue) });
+    onStateChange({ variables: updatedVariables });
   };
 
   const handleDescriptionChange = (description: string) => {
@@ -245,10 +234,19 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
     onStateChange({ auth });
   };
 
-  const filteredVariables = variables.filter(variable =>
+  const filteredVariables = (tabState.variables || []).filter(variable =>
     variable.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     !variable.name // Always show empty rows
   );
+
+  // Ensure we always have at least one row to display
+  const variablesToDisplay = filteredVariables.length === 0 ? [{
+    id: crypto.randomUUID(),
+    name: '',
+    initialValue: '',
+    currentValue: '',
+    isSelected: true
+  }] : filteredVariables;
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -286,7 +284,7 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
               />
             </SearchBox>
             <VariableTable>
-              {filteredVariables.map(variable => (
+              {variablesToDisplay.map(variable => (
                 <VariableRow key={variable.id}>
                   <Checkbox
                     type="checkbox"
@@ -299,8 +297,8 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
                     placeholder="Variable name"
                   />
                   <Input
-                    value={variable.varValue}
-                    onChange={(e) => handleVariableChange(variable.id, 'varValue', e.target.value)}
+                    value={variable.currentValue}
+                    onChange={(e) => handleVariableChange(variable.id, 'currentValue', e.target.value)}
                     placeholder="Value"
                   />
                   <DeleteButton 
