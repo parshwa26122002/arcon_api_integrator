@@ -5,7 +5,7 @@ import QueryParams from './QueryParams';
 import Authorization from './Authorization';
 import Headers from './Headers';
 import RequestBody from './RequestBody';
-import { useCollectionStore, type HttpMethod, type RequestTabState } from '../../store/collectionStore';
+import { getNearestParentAuth, useCollectionStore, type HttpMethod, type RequestTabState } from '../../store/collectionStore';
 import { Tab } from '../../styled-component/Tab';
 import { Editor } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
@@ -303,6 +303,28 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       const headers: Record<string, string> = {};
 
       // Add authorization headers based on auth type
+      if (request.auth.type === 'inheritCollection') {
+        const parentAuth = getNearestParentAuth(request.id, true);
+        if (parentAuth) {
+          if (parentAuth.type === 'basic') {
+            const { username, password } = parentAuth.credentials;
+            if (username && password) {
+              const base64Credentials = btoa(`${username}:${password}`);
+              headers['Authorization'] = `Basic ${base64Credentials}`;
+            }
+          } else if (parentAuth.type === 'bearer') {
+            const { token } = parentAuth.credentials;
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+          } else if (parentAuth.type === 'apiKey') {
+            const { key, value } = parentAuth.credentials;
+            if (key && value) {
+              headers[key] = value;
+            }
+          }
+        }
+      }
       if (request.auth.type === 'basic') {
         const { username, password } = request.auth.credentials;
         if (username && password) {
@@ -451,6 +473,8 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       case 'auth':
         return (
           <Authorization
+            Id={tabState.requestId}
+            isRequest={true}
             auth={tabState.auth}
             onChange={(newAuth) => {
               const newState = { ...tabState, auth: newAuth };

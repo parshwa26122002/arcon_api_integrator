@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import styled from 'styled-components';
-import { type AuthState } from '../../store/collectionStore';
+import { type AuthState, getNearestParentAuth } from '../../store/collectionStore';
 type OAuthGrantType = 'password' | 'client' | 'code' | 'oauth1';
 
 interface AuthorizationProps {
+  Id: string | undefined;
+  isRequest: boolean;
   auth: AuthState;
   onChange: (auth: AuthState) => void;
 }
@@ -126,30 +128,55 @@ const OAuth2Form: React.FC = () => {
       alert('Please fill Callback URL, Client ID, and Scope');
       return;
     }
+
+    // Store current location (including search/hash if needed)
+  // localStorage.setItem('oauth_return_path', window.location.pathname + window.location.search + window.location.hash);
     const params = new URLSearchParams({
-      redirect_uri: 'http://localhost:5173',
+      redirect_uri: 'http://localhost:5173/oauth-callback.html',
       response_type: 'token',
       client_id: clientId,
       scope,
       include_granted_scopes: 'true',
       state
     });
-    window.location.href = `${accessTokenUrl}?${params.toString()}`;
+
+    // Open OAuth provider in a new tab
+    window.open(`${accessTokenUrl}?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    // window.location.href = `${accessTokenUrl}?${params.toString()}`;
     console.log('Getting access token for grant type:', grantType);
   };
 
   // Step 2: After redirect, extract code from URL
-  React.useEffect(() => {
-    if (window.location.hash) {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      const token = params.get('access_token');
-      if (token) {
-        setAccessToken(token);
-        window.history.replaceState({}, document.title, window.location.pathname); // Clean up URL
-      }
-    }
-  }, []);
+  // React.useEffect(() => {
+    
+  //   function handleMessage(event: MessageEvent) {
+  //   if (
+  //     event.origin === window.location.origin &&
+  //     event.data &&
+  //     event.data.type === 'OAUTH_TOKEN'
+  //   ) {
+  //     setAccessToken(event.data.accessToken);
+  //   }
+  // }
+  // window.addEventListener('message', handleMessage);
+  // return () => window.removeEventListener('message', handleMessage);
+  //   // if (window.location.hash) {
+  //   //   const hash = window.location.hash.substring(1);
+  //   //   const params = new URLSearchParams(hash);
+  //   //   const token = params.get('access_token');
+  //   //   if (token) {
+  //   //     setAccessToken(token);
+  //   //     // Restore previous location if available
+  //   //     const returnPath = localStorage.getItem('oauth_return_path');
+  //   //     if (returnPath) {
+  //   //       localStorage.removeItem('oauth_return_path');
+  //   //       window.history.replaceState({}, document.title, returnPath);
+  //   //     } else {
+  //   //       window.history.replaceState({}, document.title, window.location.pathname);
+  //   //     }
+  //   //   }
+  //   // }
+  // }, [accessToken]);
 
   // Step 3: Exchange code for access token
   // const fetchAccessToken = async () => {
@@ -345,18 +372,12 @@ const OAuth2Form: React.FC = () => {
       case 'code':
         return (
           <>
-            {/* <FormGroup>
-              <Label>Callback URL</Label>
-              <Input type="text" placeholder="http://localhost:8080/callback" />
-            </FormGroup> */}
+
             <FormGroup>
               <Label>Authorization URL</Label>
               <Input type="text" placeholder="https://api.example.com/oauth/authorize" value={accessTokenUrl} onChange={e => setAccessTokenUrl(e.target.value)}/>
             </FormGroup>
-            {/* <FormGroup>
-              <Label>Access Token URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/token" />
-            </FormGroup> */}
+            
             <FormGroup>
               <Label>Client ID</Label>
               <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => setClientId(e.target.value)}/>
@@ -385,6 +406,15 @@ const OAuth2Form: React.FC = () => {
               <Label>State</Label>
               <Input type="text" placeholder="Enter state"value={state} onChange={e => setState(e.target.value)} />
             </FormGroup>
+            <GetTokenButton onClick={handleGetToken}>
+              Get Access Token
+            </GetTokenButton>
+            {accessToken && (
+              <div style={{ marginTop: 12 }}>
+                <strong>Access Token:</strong>
+                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
+              </div>
+      )}
           </>
         );
 
@@ -551,15 +581,6 @@ const OAuth2Form: React.FC = () => {
         </Select>
       </FormGroup>
       {renderGrantTypeFields()}
-      <GetTokenButton onClick={handleGetToken}>
-        Get Access Token
-      </GetTokenButton>
-      {accessToken && (
-        <div style={{ marginTop: 12 }}>
-          <strong>Access Token:</strong>
-          <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
-        </div>
-      )}
     </>
   );
 };
@@ -581,7 +602,7 @@ const GetTokenButton = styled.button`
   }
 `;
 
-const Authorization: React.FC<AuthorizationProps> = ({ auth, onChange }) => {
+const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onChange }) => {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
     let newCredentials: Record<string, string> = {};
@@ -620,7 +641,192 @@ const Authorization: React.FC<AuthorizationProps> = ({ auth, onChange }) => {
   const renderAuthFields = () => {
     switch (auth.type) {
       case 'inheritCollection':
-        return <NoAuthMessage>Using authorization configuration from collection</NoAuthMessage>;
+        const parentAuth = getNearestParentAuth(Id as string, isRequest);
+        // return <NoAuthMessage>Using authorization configuration from collection</NoAuthMessage>;
+        if (!parentAuth) {
+          return <NoAuthMessage>No parent authorization configuration found</NoAuthMessage>;
+        }
+        switch (parentAuth.type) {
+      
+      case 'noAuth':
+        return <NoAuthMessage>No Authorization</NoAuthMessage>;
+        
+      case 'basic':
+        return (
+          <>
+            <FormGroup>
+              <Label>Username</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.username || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Password</Label>
+              <Input
+                type="password"
+                value={parentAuth.credentials.password || ''}
+                disabled
+              />
+            </FormGroup>
+          </>
+        );
+
+      case 'bearer':
+        return (
+          <FormGroup>
+            <Label>Token</Label>
+            <Input
+              type="text"
+              value={parentAuth.credentials.token || ''}
+              disabled
+            />
+          </FormGroup>
+        );
+
+      case 'oauth2':
+        return <OAuth2Form />;
+
+      case 'oauth1':
+        return (
+          <>
+            <FormGroup>
+              <Label>Request Token URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.requestTokenUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Authorize URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.authorizeUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Access Token URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.accessTokenUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Consumer Key</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.consumerKey || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Consumer Secret</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.consumerSecret || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Token (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.oauthToken || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Token Secret (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.oauthTokenSecret || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Callback URL</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.callbackUrl || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Signature Method</Label>
+              <Select
+                value={parentAuth.credentials.signatureMethod || 'HMAC-SHA1'}
+                disabled
+                >
+                <option value="HMAC-SHA1">HMAC-SHA1</option>
+                <option value="PLAINTEXT">PLAINTEXT</option>
+              </Select>
+            </FormGroup>
+            <FormGroup>
+              <Label>Nonce (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.nonce || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Timestamp (optional)</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.timestamp || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Version</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.version || '1.0'}
+                disabled
+              />
+            </FormGroup>
+          </>
+        );
+
+      case 'apiKey':
+        return (
+          <>
+            <FormGroup>
+              <Label>Key</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.key || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Value</Label>
+              <Input
+                type="text"
+                value={parentAuth.credentials.value || ''}
+                disabled
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Add to</Label>
+              <Select
+                value={parentAuth.credentials.in || 'header'}
+                disabled
+              >
+                <option value="header">Header</option>
+                <option value="query">Query Parameter</option>
+              </Select>
+            </FormGroup>
+          </>
+        );
+
+      default:
+        return null;
+    }
       
       case 'noAuth':
         return <NoAuthMessage>No Authorization</NoAuthMessage>;
@@ -829,7 +1035,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ auth, onChange }) => {
           <option value="inheritCollection">Inherit from collection</option>
           <option value="basic">Basic Auth</option>
           <option value="bearer">Bearer Token</option>
-          <option value="oauth2">OAuth2</option>
+          <option value="oauth2">OAuth 2.0</option>
           <option value="oauth1">OAuth 1.0</option>
           <option value="apiKey">API Key</option>
         </Select>
@@ -840,3 +1046,4 @@ const Authorization: React.FC<AuthorizationProps> = ({ auth, onChange }) => {
 };
 
 export default Authorization;
+

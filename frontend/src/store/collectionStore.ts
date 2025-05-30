@@ -263,6 +263,7 @@ interface CollectionStoreState {
   getActiveFolder: () => APIFolder | null;
   findRequestLocation: (requestId: string) => { collectionId: string; folderId: string | null } | null;
   setRunnerTabRequest: (id: string | null) => void;
+  findFolderLocation: (folderId: string) => { collectionId: string; folderId: string | null } | null;
 }
 
 export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
@@ -873,5 +874,78 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
   
     return null;
   },
-  
+  /**
+   * Find the collectionId and parentFolderId for a given folderId.
+   * Returns { collectionId, parentFolderId } or null if not found.
+   */
+  findFolderLocation: (folderId: string): { collectionId: string; folderId: string | null } | null => {
+    const state = get();
+    for (const collection of state.collections) {
+      // Helper to recursively search folders
+      const searchFolders = (folders: APIFolder[], parentId: string | null): { collectionId: string; folderId: string | null } | null => {
+        for (const folder of folders) {
+          if (folder.id === folderId) {
+            return { collectionId: collection.id, folderId: parentId };
+          }
+          const foundInNested = searchFolders(folder.folders || [], folder.id);
+          if (foundInNested) return foundInNested;
+        }
+        return null;
+      };
+      const found = searchFolders(collection.folders, null);
+      if (found) return found;
+    }
+    return null;
+  },
 }));
+
+/**
+ * Find the nearest parent (folder or collection) with auth set for a given requestId.
+ */
+export function getNearestParentAuth(Id: string, isRequest: boolean): AuthState | undefined {
+  const { collections, findRequestLocation, findFolderLocation } = useCollectionStore.getState();
+  let location;
+  if (isRequest) {
+    location = findRequestLocation(Id);
+  }
+  else {
+    location = findFolderLocation(Id);
+  }
+  if (!location) return undefined;
+
+  const collection = collections.find(c => c.id === location.collectionId);
+  if (!collection) return undefined;
+
+  // Helper to recursively find the folder path to the request
+  function findFolderPath(folders: APIFolder[], targetFolderId: string, path: APIFolder[] = []): APIFolder[] | null {
+    for (const folder of folders) {
+      if (folder.id === targetFolderId) return [...path, folder];
+      if (folder.folders) {
+        const result = findFolderPath(folder.folders, targetFolderId, [...path, folder]);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+
+  // If the request is in a folder, build the folder path
+  if (location.folderId) {
+    const folderPath = findFolderPath(collection.folders, location.folderId);
+    if (folderPath) {
+      // Traverse from deepest to root to find the nearest auth
+      for (let i = folderPath.length - 1; i >= 0; i--) {
+        const folder = folderPath[i];
+        if (folder && folder.auth && folder.auth.type != 'noAuth' && folder.auth.type != 'inheritCollection') {
+          return folder.auth;
+        }
+      }
+    }
+  }
+
+  // If not found in folders, check collection-level auth
+  if (collection.auth && collection.auth.type) {
+    return collection.auth;
+  }
+
+  return undefined;
+}
