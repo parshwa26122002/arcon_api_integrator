@@ -251,6 +251,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const [, setLocalBody] = React.useState<RequestBody>(body);
   const [isPretty, setIsPretty] = React.useState(false);
   const request = getActiveRequest();
+  const [isPrettyVariables, setIsPrettyVariables] = React.useState(false)
   
   // Update local body when request changes
   useEffect(() => {
@@ -278,6 +279,9 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         break;
       case 'file':
         newBody.file = { name: '', content: '', src: '' };
+        break;
+      case 'graphql':
+        newBody.graphql = { query: '', variables: '' };
         break;
     }
 
@@ -551,6 +555,29 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     };
     reader.readAsDataURL(file);
   };
+  
+  const handleGraphQLQueryChange = (value: string) => {
+  onChange({
+    ...body,
+    graphql: {
+      ...body.graphql,
+      query: value ?? '',
+      variables: body.graphql?.variables ?? ''
+    }
+  });
+};
+
+const handleGraphQLVariablesChange = (value: string) => {
+  onChange({
+    ...body,
+    graphql: {
+      ...body.graphql,
+      query: body.graphql?.query ?? '',
+      variables: value
+    }
+  });
+};
+
 
   const renderFormData = () => {
     const formData = body.formData || [createEmptyFormDataItem()];
@@ -779,7 +806,67 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
 
       case 'urlencoded':
         return renderUrlEncoded();
-
+      
+      case 'graphql':
+        return (
+          <EditorContainer>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>
+                GraphQL Query
+              </label>
+              <Editor
+                height="300px"
+                defaultLanguage="graphql"
+                value={body.graphql?.query || ''}
+                onChange={(value) => handleGraphQLQueryChange(value || '')}
+                theme="vs-dark"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 12,
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                  padding: { top: 8, bottom: 8 },
+                  lineHeight: 18,
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>
+                Variables (JSON)
+              </label>
+              <label style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', marginBottom: '8px' }}>
+                <input type="checkbox" checked={isPrettyVariables} onChange={() => setIsPrettyVariables(!isPrettyVariables)} />
+                Pretty Print Variables
+              </label>
+              <Editor
+                height="200px"
+                defaultLanguage="json"
+                value={
+                  isPrettyVariables && body.graphql?.variables
+                    ? (() => {
+                        try {
+                          const parsed = body.graphql.variables ? JSON.parse(body.graphql.variables) : {};
+                          return JSON.stringify(parsed, null, 2);
+                        } catch {
+                          return body.graphql?.variables || '{}';
+                        }
+                      })()
+                    : body.graphql?.variables || '{}'
+                }
+                onChange={(value) => handleGraphQLVariablesChange(value || '{}')}
+                theme="vs-dark"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 12,
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                  padding: { top: 8, bottom: 8 },
+                  lineHeight: 18,
+                }}
+              />
+            </div>
+          </EditorContainer>
+        );
       default:
         return null;
     }
@@ -793,6 +880,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         <option value="urlencoded">urlencoded</option>
         <option value="raw">raw</option>
         <option value="file">file</option>
+        <option value="graphql">graphql</option>
       </Select>
       {renderBodyContent()}
     </Container>

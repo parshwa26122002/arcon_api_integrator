@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import ImportAPI from './components/collection/ImportAPI';
 import SidebarTabs from './components/sidebar/Sidebar';
 import { useCollectionStore } from './store/collectionStore';
 import MainContentTabs from './components/maincontenttabs/MainContentTabs';
+import AuthFileUploader from './components/auth/AuthFileUploader';
+import { isAuthenticated } from './components/auth/useAuth';
 
 const AppContainer = styled.div`
   display: flex;
@@ -45,13 +47,24 @@ const MainContent = styled.div`
   flex-direction: column;
 `;
 
+
+
 const App: React.FC = () => {
   const initialize = useCollectionStore(state => state.initialize);
 
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
+const [authenticated, setAuthenticated] = useState<boolean>(isAuthenticated());
 
+  useEffect(() => {
+
+    if (authenticated) {
+      initialize();
+    }
+  }, [authenticated, initialize]);
+
+  if (!authenticated) {
+    return <AuthFileUploader onAuthenticated={() => setAuthenticated(true)} />;
+  }
+  
   return (
     <AppContainer>
       <LeftPanel>
@@ -66,6 +79,7 @@ const App: React.FC = () => {
         <MainContentTabs />
       </MainContent>
     </AppContainer>
+
   );
 };
 

@@ -1,15 +1,14 @@
 import express, { json, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import fetch, { RequestInit } from 'node-fetch';
-import crypto from 'crypto';
-import querystring from 'querystring';
+import authRouter from './auth'
 
 const app = express();
 const PORT = 4000;
 
 app.use(cors());
 app.use(json());
-
+app.use("/api",authRouter)
 // Proxy endpoint that handles all HTTP methods
 app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
   (async () => {
@@ -104,85 +103,6 @@ app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
       details: (error as Error).message 
     });
   });
-});
-
-// OAuth 1.0a 3-legged flow endpoints
-app.post('/api/oauth1/request_token', async (req, res) => {
-  const { requestTokenUrl, consumerKey, consumerSecret, callbackUrl, signatureMethod = 'HMAC-SHA1' } = req.body;
-  try {
-    // Build OAuth 1.0a params
-    const oauthParams = {
-      oauth_consumer_key: consumerKey,
-      oauth_signature_method: signatureMethod,
-      oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-      oauth_nonce: crypto.randomBytes(16).toString('hex'),
-      oauth_version: '1.0',
-      oauth_callback: callbackUrl,
-    };
-    // Generate signature base string and sign (for demo, PLAINTEXT only)
-    let signature = '';
-    if (signatureMethod === 'PLAINTEXT') {
-      signature = `${encodeURIComponent(consumerSecret)}&`;
-    } else {
-      // HMAC-SHA1 signature (for production, use a library like oauth-1.0a)
-      signature = `${encodeURIComponent(consumerSecret)}&`;
-    }
-    (oauthParams as any).oauth_signature = signature;
-    const authHeader =
-      'OAuth ' +
-      Object.entries(oauthParams)
-        .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
-        .join(', ');
-    const response = await fetch(requestTokenUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    const text = await response.text();
-    res.send(text);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).toString() });
-  }
-});
-
-app.post('/api/oauth1/access_token', async (req, res) => {
-  const { accessTokenUrl, consumerKey, consumerSecret, oauthToken, oauthTokenSecret, oauthVerifier, signatureMethod = 'HMAC-SHA1' } = req.body;
-  try {
-    const oauthParams = {
-      oauth_consumer_key: consumerKey,
-      oauth_token: oauthToken,
-      oauth_signature_method: signatureMethod,
-      oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-      oauth_nonce: crypto.randomBytes(16).toString('hex'),
-      oauth_version: '1.0',
-      oauth_verifier: oauthVerifier,
-    };
-    let signature = '';
-    if (signatureMethod === 'PLAINTEXT') {
-      signature = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(oauthTokenSecret)}`;
-    } else {
-      signature = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(oauthTokenSecret)}`;
-    }
-    (oauthParams as any).oauth_signature = signature;
-    const authHeader =
-      'OAuth ' +
-      Object.entries(oauthParams)
-        .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
-        .join(', ');
-    const response = await fetch(accessTokenUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    const text = await response.text();
-    res.send(text);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).toString() });
-  }
 });
 
 app.listen(PORT, () => {
