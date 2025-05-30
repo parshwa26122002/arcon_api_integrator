@@ -89,6 +89,8 @@ const FolderPane: React.FC<FolderPaneProps> = ({ folder, onUpdate }) => {
         return (
           <TabContent>
             <Authorization
+              Id={folder.id}
+              isRequest={false}
               auth={folder.auth || { type: 'none', credentials: {} }}
               onChange={handleAuthChange}
             />
