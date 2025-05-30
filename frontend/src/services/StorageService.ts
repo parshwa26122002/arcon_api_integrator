@@ -19,11 +19,7 @@ class StorageService {
 
   async initialize(): Promise<void> {
     console.log('StorageService: Starting initialization');
-    if (this.isElectron) {
-      console.log('StorageService: Initializing file system');
-      await this.initializeFileSystem();
-    } else {
-      console.log('StorageService: Initializing IndexedDB');
+    if (!(typeof window !== 'undefined' && window.electron !== undefined)) {
       await this.initializeIndexedDB();
     }
     console.log('StorageService: Initialization complete');
@@ -48,21 +44,10 @@ class StorageService {
     }
   }
 
-  private async initializeFileSystem(): Promise<void> {
-    if (!window.electron) {
-      throw new Error('Electron APIs not available');
-    }
-  }
+ 
 
   async saveCollection(collection: APICollection): Promise<void> {
-      console.log('StorageService: Saving collection', collection);
-      console.log('StorageService: Is Electron?', this.isElectron);
-      console.log('StorageService: Window Electron', (((typeof window) !== 'undefined') && window.electron));
-      if (typeof window !== 'undefined' && window.electron) {
-          console.log('StorageService: Window Electron', this.isElectron);
-
-      }
-    if (typeof window !== 'undefined' && window.electron) {
+    if (typeof window !== 'undefined' && window.electron !== undefined) {
         await window.electron.saveCollection(collection);
     } else {
         await this.saveCollectionToIndexedDB(collection);
@@ -81,7 +66,7 @@ class StorageService {
 
   async getAllCollections(): Promise<APICollection[]> {
     console.log('StorageService: Getting all collections');
-    if (typeof window !== 'undefined' && window.electron) {
+    if (typeof window !== 'undefined' && window.electron !== undefined) {
         return window.electron.getAllCollectionsFromFiles();
     } else {
         return this.getAllCollectionsFromIndexedDB();
@@ -89,7 +74,7 @@ class StorageService {
   }
   async getCollectionByID(id: string): Promise<APICollection> {
     console.log('StorageService: Getting collections by id');
-    if (typeof window !== 'undefined' && window.electron) {
+    if (typeof window !== 'undefined' && window.electron !== undefined) {
         return window.electron.getCollectionByIdFromFiles(id);
     } else {
         return this.getCollectionByIdFromIndexedDB(id);
@@ -116,7 +101,7 @@ class StorageService {
 
   async deleteCollection(id: string): Promise<void> {
     console.log('StorageService: Deleting collection', id);
-    if (typeof window !== 'undefined' && window.electron) {
+    if (typeof window !== 'undefined' && window.electron !== undefined) {
       await window.electron.deleteCollection(id);
     } else {
       await this.deleteCollectionFromIndexedDB(id);

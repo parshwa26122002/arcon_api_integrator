@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { exportAsHTML, exportAsPDF } from '../../utils/exportUtility';
 import { storageService } from '../../services/StorageService';
-import type { APICollection, APIRequest, APIFolder, AuthState } from '../../store/collectionStore';
+import type { APICollection, APIRequest, APIFolder } from '../../store/collectionStore';
 
 interface DocumentationPaneProps {
     tabState: {
