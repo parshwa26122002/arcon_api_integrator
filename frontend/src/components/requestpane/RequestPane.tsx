@@ -296,6 +296,13 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
             bodyToSend = params.toString();
             contentTypeHeader = 'application/x-www-form-urlencoded';
             break;
+          case 'graphql':
+            bodyToSend = JSON.stringify({
+              query: request.body.graphql?.query || '',
+              variables: request.body.graphql?.variables ? JSON.parse(request.body.graphql.variables) : {}
+            });
+            contentTypeHeader = 'application/json';
+            break;
         }
       }
 
