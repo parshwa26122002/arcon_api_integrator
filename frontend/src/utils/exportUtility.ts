@@ -1,5 +1,6 @@
 import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportKeyValueWithDescription, URLExport, ExportBody } from '../store/collectionStore';
 import { storageService } from '../services/StorageService';
+import html2pdf from 'html2pdf.js';
 function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefined {
     if (!variables) return undefined;
     return variables.map(v => ({
@@ -172,8 +173,8 @@ export async function exportCollectionAsJson(id: string) {
     const json = JSON.stringify(exportObj, null, 2);
     const filename = `${exportObj.info.name || 'collection'}.json`;
 
-    if (typeof window !== 'undefined' && window.electron) {
-        window.electron.saveJsonFile(json, filename);
+    if (typeof window !== 'undefined' && window.electron !== undefined) {
+        window.electron.saveExportFile(json, filename, 'json');
         return;
     }
 
@@ -197,8 +198,8 @@ export function exportAsHTML(title: string, content: string) {
     const blob = new Blob([html], { type: 'text/html' });
     const filename = `${title}.html`;
 
-    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
-        window.electron.saveJsonFile(html, filename);
+    if (typeof window !== 'undefined' && window.electron !== undefined) {
+        window.electron.saveExportFile(html, filename, 'html');
         return;
     }
 
@@ -213,17 +214,59 @@ export function exportAsHTML(title: string, content: string) {
         URL.revokeObjectURL(url);
     }, 0);
 }
+function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64 = reader.result?.toString().split(',')[1];
+            if (base64) resolve(base64);
+            else reject('Failed to convert blob to base64');
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
 
-export function exportAsPDF(title: string, content: string) {
-    if (typeof window !== 'undefined' && window.electron && typeof window.electron.saveJsonFile === 'function') {
-        window.electron.saveJsonFile(title, content); //change this to the correct method for saving PDF in your Electron app
-        return;
+export async function exportAsPDF(title: string, content: string) {
+    const filename = `${title}.pdf`;
+    //const html = `<html><head><title>${title}</title></head><body>${content}</body></html>`;
+    const container = document.createElement('div');
+    container.innerHTML = content;
+    document.body.appendChild(container); // Ensure it's in DOM
+
+    if (typeof window !== 'undefined' && window.electron !== undefined) {
+        const pdfBlob: Blob = await html2pdf().from(container).set({
+            filename: filename,
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        }).outputPdf('blob');
+        document.body.removeChild(container);
+
+        // Convert Blob to base64
+        const base64 = await blobToBase64(pdfBlob);
+
+        // Send to Electron
+        window.electron?.savepdfBlob(base64, `${title}.pdf`);
+        //window.electron.saveExportFile(html, filename, 'pdf'); //change this to the correct method for saving PDF in your Electron app
+        //return;
     }
+    else {
+        html2pdf()
+            .from(container)
+            .set({
+                filename: filename,
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+            })
+            .save()
+            .then(() => document.body.removeChild(container));
+    }
+    
     // Web fallback: open print dialog
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(`<html><head><title>${title}</title></head><body>${content}</body></html>`);
-        printWindow.document.close();
-        printWindow.print();
-    }
+    //const printWindow = window.open('', '_blank');
+    //if (printWindow) {
+    //    printWindow.document.write(`<html><head><title>${title}</title></head><body>${content}</body></html>`);
+    //    printWindow.document.close();
+    //    printWindow.print();
+    //}
 }
