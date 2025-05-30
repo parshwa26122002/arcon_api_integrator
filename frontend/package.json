@@ -14,6 +14,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@types/styled-components": "^5.1.34",
     "@types/uuid": "^10.0.0",
+    "html2pdf.js": "^0.10.3",
     "idb": "^8.0.3",
     "monaco-graphql": "^1.6.0",
     "react": "^19.1.0",
