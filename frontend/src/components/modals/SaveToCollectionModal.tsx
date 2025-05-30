@@ -269,7 +269,7 @@ interface SaveToCollectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (name: string, LocationId: string) => void;
-  type: 'request' | 'folder' | 'collection' | 'runner';
+  type: 'request' | 'folder' | 'collection' | 'runner' | 'documentation';
 }
 
 const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({

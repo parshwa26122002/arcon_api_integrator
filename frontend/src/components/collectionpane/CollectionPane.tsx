@@ -4,6 +4,7 @@ import { FiSearch, FiTrash2 } from 'react-icons/fi';
 import Authorization from '../requestpane/Authorization';
 import { Tab } from '../../styled-component/Tab';
 import { type Variable, type CollectionTabState } from '../../store/collectionStore';
+import { useCallback } from 'react';
 
 const Container = styled.div`
   display: flex;
@@ -168,10 +169,12 @@ const DeleteButton = styled.button`
 
 interface CollectionPaneProps {
   tabState: CollectionTabState;
-  onStateChange: (newState: Partial<CollectionTabState>) => void;
+    onStateChange: (newState: Partial<CollectionTabState>) => void;
+    openDocumentationTab?: (collectionId: string, title: string, content: string) => void;
+
 }
 
-const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange }) => {
+const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange, openDocumentationTab }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'auth' | 'variables'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [variables, setVariables] = useState<Variable[]>(() => {
@@ -258,7 +261,9 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
               value={tabState.description || ''}
               onChange={(e) => handleDescriptionChange(e.target.value)}
             />
-            <ViewDocButton>View Entire Documentation →</ViewDocButton>
+            <ViewDocButton onClick={handleOpenDocumentationTab}>
+                View Entire Documentation →
+            </ViewDocButton>
           </>
         );
       case 'auth':
@@ -313,7 +318,15 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
         return null;
     }
   };
-
+  const handleOpenDocumentationTab = useCallback(() => {
+        if (openDocumentationTab) {
+            openDocumentationTab(
+                tabState.collectionId || '', // fallback if undefined
+                tabState.title || 'Documentation',
+                tabState.description || ''
+            );
+        }
+  }, [openDocumentationTab, tabState]);
   return (
     <Container>
       <TabList>
