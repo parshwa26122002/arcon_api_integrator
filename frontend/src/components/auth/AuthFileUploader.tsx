@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 
 interface Props {
@@ -96,6 +96,7 @@ const Note = styled.p`
 `;
 
 export default function AuthFileUploader({ onAuthenticated }: Props) {
+  const [file, setFile] = useState<File | null>(null);
   const isAuthenticated = async (file: File): Promise<boolean> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -126,6 +127,64 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
     }
   };
 
+  const handleLogin = async () => {
+    if (!file) return alert('Please upload a file');
+
+    const buffer = await file.arrayBuffer();
+    const iv = buffer.slice(0, 12);
+    const data = buffer.slice(12, buffer.byteLength - 16);
+    const authTag = buffer.slice(buffer.byteLength - 16);
+
+    try {
+      const key = await getKeyFromPassword('MySuperSecretKey', new Uint8Array(iv));
+      const decrypted = await crypto.subtle.decrypt(
+        {
+          name: 'AES-GCM',
+          iv: new Uint8Array(iv),
+          tagLength: 128,
+        },
+        key,
+        concatenateBuffers(data, authTag)
+      );
+      document.cookie = `authToken=asdfghjigfgvergrurh84t4tvhrnvwvwe8; Max-Age=3600; path=/`;
+      onAuthenticated();
+
+    } catch (e) {
+      console.error('Decryption failed:', e);
+      alert('Invalid file');
+    }
+  };
+
+  const getKeyFromPassword = async (password: string | undefined, salt: Uint8Array<any>) => {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt,
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+  };
+
+  const concatenateBuffers = (a: ArrayBuffer, b: ArrayBuffer) => {
+    const tmp = new Uint8Array(a.byteLength + b.byteLength);
+    tmp.set(new Uint8Array(a), 0);
+    tmp.set(new Uint8Array(b), a.byteLength);
+    return tmp.buffer;
+  };
+
   return (
     <PageWrapper>
       <Card>
@@ -141,11 +200,14 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
         </Description>
         <FileLabel>
           <FileButton>Select Auth File</FileButton>
-          <HiddenInput
+          <input
             type="file"
-            accept=".json,.txt"
-            onChange={handleFile}
-          />
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files[0]) setFile(files[0]);
+            }}
+          /><br /><br />
+          <button onClick={handleLogin}>Submit</button>
         </FileLabel>
         <Note>Your auth file will be verified securely.</Note>
       </Card>
