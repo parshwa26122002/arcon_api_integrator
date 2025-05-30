@@ -6,11 +6,12 @@ import CollectionPane from '../collectionpane/CollectionPane';
 import FolderPane from '../folderpane/FolderPane';
 import { AddButton } from '../../styled-component/AddButton';
 import { Tab } from '../../styled-component/Tab';
-import { useCollectionStore, type CollectionTabState, type RequestTabState, type FolderTabState, type APIFolder, type APIRequest } from '../../store/collectionStore';
+import { useCollectionStore, type CollectionTabState, type RequestTabState, type FolderTabState, type APIFolder, type APIRequest, type RunnerTabState } from '../../store/collectionStore';
 import { convertRequestBodyToTabBody, convertTabBodyToRequestBody } from '../../utils/requestUtils';
 import UnsavedChangesModal from '../modals/UnsavedChangesModal';
 import SaveToCollectionModal from '../modals/SaveToCollectionModal';
 import PaneHeader from '../paneheader/PaneHeader';
+import RunnerPane from '../runnerpane/RunnerPane';
 
 const ScrollbarArea = styled.div`
   width: 100%;
@@ -114,11 +115,12 @@ const TabWrapper = styled.div`
   }
 `;
 
-type TabState = RequestTabState | CollectionTabState | FolderTabState;
+type TabState = RequestTabState | CollectionTabState | FolderTabState | RunnerTabState ;
 
 const isRequestTab = (tab: TabState): tab is RequestTabState => tab.type === 'request';
 const isCollectionTab = (tab: TabState): tab is CollectionTabState => tab.type === 'collection';
 const isFolderTab = (tab: TabState): tab is FolderTabState => tab.type === 'folder';
+const isRunnerTab = (tab: TabState): tab is RunnerTabState => tab.type === 'runner';
 
 const MainContentTabs: React.FC = () => {
   const [tabs, setTabs] = useState<TabState[]>([]);
@@ -131,12 +133,14 @@ const MainContentTabs: React.FC = () => {
   const activeCollectionId = useCollectionStore(state => state.activeCollectionId);
   const activeRequestId = useCollectionStore(state => state.activeRequestId);
   const activeFolderId = useCollectionStore(state => state.activeFolderId);
+  const runnerTabRequest = useCollectionStore(state => state.runnerTabRequest);
   const getActiveRequest = useCollectionStore(state => state.getActiveRequest);
   const getActiveCollection = useCollectionStore(state => state.getActiveCollection);
   const getActiveFolder = useCollectionStore(state => state.getActiveFolder);
   const setActiveRequest = useCollectionStore(state => state.setActiveRequest);
   const setActiveCollection = useCollectionStore(state => state.setActiveCollection);
   const setActiveFolder = useCollectionStore(state => state.setActiveFolder);
+  const setRunnerTabRequest = useCollectionStore(state => state.setRunnerTabRequest);
   const updateRequest = useCollectionStore(state => state.updateRequest);
   const updateCollection = useCollectionStore(state => state.updateCollection);
   const updateFolder = useCollectionStore(state => state.updateFolder);
@@ -149,7 +153,19 @@ const MainContentTabs: React.FC = () => {
       return { ...tab, ...newState } as CollectionTabState;
     } else if (isFolderTab(tab) && ('description' in newState || 'auth' in newState)) {
       return { ...tab, ...newState } as FolderTabState;
-    }
+    } else if (isRunnerTab(tab)) {
+      const runnerNewState = newState as Partial<RunnerTabState>;
+      return {
+        ...tab,
+        iterations: runnerNewState.iterations ?? tab.iterations,
+        delay: runnerNewState.delay ?? tab.delay,
+        selectedRequestIds: runnerNewState.selectedRequestIds ?? tab.selectedRequestIds,
+        resultsByIteration: runnerNewState.resultsByIteration ?? tab.resultsByIteration,
+        started: runnerNewState.started ?? tab.started,
+        isOpen: runnerNewState.isOpen ?? tab.isOpen,
+        selectedResultId: runnerNewState.selectedResultId ?? tab.selectedResultId,
+      };
+    } 
     return tab;
   };
 
@@ -301,18 +317,41 @@ const MainContentTabs: React.FC = () => {
     return newTab;
   };
 
+  const createNewRunnerTab = (collectionId: string) => {  
+  
+      const newTab: RunnerTabState = {
+        id: tabCounter,
+        type: 'runner',
+        title: `Runner - ${collectionId}`,
+        collectionId,
+        hasUnsavedChanges: false,
+        selectedRequestIds: [],
+        iterations: 1,
+        delay: 1000,
+        resultsByIteration: [],
+        started: false,
+        isOpen: false,
+        selectedResultId: null
+      };
+  
+      setTabCounter(t => t + 1);
+      setActiveTab(newTab.id);
+      setTabs([...tabs, newTab]);
+  };
+    
   useEffect(() => {
     console.log('MainContentTabs useEffect:', {
       activeCollectionId,
       activeRequestId,
-      activeFolderId
+      activeFolderId,
+      runnerTabRequest,
     });
-
-    if (activeCollectionId && activeRequestId) {
+  
+    if (activeCollectionId && activeRequestId && !runnerTabRequest) {
       const existingTab = tabs.find(
-        tab => 
+        tab =>
           tab.type === 'request' &&
-          tab.collectionId === activeCollectionId && 
+          tab.collectionId === activeCollectionId &&
           (tab as RequestTabState).requestId === activeRequestId
       );
       if (existingTab) {
@@ -320,25 +359,19 @@ const MainContentTabs: React.FC = () => {
       } else {
         createNewRequestTab(activeCollectionId, activeRequestId);
       }
-    } else if (activeCollectionId && activeFolderId) {
-      console.log('Creating/activating folder tab:', {
-        collectionId: activeCollectionId,
-        folderId: activeFolderId
-      });
+    } else if (activeCollectionId && activeFolderId && !runnerTabRequest) {
       const existingTab = tabs.find(
-        tab => 
+        tab =>
           tab.type === 'folder' &&
           tab.collectionId === activeCollectionId &&
           (tab as FolderTabState).folderId === activeFolderId
       );
       if (existingTab) {
-        console.log('Found existing folder tab:', existingTab);
         setActiveTab(existingTab.id);
       } else {
-        console.log('Creating new folder tab');
         createNewFolderTab(activeCollectionId, activeFolderId);
       }
-    } else if (activeCollectionId && !activeRequestId && !activeFolderId) {
+    } else if (activeCollectionId && !activeRequestId && !activeFolderId && !runnerTabRequest) {
       const existingTab = tabs.find(
         tab => 
           tab.type === 'collection' &&
@@ -349,8 +382,11 @@ const MainContentTabs: React.FC = () => {
       } else {
         createNewCollectionTab(activeCollectionId);
       }
+    } else if (runnerTabRequest && activeCollectionId) {
+      createNewRunnerTab(runnerTabRequest); 
     }
-  }, [activeCollectionId, activeRequestId, activeFolderId]);
+  }, [activeCollectionId, activeRequestId, activeFolderId, runnerTabRequest]);
+  
 
   useEffect(() => {
     setTabs(prevTabs => {
@@ -461,7 +497,7 @@ const MainContentTabs: React.FC = () => {
       const tabIndex = prevTabs.findIndex(t => t.id === id);
       const closingTab = prevTabs.find(t => t.id === id);
       const newTabs = prevTabs.filter(t => t.id !== id);
-  
+
       // Update active tab
       if (activeTab === id) {
         const nextTab = newTabs[tabIndex] || newTabs[tabIndex - 1] || null;
@@ -476,6 +512,9 @@ const MainContentTabs: React.FC = () => {
           setActiveFolder(null);
           setActiveCollection(null);
         } else if (closingTab?.type === 'collection') {
+          setActiveCollection(null);
+        } else if (closingTab?.type === 'runner') {
+          setRunnerTabRequest(null);
           setActiveCollection(null);
         }
       }
@@ -587,23 +626,25 @@ const MainContentTabs: React.FC = () => {
             name: currentTab.title,
             description: currentTab.description || '',
             auth: currentTab.auth || { type: 'none', credentials: {} },
-            folders: [],
+                folders: [],
             requests: []
-          };
-
-          return (
-            <FolderPane
-              folder={folderData}
-              onUpdate={(updates: Partial<APIFolder>) => {
-                const tabUpdates: Partial<FolderTabState> = {
-                  description: updates.description,
+              };
+  
+              return (
+                <FolderPane
+                  folder={folderData}
+                  onUpdate={(updates: Partial<APIFolder>) => {
+                    const tabUpdates: Partial<FolderTabState> = {
+                      description: updates.description,
                   auth: updates.auth
-                };
+                    };
                 handleTabStateChange(currentTab.id, tabUpdates);
               }}
             />
           );
         }
+        case 'runner':
+          return <RunnerPane tabState={currentTab} onStateChange={(newState: Partial<RunnerTabState>) => handleTabStateChange(currentTab.id, newState)} />;
       }
     })();
 

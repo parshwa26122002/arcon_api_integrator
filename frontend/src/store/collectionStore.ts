@@ -70,7 +70,7 @@ export interface Response {
 export interface APIRequest {
   id: string;
   name: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH';
   url: string;
   headers: Header[];
   queryParams: QueryParam[];
@@ -194,13 +194,41 @@ export interface FolderTabState {
   };
 }
 
+export type RunnerTabState = {
+  id: number;
+  type: 'runner';
+  title: string;
+  collectionId: string;
+  hasUnsavedChanges: boolean;
+  selectedRequestIds: string[];
+  iterations: number;
+  delay: number;
+  started: boolean;
+  isOpen: boolean;
+  selectedResultId: string | null;
+  resultsByIteration?: {
+    iteration: number;
+    results: {
+      requestId: string;
+      name: string;
+      code: number;
+      status: string;
+      body: string;
+      isResponseSaved: boolean;
+    }[];
+  }[] 
+  
+};
+
+
 interface CollectionStoreState {
   collections: APICollection[];
   activeCollectionId: string | null;
   activeRequestId: string | null;
   activeFolderId: string | null;
   isInitialized: boolean;
-
+  runnerTabRequest: string | null;
+  
   initialize: () => Promise<void>;
   addCollection: (collection: APICollection) => Promise<void>;
   addFolder: (collectionId: string, parentFolderId: string | null) => Promise<string>;
@@ -234,6 +262,7 @@ interface CollectionStoreState {
   getActiveCollection: () => APICollection | null;
   getActiveFolder: () => APIFolder | null;
   findRequestLocation: (requestId: string) => { collectionId: string; folderId: string | null } | null;
+  setRunnerTabRequest: (id: string | null) => void;
 }
 
 export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
@@ -242,6 +271,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
   activeRequestId: null,
   activeFolderId: null,
   isInitialized: false,
+  runnerTabRequest: null,
 
   initialize: async () => {
     try {
@@ -650,6 +680,10 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
     };
 
     return findFolder(collection.folders);
+  },
+
+  setRunnerTabRequest: (id: string | null) => {
+    set({ runnerTabRequest: id });
   },
 
   removeFolder: async (collectionId: string, folderId: string) => {

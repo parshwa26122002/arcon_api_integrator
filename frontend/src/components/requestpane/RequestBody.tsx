@@ -513,6 +513,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
       options: { 
         ...body.options!,
         raw: {
+          ...body.options?.raw,
           language: language as 'json' | 'html' | 'xml' | 'text' | 'javascript',
         }
       }
@@ -737,9 +738,9 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
 
             <Editor
               height="400px"
-              defaultLanguage={body.options?.raw?.language || 'json'}
+              language={body.options?.raw?.language || 'json'}
               value={
-                isPretty && body.options?.raw?.language === 'json'
+                body.options?.raw?.language === 'json' && isPretty
                   ? (() => {
                       try {
                         return JSON.stringify(JSON.parse(body.raw || ''), null, 2);

@@ -16,7 +16,7 @@ const HTTP_METHODS = {
   POST: '#49cc90',
   PUT: '#fca130',
   DELETE: '#f93e3e',
-  PATCH: '#fca130',
+  PATCH: '#f582ea',
   OPTIONS: '#959da5',
   HEAD: '#959da5'
 } as const;
@@ -204,7 +204,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
   });
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
   const [isResponseSaved, setIsResponseSaved] = useState(true);
-  const [showSearch, setShowSearch] = useState(false);
+  const [, setShowSearch] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   
   // Move response state into tabState updates
@@ -572,7 +572,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                 <FiSearch />
               </IconButton>
               <IconButton title="Copy" onClick={() => navigator.clipboard.writeText(tabState.response?.[0]?.body || '')}><FiCopy /></IconButton>
-              <IconButton title="Clear" onClick={() => onStateChange({ ...tabState, response: [] })}><FiTrash2 /></IconButton>
+              <IconButton title="Clear" onClick={() => { onStateChange({ ...tabState, response: [] }); setIsResponseSaved(false); }}><FiTrash2 /></IconButton>
               {tabState.response?.[0]?.code !== 0 && (
                 <IconButton title="Save" style={{ opacity: isResponseSaved ? 0.5 : 1, pointerEvents: isResponseSaved ? 'none' : 'auto',
                 }} onClick={!isResponseSaved ? SaveResponse : undefined}><FiSave /></IconButton>

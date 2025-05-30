@@ -270,7 +270,8 @@ export default function CollectionSidebar(): JSX.Element {
     activeRequestId,
     activeCollectionId,
     activeFolderId,
-    findRequestLocation
+    findRequestLocation,
+    setRunnerTabRequest,
   } = useCollectionStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [renamingItemId, setRenamingItemId] = useState<string | null>(null);
@@ -316,16 +317,19 @@ export default function CollectionSidebar(): JSX.Element {
       setActiveCollection(null);
       setActiveFolder(null);
       setActiveRequest(null);
+      setRunnerTabRequest(null);
   
       setTimeout(() => {
         setActiveCollection(location.collectionId);
         setActiveFolder(location.folderId);
         setActiveRequest(request.id);
+        setRunnerTabRequest(null);
       }, 0);
     } else {
       setActiveCollection(location.collectionId);
       setActiveFolder(location.folderId);
       setActiveRequest(request.id);
+      setRunnerTabRequest(null);
     }
   };
   
@@ -336,6 +340,7 @@ export default function CollectionSidebar(): JSX.Element {
       setActiveCollection(null);
       setActiveRequest(null);
       setActiveFolder(null);
+      setRunnerTabRequest(null);
       setTimeout(() => {
         setActiveCollection(collection.id);
       }, 0);
@@ -343,6 +348,7 @@ export default function CollectionSidebar(): JSX.Element {
       setActiveCollection(collection.id);
       setActiveRequest(null);
       setActiveFolder(null);
+      setRunnerTabRequest(null);
     }
   };
   
@@ -352,14 +358,17 @@ export default function CollectionSidebar(): JSX.Element {
       setActiveFolder(null);
       setActiveRequest(null);
       setActiveCollection(null);
+      setRunnerTabRequest(null);
       setTimeout(() => {
         setActiveCollection(folder.collectionId);
         setActiveFolder(folder.id);
+        setRunnerTabRequest(null);
       }, 0);
     } else {
       setActiveCollection(folder.collectionId);
       setActiveFolder(folder.id);
       setActiveRequest(null);
+      setRunnerTabRequest(null);
     }
   };
   
@@ -468,7 +477,11 @@ const TreeNode: React.FC<{
     addRequestToFolder,
     addRequestToCollection,
     removeRequest,
-    renameRequest
+    renameRequest,
+    setRunnerTabRequest,
+    setActiveRequest,
+    setActiveCollection,
+    runnerTabRequest
   } = useCollectionStore();
 
   const handleClick = () => {
@@ -526,7 +539,25 @@ const TreeNode: React.FC<{
   const handleRunCollection = (e: React.MouseEvent) => {
     e.stopPropagation();
     // TODO: Implement collection run
-    console.log('Run collection');
+    if (runnerTabRequest === item.id) {
+      // Force re-selection
+      setActiveCollection(null);
+      setActiveRequest(null);
+      setActiveFolder(null);
+      setRunnerTabRequest(null);
+      setTimeout(() => {
+        setRunnerTabRequest(item.id); // this updates Zustand state
+        setActiveRequest(null);
+        setActiveFolder(null);
+        setActiveCollection(item.id);
+      }, 0);
+    } else {
+      setActiveCollection(item.id);
+      setActiveRequest(null);
+      setActiveFolder(null);
+      setRunnerTabRequest(item.id);
+    }
+
     moreOptionsProps.onMenuClick(''); // Close menu
   };
 
