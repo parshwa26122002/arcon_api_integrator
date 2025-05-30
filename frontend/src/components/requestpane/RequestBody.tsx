@@ -556,27 +556,63 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   };
   
   const handleGraphQLQueryChange = (value: string) => {
-  onChange({
-    ...body,
-    graphql: {
-      ...body.graphql,
-      query: value ?? '',
-      variables: body.graphql?.variables ?? ''
+    // Validate GraphQL query
+    let isValidQuery = true;
+    let queryError = '';
+    
+    try {
+      // Basic validation - check for required keywords
+      if (value.trim()) {
+        if (!value.includes('query') && !value.includes('mutation')) {
+          queryError = 'Query must include either "query" or "mutation" keyword';
+          isValidQuery = false;
+        } else if ((value.match(/\{/g) || []).length !== (value.match(/\}/g) || []).length) {
+          queryError = 'Invalid query: Mismatched curly braces';
+          isValidQuery = false;
+        }
+      }
+    } catch (err) {
+      const error = err as Error;
+      queryError = `Invalid query: ${error.message}`;
+      isValidQuery = false;
     }
-  });
-};
 
-const handleGraphQLVariablesChange = (value: string) => {
-  onChange({
-    ...body,
-    graphql: {
-      ...body.graphql,
-      query: body.graphql?.query ?? '',
-      variables: value
+    onChange({
+      ...body,
+      graphql: {
+        ...body.graphql,
+        query: value ?? '',
+        variables: body.graphql?.variables ?? '',
+        queryError: queryError || undefined
+      }
+    });
+  };
+
+  const handleGraphQLVariablesChange = (value: string) => {
+    // Validate JSON variables
+    let isValidVariables = true;
+    let variablesError = '';
+    
+    try {
+      if (value.trim()) {
+        JSON.parse(value);
+      }
+    } catch (err) {
+      const error = err as Error;
+      variablesError = `Invalid JSON: ${error.message}`;
+      isValidVariables = false;
     }
-  });
-};
 
+    onChange({
+      ...body,
+      graphql: {
+        ...body.graphql,
+        query: body.graphql?.query ?? '',
+        variables: value,
+        variablesError: variablesError || undefined
+      }
+    });
+  };
 
   const renderFormData = () => {
     const formData = body.formData || [createEmptyFormDataItem()];
@@ -828,7 +864,20 @@ const handleGraphQLVariablesChange = (value: string) => {
                   lineHeight: 18,
                 }}
               />
+              {body.graphql?.queryError && (
+                <div style={{ 
+                  color: '#ff4444', 
+                  fontSize: '12px', 
+                  marginTop: '4px', 
+                  padding: '4px 8px',
+                  backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                  borderRadius: '4px'
+                }}>
+                  {body.graphql.queryError}
+                </div>
+              )}
             </div>
+            
             <div>
               <label style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>
                 Variables (JSON)
@@ -863,6 +912,18 @@ const handleGraphQLVariablesChange = (value: string) => {
                   lineHeight: 18,
                 }}
               />
+              {body.graphql?.variablesError && (
+                <div style={{ 
+                  color: '#ff4444', 
+                  fontSize: '12px', 
+                  marginTop: '4px',
+                  padding: '4px 8px',
+                  backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                  borderRadius: '4px'
+                }}>
+                  {body.graphql.variablesError}
+                </div>
+              )}
             </div>
           </EditorContainer>
         );

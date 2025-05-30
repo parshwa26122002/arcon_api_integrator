@@ -86,6 +86,14 @@ export const convertTabBodyToRequestBody = (tabBody: TabBodyType): any => {
           src: tabBody.file?.name || ''
         }
       };
+    case 'graphql':
+      return {
+        mode: 'graphql',
+        graphql: {
+          query: tabBody.graphql?.query || '',
+          variables: tabBody.graphql?.variables || ''
+        }
+      };
     default:
       return { mode: 'none' };
   }

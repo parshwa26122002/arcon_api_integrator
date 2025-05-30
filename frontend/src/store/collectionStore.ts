@@ -60,6 +60,8 @@ export interface RequestBody {
 export interface GraphQLBody {
   query: string;
   variables: string;
+  queryError?: string;
+  variablesError?: string;
 }
 
 export interface AuthState {
