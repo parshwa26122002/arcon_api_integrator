@@ -9,7 +9,7 @@ import { getNearestParentAuth, useCollectionStore, type HttpMethod, type Request
 import { Tab } from '../../styled-component/Tab';
 import { Editor } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { FiCopy, FiSave, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { FiCheck, FiCheckCircle, FiCopy, FiEdit2, FiSave, FiSearch, FiTrash2, FiX } from 'react-icons/fi';
 import { processRequestWithVariables } from '../../utils/variableUtils';
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
@@ -193,6 +193,35 @@ const TabContent = styled.div`
   overflow-y: auto;
 `;
 
+const SchemaBox = styled.textarea`
+  width: 100%; height: 150px; margin-top: 10px; background: #1e1e1e; color: #ddd;
+  border: 1px solid #555; padding: 8px; font-size: 14px; resize: none;
+`;
+const ValidationBox = styled.div`
+  background: #2c2c2c; color: #eee; margin-top: 12px; padding: 8px; font-size: 13px;
+  border-left: 4px solid #49cc90;
+`;
+
+const Button = styled.button`
+  background-color: #7d4acf; color: white; padding: 4px 8px;
+  border: none; border-radius: 4px; font-size: 12px;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+  &:hover { background-color: #6a3dcf; }
+  margin-left: 8px;
+  width: 80px;
+`;
+
+const SchemaButton = styled.button`
+  background-color: transparent;
+  border: none;
+  color: #49cc90;
+  font-size: 14px;
+  cursor: pointer;
+  &:hover { color:rgb(255, 255, 255); }
+  font-size: 12px;
+`;
+
 interface RequestPaneProps {
   tabState: RequestTabState;
   onStateChange: (newState: RequestTabState) => void;
@@ -241,7 +270,11 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         body: responseText,
         status: status,
         code: code,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        expectedSchema: request?.response[0]?.expectedSchema,
+        expectedCode: request?.response[0]?.expectedCode,
+        expectedStatus: request?.response[0]?.expectedStatus
+        
       }]
     };
     onStateChange(newState);
@@ -487,6 +520,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       code: tabState.response[0].code,
       body: tabState.response[0].body,
       timestamp: new Date().toISOString(),
+      expectedResponse:{}
     };
   
     // Overwrite response array with just the latest response
@@ -557,6 +591,96 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         return null;
     }
   }, [activeTab, tabState, onStateChange, updateRequest]);
+
+  const handleValidate = () => {
+    try {
+      if(!tabState.response?.[0]?.expectedSchema && !tabState.showSchemaInput && !tabState.showSchemaOutput) {
+        onStateChange({...tabState, showSchemaInput:true});
+        return;
+      }
+      const schema = JSON.parse(tabState.response?.[0]?.expectedSchema || '{}');
+      const responseRaw = tabState.response?.[0]?.body || '{}';
+      const response = JSON.parse(responseRaw);
+      const mismatches: string[] = [];
+
+      if(request?.response[0]?.expectedCode != tabState.response?.[0]?.code) {
+        mismatches.push(`Expected code: ${request?.response[0]?.expectedCode}, got: ${tabState.response?.[0]?.code}`);
+      }
+      if(request?.response[0]?.expectedStatus != tabState.response?.[0]?.status) {
+        mismatches.push(`Expected status: ${request?.response[0]?.expectedStatus}, got: ${tabState.response?.[0]?.status}`);
+      }
+      Object.keys(schema).forEach(key => {
+        const expectedType = schema[key];
+        const actual = response[key];
+        const actualType = typeof actual;
+        if (!(key in response)) {
+          mismatches.push(`Missing key: "${key}"`);
+        } else if (actualType !== expectedType) {
+          mismatches.push(`[${key}] => expected: ${expectedType}, got: ${actualType}`);
+        }
+      });
+
+      const result = mismatches.length
+        ? 'Schema Mismatches:\n' + mismatches.join('\n')
+        : 'All keys matched!';
+
+      const updatedResponse = [...(tabState.response || [])];
+      if (updatedResponse.length > 0) {
+        updatedResponse[0].validationResult = result;
+      }
+
+      onStateChange({ ...tabState, response: updatedResponse, showSchemaOutput:true });
+    } catch (err) {
+      const updatedResponse = [...(tabState.response || [])];
+      if (updatedResponse.length > 0) {
+        updatedResponse[0].validationResult = 'Error parsing JSON: ' + (err as Error).message;
+      }
+      onStateChange({ ...tabState, response: updatedResponse, showSchemaOutput:true });
+    }
+  };
+
+  const handleSchemaChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
+    onStateChange({
+      ...tabState,
+      response:tabState.response?.map(response => ({...response, expectedSchema:e.target.value}))
+    })
+
+  }, [tabState, onStateChange]);
+
+  const handleCodeChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    onStateChange({
+      ...tabState,
+      response:tabState.response?.map(response => ({...response, expectedCode:parseInt(e.target.value)}))
+    })
+  }, [tabState, onStateChange]);
+
+  const handleStatusChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    onStateChange({
+      ...tabState,
+      response:tabState.response?.map(response => ({...response, expectedStatus:e.target.value}))
+    })
+  }, [tabState, onStateChange]);
+  
+
+  const saveSchema = () => {
+    if(!tabState.collectionId || !tabState.requestId) return;
+    updateRequest(tabState.collectionId, tabState.requestId, {
+      response: [...(tabState.response || [])].map(response => ({
+        ...response,
+          expectedSchema: tabState.response?.[0]?.expectedSchema,
+          expectedCode: tabState.response?.[0]?.expectedCode,
+          expectedStatus: tabState.response?.[0]?.expectedStatus
+      }))
+    });
+    onStateChange({...tabState, showSchemaInput:false});
+  };
+
+  const AddEditSchema = () => {
+    onStateChange({...tabState, showSchemaInput:true});
+  }
+
+  const existingSchema = request?.response[0]?.expectedSchema;
+  const existingValidation = tabState.response?.[0]?.validationResult;
 
   return (
     <Container>
@@ -642,8 +766,33 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                 <IconButton title="Save" style={{ opacity: isResponseSaved ? 0.5 : 1, pointerEvents: isResponseSaved ? 'none' : 'auto',
                 }} onClick={!isResponseSaved ? SaveResponse : undefined}><FiSave /></IconButton>
               )}
+              <IconButton title="Validate" onClick={handleValidate}>
+                <FiCheckCircle />
+              </IconButton>
             </ResponseActions>
           </ResponseHeader>
+          {tabState.showSchemaInput && (
+            <div>
+              <div style={{color: '#49cc90', fontSize: 12, marginBottom: 8}}>No schema found. Kindly add a schema to validate the response.</div>
+              <input type="number" placeholder='Expected code' value={tabState.response?.[0]?.expectedCode} onChange={handleCodeChange} /> 
+              <input type="text" placeholder='Expected status' value={tabState.response?.[0]?.expectedStatus} onChange={handleStatusChange} /> 
+              <SchemaBox
+                placeholder='Enter expected schema, e.g. { "token": "string", "id": "number" }'
+                value={tabState.response?.[0]?.expectedSchema}
+                onChange={handleSchemaChange}
+              />
+              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                <Button onClick={saveSchema}><FiSave /> Save</Button>
+                <Button onClick={() => onStateChange({...tabState, showSchemaInput:false})}><FiX /> Cancel</Button>
+              </div>
+            </div>
+          )}
+          {!tabState.showSchemaInput && tabState.showSchemaOutput && existingValidation && 
+          <div>
+            <SchemaButton title="Edit Schema" onClick={AddEditSchema}>Edit Schema</SchemaButton>
+            <ValidationBox>{existingValidation}</ValidationBox>
+          </div>
+          }
           <ResponseContent>
             <Editor
               onMount={(editor) => (editorRef.current = editor)}

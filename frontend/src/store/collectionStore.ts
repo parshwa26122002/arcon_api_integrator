@@ -193,6 +193,9 @@ export interface Response {
   status: string;
   code: number;
   body: string;
+  expectedSchema?: string;
+  expectedCode?: number;
+  expectedStatus?: string; 
 }
 
 export interface APIRequest {
@@ -275,8 +278,14 @@ export interface RequestTabState {
     code: number;
     body: string;
     timestamp?: string;
+    expectedSchema?: string;
+    expectedCode?: number;
+    expectedStatus?: string;
+    validationResult?: string;
   }>;
   hasUnsavedChanges: boolean;
+  showSchemaInput: boolean;
+  showSchemaOutput: boolean;
   originalState?: {
     method: HttpMethod;
     url: string;
@@ -289,6 +298,10 @@ export interface RequestTabState {
       code: number;
       body: string;
       timestamp?: string;
+      expectedSchema?: string;
+      expectedCode?: number;
+      expectedStatus?: string;
+      validationResult?: string;
     }>;
   };
 }

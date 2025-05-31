@@ -228,7 +228,9 @@ const MainContentTabs: React.FC = () => {
         auth: request.auth || { type: 'none', credentials: {} },
         body: convertRequestBodyToTabBody(request.body),
         response: request.response || [],
+        showSchemaInput: false,
         hasUnsavedChanges: false,
+        showSchemaOutput: false,
         originalState: {
           method: request.method || 'GET',
           url: request.url || '',
@@ -236,7 +238,7 @@ const MainContentTabs: React.FC = () => {
           headers: request.headers || [],
           auth: request.auth || { type: 'none', credentials: {} },
           body: convertRequestBodyToTabBody(request.body),
-          response: request.response || []
+          response: request.response || [],
         }
       };
     } else {
@@ -251,6 +253,8 @@ const MainContentTabs: React.FC = () => {
         auth: { type: 'none', credentials: {} },
         body: { mode: 'none' },
         hasUnsavedChanges: false,
+        showSchemaInput: false,
+        showSchemaOutput: false,
         originalState: {
           method: 'GET',
           url: '',
