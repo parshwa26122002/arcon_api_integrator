@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Editor from '@monaco-editor/react';
-import { FiFile, FiTrash2 } from 'react-icons/fi';
+import { FiFile, FiTrash2, FiSearch } from 'react-icons/fi';
 import { useCollectionStore } from '../../store/collectionStore';
+import { getDynamicVariablesList } from '../../utils/dynamicVariables';
 import type { 
   RequestBody,
   FormDataItem,
@@ -14,12 +15,24 @@ interface RequestBodyProps {
   onChange: (body: RequestBody) => void;
 }
 
+interface VariableConfig {
+  minLength: string;
+  maxLength: string;
+  show: boolean;
+}
+
+interface VariableConfigs {
+  [key: string]: VariableConfig;
+}
+
 const Container = styled.div`
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  min-height: 0;
 `;
 
 const Select = styled.select`
@@ -64,6 +77,8 @@ const FormContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 const Table = styled.div`
@@ -161,13 +176,13 @@ const EditorContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 200px;
   flex: 1;
-  min-height: 0;
 
   .monaco-editor {
+    min-height: 200px;
     border-radius: 4px;
     overflow: hidden;
-    flex: 1;
   }
 `;
 
@@ -240,6 +255,142 @@ const DeleteButton = styled.button`
   }
 `;
 
+const CheckVariablesButton = styled.button`
+  padding: 8px 16px;
+  background-color: #4a4a4a;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  margin-top: 16px;
+  
+  &:hover {
+    background-color: #5a5a5a;
+  }
+`;
+
+const LengthConfigForm = styled.div`
+  padding: 16px;
+  background-color: #2d2d2d;
+  border-radius: 4px;
+  border: 1px solid #4a4a4a;
+  flex-shrink: 0;
+`;
+
+const FormRow = styled.div`
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  align-items: center;
+`;
+
+const Label = styled.label`
+  color: #e1e1e1;
+  font-size: 14px;
+  min-width: 100px;
+`;
+
+const NumberInput = styled.input`
+  padding: 6px 8px;
+  background-color: #383838;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #e1e1e1;
+  font-size: 14px;
+  width: 100px;
+  
+  &:focus {
+    outline: none;
+    border-color: #6a6a6a;
+  }
+`;
+
+const ApplyButton = styled.button`
+  padding: 6px 12px;
+  background-color: #4a4a4a;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #5a5a5a;
+  }
+`;
+
+const BodyContentWrapper = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+`;
+
+const TopControls = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+`;
+
+const VariableNameLabel = styled.div`
+  color: #e1e1e1;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  background-color: #383838;
+  border-radius: 4px;
+  display: inline-block;
+`;
+
+const ConfigFormsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 8px;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #2d2d2d;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 4px;
+  }
+`;
+
+const ApplyAllButton = styled(ApplyButton)`
+  width: 100%;
+  margin-top: 8px;
+  background-color: #7d4acf;
+  
+  &:hover {
+    background-color: #9666d8;
+  }
+`;
+
+const BottomSection = styled.div`
+  flex-shrink: 0;
+  border-top: 1px solid #4a4a4a;
+  padding-top: 16px;
+  margin-top: auto;
+`;
+
 const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) => {
   const {
     activeCollectionId,
@@ -252,6 +403,15 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const [isPretty, setIsPretty] = React.useState(false);
   const request = getActiveRequest();
   const [isPrettyVariables, setIsPrettyVariables] = React.useState(false)
+  const [showLengthConfig, setShowLengthConfig] = useState(false);
+  const [minLength, setMinLength] = useState('2');
+  const [maxLength, setMaxLength] = useState('10');
+  const [variableConfigs, setVariableConfigs] = useState<VariableConfigs>({
+    '$randomLastName': { minLength: '2', maxLength: '10', show: false },
+    '$randomFirstName': { minLength: '2', maxLength: '10', show: false },
+    '$randomFullName': { minLength: '2', maxLength: '20', show: false },
+    '$randomJobTitle': { minLength: '5', maxLength: '30', show: false }
+  });
   
   // Update local body when request changes
   useEffect(() => {
@@ -615,6 +775,97 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     });
   };
 
+  const checkDynamicVariables = () => {
+    const request = getActiveRequest();
+    if (!request) return;
+
+    const requestString = JSON.stringify(request);
+    const dynamicVars = getDynamicVariablesList();
+    
+    const foundVariables = dynamicVars.filter(variable => {
+      const patterns = [
+        variable,
+        `{${variable}}`,
+        `{{${variable}}}`,
+      ];
+      return patterns.some(pattern => requestString.includes(pattern));
+    });
+
+    // Update show status for each variable
+    const newConfigs = { ...variableConfigs };
+    Object.keys(variableConfigs).forEach(varName => {
+      newConfigs[varName] = {
+        ...newConfigs[varName],
+        show: foundVariables.includes(varName)
+      };
+    });
+    setVariableConfigs(newConfigs);
+
+    if (foundVariables.length > 0) {
+      console.log('Found dynamic variables in request:', foundVariables);
+    } else {
+      console.log('No dynamic variables found in request');
+    }
+  };
+
+  const handleLengthChange = (
+    varName: string,
+    field: 'minLength' | 'maxLength',
+    value: string
+  ) => {
+    setVariableConfigs(prev => ({
+      ...prev,
+      [varName]: {
+        ...prev[varName],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleApplyAllConfigs = () => {
+    const activeConfigs = Object.entries(variableConfigs)
+      .filter(([_, config]) => config.show)
+      .map(([varName, config]) => ({
+        variable: varName,
+        minLength: parseInt(config.minLength),
+        maxLength: parseInt(config.maxLength)
+      }));
+
+    console.log('Applying all configurations:', activeConfigs);
+  };
+
+  const renderVariableForm = (varName: string) => {
+    if (!variableConfigs[varName].show) return null;
+
+    return (
+      <LengthConfigForm key={varName}>
+        <VariableNameLabel>
+          Variable: {varName}
+        </VariableNameLabel>
+        <FormRow>
+          <Label>Min Length:</Label>
+          <NumberInput
+            type="number"
+            min="1"
+            max="500"
+            value={variableConfigs[varName].minLength}
+            onChange={(e) => handleLengthChange(varName, 'minLength', e.target.value)}
+          />
+        </FormRow>
+        <FormRow>
+          <Label>Max Length:</Label>
+          <NumberInput
+            type="number"
+            min="1"
+            max="500"
+            value={variableConfigs[varName].maxLength}
+            onChange={(e) => handleLengthChange(varName, 'maxLength', e.target.value)}
+          />
+        </FormRow>
+      </LengthConfigForm>
+    );
+  };
+
   const renderFormData = () => {
     const formData = body.formData || [createEmptyFormDataItem()];
     
@@ -933,17 +1184,44 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     }
   };
 
+  const hasActiveConfigs = Object.values(variableConfigs).some(config => config.show);
+
   return (
     <Container>
-      <Select value={body.mode} onChange={handleModeChange}>
-        <option value="none">none</option>
-        <option value="form-data">form-data</option>
-        <option value="urlencoded">urlencoded</option>
-        <option value="raw">raw</option>
-        <option value="file">file</option>
+      <TopControls>
+        <Select value={body.mode} onChange={handleModeChange}>
+          <option value="none">none</option>
+          <option value="form-data">form-data</option>
+          <option value="urlencoded">urlencoded</option>
+          <option value="raw">raw</option>
+          <option value="file">file</option>
         <option value="graphql">graphql</option>
-      </Select>
-      {renderBodyContent()}
+        </Select>
+      </TopControls>
+
+      <BodyContentWrapper>
+        {renderBodyContent()}
+      </BodyContentWrapper>
+
+      <BottomSection>
+        <CheckVariablesButton onClick={checkDynamicVariables}>
+          Check Dynamic Variables
+        </CheckVariablesButton>
+        
+        {hasActiveConfigs && (
+          <>
+            <ConfigFormsContainer>
+              {renderVariableForm('$randomLastName')}
+              {renderVariableForm('$randomFirstName')}
+              {renderVariableForm('$randomFullName')}
+              {renderVariableForm('$randomJobTitle')}
+            </ConfigFormsContainer>
+            <ApplyAllButton onClick={handleApplyAllConfigs}>
+              Apply All Configurations
+            </ApplyAllButton>
+          </>
+        )}
+      </BottomSection>
     </Container>
   );
 };
