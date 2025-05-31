@@ -54,11 +54,18 @@ app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
         hasBody: !!reqInit.body
       });
       
+      // Start timing
+      const startTime = Date.now();
+      // Make the request through the proxy
       const response = await fetch(url, reqInit);
+      const endTime = Date.now();
+      const durationMs = endTime - startTime;
+      const durationSeconds = durationMs / 1000;
       console.log('Received response:', {
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers.raw()
+        headers: response.headers.raw(),
+        durationSeconds
       });
 
       // Get response body first
@@ -85,9 +92,19 @@ app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
 
       // Send the response
       if (typeof responseData === 'string') {
-        res.send(responseData);
+        res.send({
+          body: responseData,
+          status: response.status,
+          statusText: response.statusText,
+          durationSeconds
+        });
       } else {
-        res.json(responseData);
+        res.json({
+          body: responseData,
+          status: response.status,
+          statusText: response.statusText,
+          durationSeconds
+        });
       }
     } catch (error) {
       console.error('Proxy error:', error);
