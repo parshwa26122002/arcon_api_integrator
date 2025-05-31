@@ -149,7 +149,8 @@ export interface FormDataItem {
 export interface UrlEncodedItem {
   key: string;
   value: string;
-  isSelected?: boolean;
+  type: string;
+  isSelected: boolean;
 }
 
 export interface RawBody {
@@ -207,7 +208,6 @@ export interface APIRequest {
   queryParams: QueryParam[];
   body?: RequestBody;
   contentType: string;
-  formData: Array<{ key: string; value: string }>;
   auth: AuthState;
   response: Response[];
 }
@@ -255,8 +255,8 @@ export type TabBodyType = {
       language: 'json' | 'html' | 'xml' | 'text' | 'javascript';
     };
   };
-  formData?: Array<{ key: string; value: string; type: 'text' | 'file' }>;
-  urlencoded?: Array<{ key: string; value: string }>;
+  formData?: Array<{ key: string; value: string; type: 'text' | 'file'; isSelected?: boolean }>;
+  urlencoded?: Array<{ key: string; value: string; type: string; isSelected: boolean }>;
   file?: { name: string; content: string };
   graphql?: { query: string; variables: string };
 };
@@ -342,6 +342,7 @@ export type RunnerTabState = {
   type: 'runner';
   title: string;
   collectionId: string;
+  folderId?: string;
   hasUnsavedChanges: boolean;
   selectedRequestIds: string[];
   iterations: number;
@@ -513,7 +514,6 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       queryParams: [],
       body: undefined,
       contentType: '',
-      formData: [],
       auth: {type: '', credentials: {}},
       response: []
     };
@@ -585,7 +585,6 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       queryParams: [],
       body: undefined,
       contentType: '',
-      formData: [],
       auth: {type: '', credentials: {}},
       response: []
     };
@@ -620,7 +619,6 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       queryParams: request.queryParams,
       body: request.body,
       contentType: request.body.mode,
-      formData: request.body.formData || [],
       auth: request.auth,
       response: request.response || []
     };

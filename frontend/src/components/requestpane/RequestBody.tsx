@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Editor from '@monaco-editor/react';
-import { FiFile, FiTrash2, FiSearch } from 'react-icons/fi';
+import { FiFile, FiTrash2 } from 'react-icons/fi';
 import { useCollectionStore } from '../../store/collectionStore';
 import { getDynamicVariablesList, setVariableConfigurations } from '../../utils/dynamicVariables';
 import type { 
@@ -442,9 +442,9 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const [isPretty, setIsPretty] = React.useState(false);
   const request = getActiveRequest();
   const [isPrettyVariables, setIsPrettyVariables] = React.useState(false)
-  const [showLengthConfig, setShowLengthConfig] = useState(false);
-  const [minLength, setMinLength] = useState('2');
-  const [maxLength, setMaxLength] = useState('10');
+  // const [showLengthConfig, setShowLengthConfig] = useState(false);
+  // const [minLength, setMinLength] = useState('2');
+  // const [maxLength, setMaxLength] = useState('10');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [invalidVariables, setInvalidVariables] = useState<string[]>([]);
 
@@ -581,7 +581,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         newBody.formData = [{ key: '', value: '', type: 'text', isSelected: false }];
         break;
       case 'urlencoded':
-        newBody.urlencoded = [{ key: '', value: '', isSelected: false }];
+        newBody.urlencoded = [{ key: '', value: '', type: 'text', isSelected: false }];
         break;
       case 'file':
         newBody.file = { name: '', content: '', src: '' };
@@ -609,6 +609,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const createEmptyUrlEncodedItem = (): UrlEncodedItem => ({
     key: '',
     value: '',
+    type: 'text',
     isSelected: false
   });
 

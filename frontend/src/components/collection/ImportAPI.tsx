@@ -277,7 +277,6 @@ export default function ImportAPI(): JSX.Element {
           ],
           queryParams: [],
           contentType: "application/json",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         },
@@ -304,6 +303,7 @@ export default function ImportAPI(): JSX.Element {
             id: crypto.randomUUID(),
             key: param.name,
             value: param.example || param.default || "",
+            description: param.description || "",
           }));
 
         // Extract query parameters
@@ -312,6 +312,7 @@ export default function ImportAPI(): JSX.Element {
           .map((param: any) => ({
             key: param.name,
             value: param.example || param.default || "",
+            description: param.description || "",
           }));
 
         // Extract request body (prefer application/json)
@@ -360,7 +361,6 @@ export default function ImportAPI(): JSX.Element {
           headers,
           queryParams,
           contentType: content ? Object.keys(content)[0] : "",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         });
@@ -496,7 +496,6 @@ function convertRAMLToCollection(raml: any): Collection {
             headers,
             queryParams,
             contentType: "application/json",
-            formData: [],
             auth: { type: "", credentials: {} },
             response: []
           });
@@ -519,7 +518,6 @@ function convertRAMLToCollection(raml: any): Collection {
           headers: [],
           queryParams: [],
           contentType: "",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         },
@@ -588,6 +586,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
             key: param.key,
             value: param.value || param.default || "",
             description: param.description || "",
+            isSelected: true
           }));
         url = item.request.url.raw || buildPostmanUrl(item.request.url);
       }
@@ -597,8 +596,11 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
       const credentials = authObj[authType] || {};
 
       const headers = (item.request.header || []).map((h: any) => ({
+        id: crypto.randomUUID(),
         key: h.key,
         value: h.value,
+        description: h.description || "",
+        isSelected: true
       }));
 
       // Handle request body
@@ -614,6 +616,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
                 value: item.value || "",
                 type: item.type || "text",
                 src: item.src || "",
+                isSelected: true
               })),
             };
             break;
@@ -625,6 +628,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
                   key: item.key || "",
                   value: item.value || "",
                   type: "text",
+                  isSelected: true
                 })
               ),
             };
@@ -675,7 +679,6 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
           item.request.body?.options?.raw?.language === "json"
             ? "application/json"
             : "text/plain",
-        formData: [],
         auth: {
           type: authType,
           credentials: Array.isArray(credentials)

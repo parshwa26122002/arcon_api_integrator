@@ -678,7 +678,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
           <FormGroup>
             <Label>Token</Label>
             <Input
-              type="text"
+              type="password"
               value={parentAuth.credentials.token || ''}
               disabled
             />
@@ -860,7 +860,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
           <FormGroup>
             <Label>Token</Label>
             <Input
-              type="text"
+              type="password"
               value={auth.credentials.token || ''}
               onChange={(e) => handleCredentialChange('token', e.target.value)}
               placeholder="Enter bearer token"
