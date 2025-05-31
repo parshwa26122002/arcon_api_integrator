@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
+import { editor } from 'monaco-editor';
+import type { IDisposable } from 'monaco-editor';
 import { FiFile, FiTrash2, FiSearch } from 'react-icons/fi';
 import { useCollectionStore } from '../../store/collectionStore';
 import { getDynamicVariablesList, setVariableConfigurations } from '../../utils/dynamicVariables';
@@ -9,6 +12,7 @@ import type {
   FormDataItem,
   UrlEncodedItem,
 } from '../../store/collectionStore';
+import { SuggestiveInput } from '../../styled-component/SuggestiveInput';
 
 interface RequestBodyProps {
   body: RequestBody;
@@ -430,6 +434,57 @@ const InvalidVariableMessage = styled.div`
   border: 1px solid rgba(255, 68, 68, 0.2);
 `;
 
+interface StyledSuggestiveInputProps {
+  $isKeyInput?: boolean;
+}
+
+const StyledSuggestiveInput = styled(SuggestiveInput)<StyledSuggestiveInputProps>`
+  width: 100%;
+  padding: 6px 8px;
+  background-color: #2d2d2d;
+  border: 1px solid #4a4a4a;
+  border-radius: ${props => props.$isKeyInput ? '4px 0 0 4px' : '4px'};
+  color: #e1e1e1;
+  font-size: 12px;
+
+  &:focus {
+    outline: none;
+    border-color: #6a6a6a;
+  }
+
+  &::placeholder {
+    color: #888;
+  }
+`;
+
+const InputWrapper = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const CustomSuggestionsContainer = styled.div`
+  position: fixed;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #2d2d2d;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translate3d(0, 0, 0); // Enable hardware acceleration
+`;
+
+const CustomSuggestionItem = styled.div`
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #e1e1e1;
+  font-size: 12px;
+  
+  &:hover {
+    background-color: #3d3d3d;
+  }
+`;
+
 const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) => {
   const {
     activeCollectionId,
@@ -447,6 +502,13 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const [maxLength, setMaxLength] = useState('10');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [invalidVariables, setInvalidVariables] = useState<string[]>([]);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
+  const completionProviderRef = useRef<IDisposable | null>(null);
+  const [showCustomSuggestions, setShowCustomSuggestions] = useState(false);
+  const [customSuggestions, setCustomSuggestions] = useState<string[]>([]);
+  const [suggestionPosition, setSuggestionPosition] = useState({ top: 0, left: 0 });
+  const [currentWord, setCurrentWord] = useState({ text: '', range: null as any });
 
   const defaultConfig = {
     minLength: '0',
@@ -567,6 +629,130 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   useEffect(() => {
     checkDynamicVariables();
   }, [request]);
+
+  const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+
+    // Disable Monaco's built-in suggestions by removing all providers
+    const model = editor.getModel();
+    if (model) {
+      monaco.languages.registerCompletionItemProvider('*', {
+        provideCompletionItems: () => ({ suggestions: [] })
+      });
+    }
+
+    // Handle editor content changes
+    editor.onKeyUp((e) => {
+      const position = editor.getPosition();
+      if (!position) return;
+
+      const model = editor.getModel();
+      if (!model) return;
+
+      // Get text before cursor
+      const lineContent = model.getLineContent(position.lineNumber);
+      const textBeforeCursor = lineContent.substring(0, position.column - 1);
+      const match = textBeforeCursor.match(/\$[a-zA-Z]*$/);
+
+      if (match) {
+        const word = match[0];
+        const dynamicVars = getDynamicVariablesList();
+        const filteredSuggestions = dynamicVars.filter(v => 
+          v.toLowerCase().startsWith(word.toLowerCase())
+        );
+
+        if (filteredSuggestions.length > 0) {
+          // Get cursor position in screen coordinates
+          const cursorCoords = editor.getScrolledVisiblePosition(position);
+          const editorCoords = editor.getDomNode()?.getBoundingClientRect();
+          const scrollTop = editor.getScrollTop();
+          
+          if (cursorCoords && editorCoords) {
+            const top = editorCoords.top + cursorCoords.top + 20; // Add some offset
+            const left = editorCoords.left + cursorCoords.left;
+
+            setCustomSuggestions(filteredSuggestions);
+            setSuggestionPosition({ top, left });
+            setShowCustomSuggestions(true);
+            setCurrentWord({
+              text: word,
+              range: {
+                startLineNumber: position.lineNumber,
+                startColumn: position.column - word.length,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column
+              }
+            });
+          }
+        }
+      } else {
+        setShowCustomSuggestions(false);
+      }
+    });
+
+    // Handle editor scroll
+    editor.onDidScrollChange(() => {
+      const position = editor.getPosition();
+      if (!position || !showCustomSuggestions) return;
+
+      const cursorCoords = editor.getScrolledVisiblePosition(position);
+      const editorCoords = editor.getDomNode()?.getBoundingClientRect();
+      
+      if (cursorCoords && editorCoords) {
+        const top = editorCoords.top + cursorCoords.top + 20;
+        const left = editorCoords.left + cursorCoords.left;
+        setSuggestionPosition({ top, left });
+      }
+    });
+
+    // Handle editor focus out
+    editor.onDidBlurEditorWidget(() => {
+      // Small delay to allow clicking on suggestions
+      setTimeout(() => setShowCustomSuggestions(false), 200);
+    });
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    if (!editorRef.current || !currentWord.range) return;
+
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) return;
+
+    // Replace the current word with the suggestion
+    editor.executeEdits('suggestion', [{
+      range: currentWord.range,
+      text: suggestion,
+    }]);
+
+    setShowCustomSuggestions(false);
+    
+    // Focus back on editor
+    editor.focus();
+  };
+
+  const renderCustomSuggestions = () => {
+    if (!showCustomSuggestions || customSuggestions.length === 0) return null;
+
+    return (
+      <CustomSuggestionsContainer
+        style={{
+          top: suggestionPosition.top,
+          left: suggestionPosition.left
+        }}
+      >
+        {customSuggestions.map((suggestion) => (
+          <CustomSuggestionItem
+            key={suggestion}
+            onClick={() => handleSuggestionClick(suggestion)}
+          >
+            {suggestion}
+          </CustomSuggestionItem>
+        ))}
+      </CustomSuggestionsContainer>
+    );
+  };
 
   const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newMode = e.target.value as RequestBody['mode'];
@@ -1176,11 +1362,11 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
               </CheckboxCell>
               <TableCell>
                 <KeyContainer>
-                  <Input
+                  <StyledSuggestiveInput
                     $isKeyInput
                     placeholder="Key"
                     value={item.key}
-                    onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
+                    onChange={(value) => handleFormDataChange(index, 'key', value)}
                   />
                   <TypeSelect
                     value={item.type}
@@ -1229,70 +1415,16 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
                     </FileButton>
                   )
                 ) : (
-                  <Input
+                  <StyledSuggestiveInput
                     placeholder="Value"
                     value={item.value}
-                    onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
+                    onChange={(value) => handleFormDataChange(index, 'value', value)}
                   />
                 )}
               </TableCell>
               <TableCell style={{ width: '40px' }}>
                 <DeleteButton
                   onClick={() => handleDeleteFormDataItem(index)}
-                  title="Delete item"
-                >
-                  <FiTrash2 />
-                </DeleteButton>
-              </TableCell>
-            </TableRow>
-          ))}
-        </Table>
-      </FormContainer>
-    );
-  };
-
-  const renderUrlEncoded = () => {
-    const urlencoded = body.urlencoded || [createEmptyUrlEncodedItem()];
-    
-    return (
-      <FormContainer>
-        <Table>
-          <TableRow>
-            <CheckboxCell>
-              <Checkbox
-                checked={urlencoded.every(item => item.isSelected)}
-                onChange={(e) => handleSelectAllUrlEncoded(e.target.checked)}
-              />
-            </CheckboxCell>
-            <TableHeader>Key</TableHeader>
-            <TableHeader>Value</TableHeader>
-            <TableHeader style={{ width: '40px' }}></TableHeader>
-          </TableRow>
-          {urlencoded.map((item: UrlEncodedItem, index: number) => (
-            <TableRow key={index}>
-              <CheckboxCell>
-                <Checkbox
-                  checked={item.isSelected}
-                  onChange={(e) => handleUrlEncodedChange(index, 'isSelected', e.target.checked)}
-                />
-              </CheckboxCell>
-              <TableCell>
-                <Input
-                  placeholder="Key"
-                  value={item.key}
-                  onChange={(e) => handleUrlEncodedChange(index, 'key', e.target.value)}
-                />
-              </TableCell>
-              <TableCell>
-                <Input
-                  placeholder="Value"
-                  value={item.value}
-                  onChange={(e) => handleUrlEncodedChange(index, 'value', e.target.value)}
-                />
-              </TableCell>
-              <TableCell style={{ width: '40px' }}>
-                <DeleteButton
-                  onClick={() => handleDeleteUrlEncodedItem(index)}
                   title="Delete item"
                 >
                   <FiTrash2 />
@@ -1333,31 +1465,37 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
               Pretty Print
             </label>}
 
-            <Editor
-              height="400px"
-              language={body.options?.raw?.language || 'json'}
-              value={
-                body.options?.raw?.language === 'json' && isPretty
-                  ? (() => {
-                      try {
-                        return JSON.stringify(JSON.parse(body.raw || ''), null, 2);
-                      } catch {
-                        return body.raw || '';
-                      }
-                    })()
-                  : body.raw || ''
-              }
-              onChange={handleRawChange}
-              theme="vs-dark"
-              options={{
-                minimap: { enabled: false },
-                fontSize: 12,
-                automaticLayout: true,
-                scrollBeyondLastLine: false,
-                padding: { top: 8, bottom: 8 },
-                lineHeight: 18,
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <Editor
+                height="400px"
+                language={body.options?.raw?.language || 'json'}
+                value={
+                  body.options?.raw?.language === 'json' && isPretty
+                    ? (() => {
+                        try {
+                          return JSON.stringify(JSON.parse(body.raw || ''), null, 2);
+                        } catch {
+                          return body.raw || '';
+                        }
+                      })()
+                    : body.raw || ''
+                }
+                onChange={handleRawChange}
+                onMount={handleEditorDidMount}
+                theme="vs-dark"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 12,
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                  padding: { top: 8, bottom: 8 },
+                  lineHeight: 18,
+                  quickSuggestions: false,
+                  suggestOnTriggerCharacters: false
+                }}
+              />
+              {renderCustomSuggestions()}
+            </div>
           </EditorContainer>
         );
 
@@ -1375,7 +1513,63 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         );
 
       case 'urlencoded':
-        return renderUrlEncoded();
+        const urlencoded = body.urlencoded || [];
+        const hasItems = urlencoded && urlencoded.length > 0;
+        return (
+          <FormContainer>
+            <Table>
+              <TableRow>
+                <CheckboxCell>
+                  <Checkbox
+                    checked={hasItems && urlencoded.every(item => item.isSelected)}
+                    onChange={(e) => handleSelectAllUrlEncoded(e.target.checked)}
+                  />
+                </CheckboxCell>
+                <TableHeader>Key</TableHeader>
+                <TableHeader>Value</TableHeader>
+                <TableHeader></TableHeader>
+              </TableRow>
+              {urlencoded.map((item, index) => (
+                <TableRow key={index}>
+                  <CheckboxCell>
+                    <Checkbox
+                      checked={item.isSelected}
+                      onChange={(e) => handleUrlEncodedChange(index, 'isSelected', e.target.checked)}
+                    />
+                  </CheckboxCell>
+                  <TableCell>
+                    <InputWrapper className="suggestion-wrapper">
+                      <Input
+                        type="text"
+                        value={item.key || ''}
+                        onChange={(e) => handleUrlEncodedChange(index, 'key', e.target.value)}
+                        placeholder="Key"
+                      />
+                    </InputWrapper>
+                  </TableCell>
+                  <TableCell>
+                    <InputWrapper className="suggestion-wrapper">
+                      <Input
+                        type="text"
+                        value={item.value || ''}
+                        onChange={(e) => handleUrlEncodedChange(index, 'value', e.target.value)}
+                        placeholder="Value"
+                      />
+                    </InputWrapper>
+                  </TableCell>
+                  <TableCell>
+                    <DeleteButton
+                      onClick={() => handleDeleteUrlEncodedItem(index)}
+                      title="Delete item"
+                    >
+                      <FiTrash2 />
+                    </DeleteButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </Table>
+          </FormContainer>
+        );
       
       case 'graphql':
         return (
@@ -1478,7 +1672,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
           <option value="urlencoded">urlencoded</option>
           <option value="raw">raw</option>
           <option value="file">file</option>
-        <option value="graphql">graphql</option>
+          <option value="graphql">graphql</option>
         </Select>
       </TopControls>
 
