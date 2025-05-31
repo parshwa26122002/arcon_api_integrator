@@ -5,7 +5,7 @@ function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefi
     if (!variables) return undefined;
     return variables.map(v => ({
         key: v.name,
-        value: v.varValue ?? '',
+        value: v.initialValue ?? '',
         type: 'string'
     }));
 }
@@ -78,7 +78,7 @@ function convertRequest(request: APIRequest): ExportCollectionItem {
                     : { raw: { language: 'json' } }
             };
         }
-        else if (request.body.mode == 'form-data') {
+        else if (request.body.mode == 'formdata') {
             body = {
                 mode: 'formdata',
                 formdata: (request.body.formData || []).map(f => ({

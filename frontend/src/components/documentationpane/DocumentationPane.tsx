@@ -589,7 +589,7 @@ function renderCollectionHTML(col: APICollection | null): string {
                         <pre>${request.body.raw}</pre>
                     </div>
                     `;
-            } else if (mode === 'form-data' && request.body.formData?.length) {
+            } else if (mode === 'formdata' && request.body.formData?.length) {
                 const filtered = request.body.formData.filter(i => i.isSelected !== false && i.key && i.value);
                 if (filtered.length) {
                     bodySection = renderKeyValueTable('Body (Form Data)', filtered);
@@ -865,7 +865,7 @@ function renderCollectionHTML(col: APICollection | null): string {
                 <tr><th>Name</th><th>Value</th></tr>
               </thead>
               <tbody>
-                ${col.variables.map(v => `<tr><td>${v.name}</td><td>${v.varValue}</td></tr>`).join('')}
+                ${col.variables.map(v => `<tr><td>${v.name}</td><td>${v.initialValue}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : '<p>No variables defined.</p>'}

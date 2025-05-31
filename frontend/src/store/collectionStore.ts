@@ -164,7 +164,7 @@ export interface FileBody {
 }
 
 export interface RequestBody {
-  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded' | 'graphql';
+  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded' | 'graphql' | 'formdata';
   raw?: string;
   options?: {
     raw?: {
