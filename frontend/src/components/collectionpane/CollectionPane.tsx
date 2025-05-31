@@ -242,10 +242,10 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
   // Ensure we always have at least one row to display
   const variablesToDisplay = filteredVariables.length === 0 ? [{
     id: crypto.randomUUID(),
-    name: tabState.title || '',
-    initialValue: tabState.description || '',
-    currentValue: tabState.description || '',
-    isSelected: true
+    name: '',
+    initialValue: '',
+    currentValue: '',
+    isSelected: false
   }] : filteredVariables;
 
   const renderTabContent = () => {
