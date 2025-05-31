@@ -2,7 +2,7 @@
 import React, { useState, type JSX } from 'react';
 import styled from 'styled-components';
 import { parseImportFile } from '../../utils/importParser';
-import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
+import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type AuthState, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
 
 const ImportButton = styled.button`
   padding: 8px 16px;
@@ -140,6 +140,8 @@ const ErrorText = styled.p`
 
 interface Collection {
   name: string;
+  description?: string;
+  auth?: AuthState;
   requests: APIRequest[];
   folders?: APIFolder[];
   variables?: Variable[];
@@ -213,8 +215,8 @@ export default function ImportAPI(): JSX.Element {
     const collection2: APICollection = {
       id: crypto.randomUUID(),
       name: collection.name,
-      description: "",
-      auth: { type: "none", credentials: {} },
+      description: collection.description || "",
+      auth: collection.auth || { type: "none", credentials: {} },
       variables: collection.variables || [],
       folders: collection.folders || [],
       requests: collection.requests,
@@ -711,9 +713,11 @@ function convertPostmanToCollection(postman: any): APICollection {
       credentials: {}
     },
     variables: postman.variable?.map((v: any) => ({
-      key: v.key || "",
-      value: v.value || "",
-      type: "string"
+      id: crypto.randomUUID(),
+      name: v.key || "",
+      initialValue: v.value || "",
+      currentValue: v.value || "",
+      isSelected: true
     })) || []
   };
 }

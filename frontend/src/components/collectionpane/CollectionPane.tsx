@@ -242,9 +242,9 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
   // Ensure we always have at least one row to display
   const variablesToDisplay = filteredVariables.length === 0 ? [{
     id: crypto.randomUUID(),
-    name: '',
-    initialValue: '',
-    currentValue: '',
+    name: tabState.title || '',
+    initialValue: tabState.description || '',
+    currentValue: tabState.description || '',
     isSelected: true
   }] : filteredVariables;
 
@@ -267,8 +267,10 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
       case 'auth':
         return (
           <Authorization
-            auth={tabState.auth || { type: 'none', credentials: {} }}
+            auth={tabState.auth || { type: "none", credentials: {} }}
             onChange={handleAuthChange}
+            Id={tabState.id.toString()}
+            isRequest={false}
           />
         );
       case 'variables':
