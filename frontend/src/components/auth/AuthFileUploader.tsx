@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import authImage from '../../assets/authpage.png';
+import logoImg from '../../assets/logo.jpeg';
 
 interface Props {
   onAuthenticated: () => void;
@@ -9,79 +11,140 @@ const PageWrapper = styled.div`
   min-height: 100vh;
   width: 100vw;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #23272f 0%, #181a20 100%);
+  flex-direction: row;
+  margin-left: 40px
 `;
 
-const Card = styled.div`
-  background: #23242a;
-  border-radius: 2rem;
-  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
-  border: 1px solid #33343a;
-  padding: 2.5rem 2rem;
-  max-width: 500px;
-  width: 100%;
-  text-align: center;
+const LeftSide = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  background: #f8f9fb;
+  height: 100vh;
+  padding: 40px;
 `;
 
-const Logo = styled.img`
-  height: 96px;
-  width: 96px;
-  margin-bottom: 1.5rem;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 8px rgba(255, 0, 0, 0.10));
+const AuthImage = styled.img`
+  width: 540px;
+  max-width: 95vw;
+  height: auto;
+  border-radius: 2rem;
 `;
 
-const Title = styled.h1`
-  font-size: 2.2rem;
-  font-weight: 900;
-  color: #ff2d2d;
-  margin-bottom: 0.5rem;
+const LeftTitle = styled.div`
+  font-size: 2rem;
+  font-weight: 800;
+  color: black;
+  text-align: center;
+  margin-top: 0.5rem;
   letter-spacing: -1px;
-  white-space: nowrap;
-  text-shadow: 0 2px 8px rgba(255, 45, 45, 0.15);
+  text-shadow: 0 2px 8px rgba(255, 45, 45, 0.10);
+  font-family: 'Inter', sans-serif;
+`;
+
+const RightSide = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  height: 100vh;
+  background: #fff;
+`;
+
+const Card = styled.div`
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  max-width: 420px;
+  width: 100%;
+  min-height: unset;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.2rem;
+  box-shadow: none;
+  margin-top: 0;
+  justify-content: flex-start;
+`;
+
+const FormHeading = styled.div`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 0.2rem;
+  letter-spacing: -0.5px;
 `;
 
 const Divider = styled.div`
-  width: 64px;
-  height: 4px;
-  background: #ff2d2d;
+  width: 400px;
+  height: 3px;
+  background: #f8bdb7;
   border-radius: 8px;
-  margin: 0 auto 1.5rem auto;
-  opacity: 0.5;
+  margin: 0 0 1.2rem 0;
+  opacity: 0.7;
 `;
 
-const Description = styled.p`
-  color: #b0b3bb;
-  font-size: 1rem;
-  margin-bottom: 1.5rem;
+const FileInputWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 70%;
+  gap: 0.5rem;
 `;
 
-const FileLabel = styled.label`
-  cursor: pointer;
-  width: 100%;
-  display: inline-block;
-`;
-
-const FileButton = styled.span`
+const FileButton = styled.label`
   display: block;
-  background: linear-gradient(90deg, #ff2d2d 0%, #b31217 100%);
-  color: #fff;
-  font-weight: 700;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 8px rgba(255, 45, 45, 0.08);
-  margin-bottom: 0.5rem;
-  transition: background 0.2s, transform 0.2s;
+  background: #f5f5f5;
+  color: #222;
+  font-weight: 600;
+  padding: 0.75rem 0;
   font-size: 1rem;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  width: 400px;
+  text-align: center;
+  margin-bottom: 0;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
   &:hover {
-    background: linear-gradient(90deg, #b31217 0%, #ff2d2d 100%);
-    transform: translateY(-2px) scale(1.03);
+    background: #e0e0e0;
+    color: #111;
+    transform: translateY(-2px) scale(1.01);
+  }
+`;
+
+const FileName = styled.div`
+  color: #888;
+  font-size: 0.95rem;
+  margin-top: 0.2rem;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const SubmitButton = styled.button`
+  background: #f44336;
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  border-radius: 0;
+  padding: 0.7rem 0;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  width: 400PX;
+  text-align: center;
+  transition: background 0.2s, transform 0.2s;
+  &:hover {
+    background: #b31217;
+    transform: translateY(-2px) scale(1.01);
   }
 `;
 
@@ -93,6 +156,39 @@ const Note = styled.p`
   color: #6c6f78;
   font-size: 0.85rem;
   margin-top: 1.25rem;
+`;
+
+const PageHeader = styled.div`
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  padding: 32px 0 0 48px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  @media (max-width: 900px) {
+    justify-content: center;
+    padding: 24px 0 0 0;
+    position: static;
+  }
+`;
+
+const LogoIcon = styled.img`
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 16px;
+  margin-right: 5px;
+`;
+
+const LogoText = styled.span`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: black;
+  font-family: 'ui-sans-serif;
+  letter-spacing: -1px;
+  user-select: none;
 `;
 
 export default function AuthFileUploader({ onAuthenticated }: Props) {
@@ -186,31 +282,38 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
   };
 
   return (
-    <PageWrapper>
-      <Card>
-        <Logo
-          src="/logo.png"
-          alt="ARCON Logo"
-          onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
-        />
-        <Title>ARCON API INTEGRATOR</Title>
-        <Divider />
-        <Description>
-          Please upload your authentication file
-        </Description>
-        <FileLabel>
-          <FileButton>Select Auth File</FileButton>
-          <input
-            type="file"
-            onChange={(e) => {
-              const files = e.target.files;
-              if (files && files[0]) setFile(files[0]);
-            }}
-          /><br /><br />
-          <button onClick={handleLogin}>Submit</button>
-        </FileLabel>
-        <Note>Your auth file will be verified securely.</Note>
-      </Card>
-    </PageWrapper>
+    <>
+      <PageHeader>
+        <LogoIcon src={logoImg} alt="Logo" />
+        <LogoText>| AAI</LogoText>
+      </PageHeader>
+      <PageWrapper>
+        <LeftSide>
+          <AuthImage src={authImage} alt="Arcon Auth" />
+          <LeftTitle>Arcon API Integrator</LeftTitle>
+          <div style={{ color: '#888', marginTop: 4, fontSize: '1rem', fontWeight: 400 }}>Light weight API testing tool</div>
+        </LeftSide>
+        <RightSide>
+          <Card>
+            <FormHeading>Welcome back!</FormHeading>
+            <Divider />
+            <FileInputWrapper>
+              <FileButton htmlFor="auth-file-input">Please upload your authentication file</FileButton>
+              <HiddenInput
+                id="auth-file-input"
+                type="file"
+                onChange={e => {
+                  const files = e.target.files;
+                  if (files && files[0]) setFile(files[0]);
+                }}
+              />
+              {file && <FileName>{file.name}</FileName>}
+            </FileInputWrapper>
+            <SubmitButton onClick={handleLogin}>Submit</SubmitButton>
+            <Note>Your auth file will be verified securely.</Note>
+          </Card>
+        </RightSide>
+      </PageWrapper>
+    </>
   );
 }

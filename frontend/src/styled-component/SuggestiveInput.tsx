@@ -4,10 +4,10 @@ import { useVariableSuggestions } from '../hooks/useVariableSuggestions';
 import { VariableSuggestions } from './VariableSuggestions';
 
 const StyledInput = styled.input`
-  background: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 13px;
   padding: 8px 12px;
   width: 100%;
@@ -15,15 +15,15 @@ const StyledInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #7d4acf;
+    border-color: var(--color-tab-active);
   }
 `;
 
 const StyledTextArea = styled.textarea`
-  background: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 13px;
   padding: 8px 12px;
   width: 100%;
@@ -33,7 +33,7 @@ const StyledTextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #7d4acf;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -90,4 +90,4 @@ export const SuggestiveInput: React.FC<SuggestiveInputProps> = ({
       />
     </>
   );
-}; 
+};

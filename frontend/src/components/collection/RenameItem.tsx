@@ -9,13 +9,13 @@ const TreeItem = styled.div<{ depth: number; isActive?: boolean }>`
   gap: 6px;
   cursor: pointer;
   border-radius: 4px;
-  color: ${props => props.isActive ? '#e1e1e1' : '#999'};
+  color: ${props => props.isActive ? 'var(--color-text)' : '#999'};
   position: relative;
   margin-right: 8px;
-  
+
   &:hover {
-    background-color: #383838;
-    color: #e1e1e1;
+    background-color: var(--color-panel-alt);
+    color: var(--color-text);
 
     .more-options {
       visibility: visible;
@@ -24,10 +24,10 @@ const TreeItem = styled.div<{ depth: number; isActive?: boolean }>`
 `;
 
 const InlineInput = styled.input`
-  background-color: #383838;
-  border: 1px solid #7d4acf;
+  background-color: var(--color-panel-alt);
+  border: 1px solid var(--color-tab-active);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
   padding: 4px 8px;
   width: 100%;
@@ -136,4 +136,4 @@ const RenameItem: React.FC<RenameItemProps> = ({
   );
 };
 
-export default RenameItem; 
+export default RenameItem;

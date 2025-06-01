@@ -19,7 +19,7 @@ const Container = styled.div`
 const Title = styled.h2`
   font-size: 14px;
   font-weight: 600;
-  color: #e1e1e1;
+  color: var(--color-text);
   margin-bottom: 8px;
 `;
 
@@ -32,7 +32,7 @@ const Table = styled.div`
 const TableRow = styled.div`
   display: table-row;
   &:hover {
-    background-color: #333333;
+    background-color: var(--color-panel-alt);
   }
 `;
 
@@ -40,15 +40,15 @@ const TableHeader = styled.div`
   display: table-cell;
   padding: 8px;
   font-weight: 600;
-  color: #e1e1e1;
-  border-bottom: 1px solid #4a4a4a;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
   font-size: 12px;
 `;
 
 const TableCell = styled.div`
   display: table-cell;
   padding: 8px;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
 `;
 
@@ -61,20 +61,20 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #7d4acf;
+  accent-color: var(--color-tab-active);
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -95,8 +95,8 @@ const DeleteButton = styled.button`
   }
 
   &:hover {
-    background-color: #4a4a4a;
-    color: #e1e1e1;
+    background-color: var(--color-border);
+    color: var(--color-text);
   }
 `;
 
@@ -112,8 +112,8 @@ const SuggestionsContainer = styled.div`
   width: 100%;
   max-height: 200px;
   overflow-y: auto;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border: 1px var(--color-border) solid;
   border-radius: 4px;
   z-index: 1000;
 `;
@@ -124,7 +124,8 @@ const SuggestionItem = styled.div`
   color: #e1e1e1;
   
   &:hover {
-    background-color: #3d3d3d;
+    background-color: var(--color-panel-alt);
+    color: var(--color-text);
   }
 `;
 
@@ -379,4 +380,4 @@ const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) 
   );
 };
 
-export default Headers; 
+export default Headers;

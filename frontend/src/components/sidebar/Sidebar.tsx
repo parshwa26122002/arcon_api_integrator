@@ -5,8 +5,8 @@ import { Tab } from '../../styled-component/Tab';
 // import CollectionSidebar2 from '../collection/CollectionSidebar2';
 
 const SidebarContainer = styled.div`
-  background-color: #2d2d2d;
-  border-right: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   width: 300px;
@@ -15,7 +15,7 @@ const SidebarContainer = styled.div`
 
 const TabContainer = styled.div`
   display: flex;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px solid var(--color-border);
 `;
 
 const ContentContainer = styled.div`
@@ -25,7 +25,7 @@ const ContentContainer = styled.div`
 
 const HistoryContainer = styled.div`
   padding: 16px;
-  color: #e1e1e1;
+  color: var(--color-text);
 `;
 
 const Sidebar: React.FC = () => {
@@ -62,4 +62,4 @@ const Sidebar: React.FC = () => {
   );
 };
 
-export default Sidebar; 
+export default Sidebar;

@@ -3,10 +3,11 @@ import React, { useState, type JSX } from 'react';
 import styled from 'styled-components';
 import { parseImportFile } from '../../utils/importParser';
 import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type AuthState, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
+import logo from '../../assets/logo.jpeg';
 
 const ImportButton = styled.button`
   padding: 8px 16px;
-  background-color: #7d4acf;
+  background-color: var(--color-tab-active);
   color: white;
   border: none;
   border-radius: 4px;
@@ -15,7 +16,7 @@ const ImportButton = styled.button`
   font-weight: 500;
   
   &:hover {
-    background-color: #6a3eb2;
+    background-color: var(--color-button-hover);
   }
 `;
 
@@ -33,11 +34,11 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   padding: 24px;
   border-radius: 8px;
   width: 500px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
 `;
 
 const ModalHeader = styled.div`
@@ -48,7 +49,7 @@ const ModalHeader = styled.div`
   
   h2 {
     margin: 0;
-    color: #e1e1e1;
+    color: var(--color-text);
     font-size: 16px;
   }
 `;
@@ -62,7 +63,7 @@ const CloseButton = styled.button`
   padding: 4px;
   
   &:hover {
-    color: #e1e1e1;
+    color: var(--color-text);
   }
 `;
 
@@ -79,7 +80,7 @@ const RadioOption = styled.label`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #e1e1e1;
+  color: var(--color-text);
   cursor: pointer;
   font-size: 14px;
   padding: 4px 8px;
@@ -87,7 +88,7 @@ const RadioOption = styled.label`
   transition: background-color 0.2s;
   
   &:hover {
-    background-color: #404040;
+    background-color: var(--color-panel-alt);
   }
   
   input[type="radio"] {
@@ -99,17 +100,17 @@ const TextArea = styled.textarea`
   width: 100%;
   height: 200px;
   padding: 8px;
-  background-color: #383838;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-family: monospace;
   font-size: 12px;
   resize: vertical;
   margin-top: 12px;
 
   &:focus {
-    border-color: #7d4acf;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -119,16 +120,15 @@ const FileInput = styled.input`
 
 const FileInputButton = styled.button`
   padding: 8px 16px;
-  background-color: #383838;
-  color: #e1e1e1;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-tab-active);
+  color: white;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
   margin-top: 12px;
 
   &:hover {
-    background-color: #404040;
+    background-color: var(--color-button-hover);
   }
 `;
 
@@ -136,6 +136,20 @@ const ErrorText = styled.p`
   color: #ff6b6b;
   font-size: 12px;
   margin-top: 8px;
+`;
+
+const ImportBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const LogoImg = styled.img`
+  height: 40px;
+  width: auto;
+  border-radius: 6px;
+  object-fit: contain;
 `;
 
 interface Collection {
@@ -377,7 +391,10 @@ export default function ImportAPI(): JSX.Element {
 
   return (
     <>
-      <ImportButton onClick={() => setIsModalOpen(true)}>Import</ImportButton>
+      <ImportBar>
+        <LogoImg src={logo} alt="Logo" />
+        <ImportButton onClick={() => setIsModalOpen(true)}>Import</ImportButton>
+      </ImportBar>
 
       {isModalOpen && (
         <ModalOverlay>

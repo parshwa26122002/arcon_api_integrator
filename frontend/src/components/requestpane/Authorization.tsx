@@ -18,7 +18,7 @@ const Container = styled.div`
 `;
 
 const NoAuthMessage = styled.div`
-  color: #808080;
+  color: var(--color-text);
   font-size: 14px;
   padding: 16px 0;
 `;
@@ -26,20 +26,20 @@ const NoAuthMessage = styled.div`
 const Title = styled.h2`
   font-size: 14px;
   font-weight: 600;
-  color: #e1e1e1;
+  color: var(--color-text);
   margin-bottom: 8px;
 `;
 
 const Select = styled.select`
   padding: 8px;
-  background-color: #2d2d2d;
+  background-color:var(--color-panel);
   border: 1px solid #4a4a4a;
   border-radius: 4px;
-  color: #e1e1e1;
+  color:var(--color-text);
   width: 200px;
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color:var(--color-tab-active);
   }
 `;
 
@@ -47,6 +47,7 @@ const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background-color: var(--color-panel);
 `;
 
 const InputWrapper = styled.div`
@@ -74,19 +75,20 @@ const ToggleButton = styled.button`
 
 const Label = styled.label`
   font-size: 12px;
-  color: #e1e1e1;
+  color: var(--color-text);
 `;
 
 const Input = styled.input`
   padding: 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  background-color: var(--color-panel);
+  color: var(--color-text);
+  font-size: 14px;
   width: 100%;
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 `;
 

@@ -34,11 +34,11 @@ const TabBarWrapper = styled.div<TabBarWrapperProps>`
   align-items: center;
   gap: 8px;
   padding: 8px;
-  background-color: #1e1e1e;
+  background-color: var(--color-tabbar-bg);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #555 #1e1e1e;
+  scrollbar-color: var(--color-tabbar-scrollbar) var(--color-tabbar-scrollbar-track);
   max-width: 1040px;
 
   &::-webkit-scrollbar {
@@ -46,12 +46,12 @@ const TabBarWrapper = styled.div<TabBarWrapperProps>`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #555;
+    background: var(--color-tabbar-scrollbar);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: var(--color-tabbar-scrollbar-track);
   }
 `;
 
@@ -62,7 +62,7 @@ const UnsavedDot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #fca130;
+  background-color: var(--color-warning);
   padding-left: 4px;
 `;
 

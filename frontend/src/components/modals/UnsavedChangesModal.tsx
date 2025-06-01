@@ -15,7 +15,7 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   border-radius: 8px;
   padding: 24px;
   width: 400px;
@@ -25,13 +25,13 @@ const ModalContent = styled.div`
 `;
 
 const Title = styled.h2`
-  color: #e1e1e1;
+  color: var(--color-text);
   margin: 0;
   font-size: 18px;
 `;
 
 const Message = styled.p`
-  color: #e1e1e1;
+  color: var(--color-text);
   margin: 0;
   font-size: 14px;
 `;
@@ -47,14 +47,14 @@ const Button = styled.button<{ primary?: boolean }>`
   padding: 8px 16px;
   border-radius: 4px;
   border: none;
-  background-color: ${props => props.primary ? '#49cc90' : '#4a4a4a'};
-  color: white;
+  background-color: ${props => props.primary ? 'var(--color-success)' : 'var(--color-panel-alt)'};
+  color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
   
   &:hover {
-    background-color: ${props => props.primary ? '#3db583' : '#5a5a5a'};
+    background-color: ${props => props.primary ? 'var(--color-success)' : 'var(--color-border)'};
   }
 `;
 
@@ -90,4 +90,4 @@ const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({
   );
 };
 
-export default UnsavedChangesModal; 
+export default UnsavedChangesModal;

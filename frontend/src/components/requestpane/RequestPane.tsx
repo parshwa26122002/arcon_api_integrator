@@ -33,29 +33,29 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   height: calc(100vh - 80px);
-  min-height: 0; // Enable proper flex behavior
+  min-height: 0;
 `;
 
 const TopBar = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
-  background-color: #383838;
+  background-color: var(--color-panel-alt);
   padding: 8px;
   border-radius: 6px;
-  flex-shrink: 0; // Prevent shrinking
+  flex-shrink: 0;
 `;
 
 const MethodSelect = styled.select<StyledMethodSelectProps>`
   padding: 8px 12px;
   border-radius: 4px;
-  border: 1px solid #4a4a4a;
-  background-color: ${(props: StyledMethodSelectProps) => HTTP_METHODS[props.method]};
+  border: 1px solid var(--color-border);
+  background-color: ${({ method }) => HTTP_METHODS[method] || 'var(--color-tab-active)'};
   color: white;
   font-weight: 600;
   cursor: pointer;
@@ -65,7 +65,8 @@ const MethodSelect = styled.select<StyledMethodSelectProps>`
     opacity: 0.9;
   }
   option {
-    background-color: #2d2d2d;
+    background-color: var(--color-panel);
+    color: black;
   }
 `;
 
@@ -73,14 +74,14 @@ const UrlInput = styled.input`
   flex: 1;
   padding: 8px 12px;
   border-radius: 4px;
-  border: 1px solid #4a4a4a;
-  background-color: #1e1e1e;
-  color: #e1e1e1;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-panel);
+  color: var(--color-text);
   font-size: 14px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -93,20 +94,20 @@ const SendButton = styled.button`
   padding: 8px 20px;
   border-radius: 4px;
   border: none;
-  background-color: #4a4a4a;
+  background-color: var(--color-tab-active);
   color: white;
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s;
   &:hover {
-    background-color: #5a5a5a;
+    background-color: var(--color-button-hover);
   }
 `;
 
 const TabList = styled.div`
   display: flex;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px solid var(--color-border);
   padding: 0 16px;
 `;
 
@@ -114,37 +115,37 @@ const SplitContainer = styled.div`
   display: flex;
   gap: 16px;
   flex: 1;
-  min-height: 0; // Enable scrolling
-  overflow: hidden; // Prevent overall container overflow
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const RequestSection = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #383838;
+  background-color: var(--color-panel);
   border-radius: 6px;
-  border: 1px solid #4a4a4a;
-  min-height: 0; // Enable scrolling
-  overflow: hidden; // Contain overflow
+  border: 1px solid var(--color-border);
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const ResponseSection = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #383838;
+  background-color: var(--color-panel);
   border-radius: 6px;
-  border: 1px solid #4a4a4a;
-  min-height: 0; // Enable scrolling
-  overflow: hidden; // Contain overflow
+  border: 1px solid var(--color-border);
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const ResponseHeader = styled.div`
   padding: 6px 16px;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px var(--color-border) solid;
   font-weight: 600;
-  color: #e1e1e1;
+  color:var(--color-text);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -167,14 +168,15 @@ const ResponseStatus = styled.span<{ code: number }>`
 const IconButton = styled.button`
   background: none;
   border: none;
-  color: #ccc;
+  color: var(--color-text);
   cursor: pointer;
   padding: 6px;
   display: flex;
   align-items: center;
 
   &:hover {
-    color: #49cc90;
+    color:var(--color-link-hover);
+    background: none;
   }
 `;
 
@@ -198,8 +200,8 @@ const TabContent = styled.div`
   padding: 20px;
   color: #e1e1e1;
   flex: 1;
-  overflow-y: auto; // Make tab content scrollable
-  min-height: 0; // Enable scrolling
+  overflow-y: auto;
+  min-height: 0;
 `;
 
 const SchemaBox = styled.textarea`
@@ -775,7 +777,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
           </ResponseHeader>
           {tabState.showSchemaInput && (
             <div>
-              <div style={{color: '#49cc90', fontSize: 12, marginBottom: 8}}>No schema found. Kindly add a schema to validate the response.</div>
+              <div style={{fontSize: 12, marginBottom: 8}}>No schema found. Kindly add a schema to validate the response.</div>
               <input type="number" placeholder='Expected code' value={tabState.response?.[0]?.expectedCode} onChange={handleCodeChange} /> 
               <input type="text" placeholder='Expected status' value={tabState.response?.[0]?.expectedStatus} onChange={handleStatusChange} /> 
               <SchemaBox
