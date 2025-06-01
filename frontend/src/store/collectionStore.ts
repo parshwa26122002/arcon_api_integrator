@@ -156,7 +156,8 @@ export interface FormDataItem {
 export interface UrlEncodedItem {
   key: string;
   value: string;
-  isSelected?: boolean;
+  type: string;
+  isSelected: boolean;
 }
 
 export interface RawBody {
@@ -202,6 +203,10 @@ export interface Response {
   status: string;
   code: number;
   body: string;
+  durationSeconds: number;
+  expectedSchema?: string;
+  expectedCode?: number;
+  expectedStatus?: string; 
 }
 
 export interface APIRequest {
@@ -213,7 +218,6 @@ export interface APIRequest {
   queryParams: QueryParam[];
   body?: RequestBody;
   contentType: string;
-  formData: Array<{ key: string; value: string }>;
   auth: AuthState;
   response: Response[];
 }
@@ -261,8 +265,8 @@ export type TabBodyType = {
       language: 'json' | 'html' | 'xml' | 'text' | 'javascript';
     };
     };
-  formData?: Array<{ key: string; value: string; type: 'text' | 'file'; src?: string, fileType?: string; fileSize?: number; content?: string }>;
-  urlencoded?: Array<{ key: string; value: string }>;
+    formData?: Array<{ key: string; value: string; type: 'text' | 'file'; isSelected?: boolean; src?: string, fileType?: string; fileSize?: number; content?: string }>;
+    urlencoded?: Array<{ key: string; value: string; isSelected: boolean }>;
     file?: { name: string; content: string; src?: string; fileType?: string; fileSize?: number};
   graphql?: { query: string; variables: string };
 };
@@ -283,9 +287,16 @@ export interface RequestTabState {
     status: string;
     code: number;
     body: string;
+    durationSeconds: number;
     timestamp?: string;
+    expectedSchema?: string;
+    expectedCode?: number;
+    expectedStatus?: string;
+    validationResult?: string;
   }>;
   hasUnsavedChanges: boolean;
+  showSchemaInput: boolean;
+  showSchemaOutput: boolean;
   originalState?: {
     method: HttpMethod;
     url: string;
@@ -297,7 +308,12 @@ export interface RequestTabState {
       status: string;
       code: number;
       body: string;
+      durationSeconds: number;
       timestamp?: string;
+      expectedSchema?: string;
+      expectedCode?: number;
+      expectedStatus?: string;
+      validationResult?: string;
     }>;
   };
 }
@@ -338,6 +354,7 @@ export type RunnerTabState = {
   type: 'runner';
   title: string;
   collectionId: string;
+  folderId?: string;
   hasUnsavedChanges: boolean;
   selectedRequestIds: string[];
   iterations: number;
@@ -509,7 +526,6 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       queryParams: [],
       body: undefined,
       contentType: '',
-      formData: [],
       auth: {type: '', credentials: {}},
       response: []
     };
@@ -581,7 +597,6 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       queryParams: [],
       body: undefined,
       contentType: '',
-      formData: [],
       auth: {type: '', credentials: {}},
       response: []
     };
@@ -616,7 +631,6 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       queryParams: request.queryParams,
       body: request.body,
       contentType: request.body.mode,
-      formData: request.body.formData || [],
       auth: request.auth,
       response: request.response || []
     };

@@ -2,11 +2,12 @@
 import React, { useState, type JSX } from 'react';
 import styled from 'styled-components';
 import { parseImportFile } from '../../utils/importParser';
-import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
+import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type AuthState, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
+import logo from '../../assets/logo.jpeg';
 
 const ImportButton = styled.button`
   padding: 8px 16px;
-  background-color: #7d4acf;
+  background-color: var(--color-tab-active);
   color: white;
   border: none;
   border-radius: 4px;
@@ -15,7 +16,7 @@ const ImportButton = styled.button`
   font-weight: 500;
   
   &:hover {
-    background-color: #6a3eb2;
+    background-color: var(--color-button-hover);
   }
 `;
 
@@ -33,11 +34,11 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   padding: 24px;
   border-radius: 8px;
   width: 500px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
 `;
 
 const ModalHeader = styled.div`
@@ -48,7 +49,7 @@ const ModalHeader = styled.div`
   
   h2 {
     margin: 0;
-    color: #e1e1e1;
+    color: var(--color-text);
     font-size: 16px;
   }
 `;
@@ -62,7 +63,7 @@ const CloseButton = styled.button`
   padding: 4px;
   
   &:hover {
-    color: #e1e1e1;
+    color: var(--color-text);
   }
 `;
 
@@ -79,7 +80,7 @@ const RadioOption = styled.label`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #e1e1e1;
+  color: var(--color-text);
   cursor: pointer;
   font-size: 14px;
   padding: 4px 8px;
@@ -87,7 +88,7 @@ const RadioOption = styled.label`
   transition: background-color 0.2s;
   
   &:hover {
-    background-color: #404040;
+    background-color: var(--color-panel-alt);
   }
   
   input[type="radio"] {
@@ -99,17 +100,17 @@ const TextArea = styled.textarea`
   width: 100%;
   height: 200px;
   padding: 8px;
-  background-color: #383838;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-family: monospace;
   font-size: 12px;
   resize: vertical;
   margin-top: 12px;
 
   &:focus {
-    border-color: #7d4acf;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -119,16 +120,15 @@ const FileInput = styled.input`
 
 const FileInputButton = styled.button`
   padding: 8px 16px;
-  background-color: #383838;
-  color: #e1e1e1;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-tab-active);
+  color: white;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
   margin-top: 12px;
 
   &:hover {
-    background-color: #404040;
+    background-color: var(--color-button-hover);
   }
 `;
 
@@ -138,8 +138,24 @@ const ErrorText = styled.p`
   margin-top: 8px;
 `;
 
+const ImportBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const LogoImg = styled.img`
+  height: 40px;
+  width: auto;
+  border-radius: 6px;
+  object-fit: contain;
+`;
+
 interface Collection {
   name: string;
+  description?: string;
+  auth?: AuthState;
   requests: APIRequest[];
   folders?: APIFolder[];
   variables?: Variable[];
@@ -174,9 +190,16 @@ export default function ImportAPI(): JSX.Element {
 
     try {
       // Create a new File object from the raw text
-      const file = new File([rawText], "import.json", {
-        type: "application/json",
-      });
+      let file:any;
+      if(rawText.trim().substring(0).includes("RAML")){
+        file = new File([rawText], "import.raml", {
+          type: "raml",
+        });
+      }else{
+        file = new File([rawText], "import.json", {
+          type: "application/json",
+        });
+      }
       const parsed = await parseImportFile(file);
       handleParsedData(parsed);
     } catch (err: any) {
@@ -189,7 +212,8 @@ export default function ImportAPI(): JSX.Element {
 
     switch (parsed.type) {
       case "openapi":
-        collection = convertOpenAPIToCollection(parsed.source);
+        //collection = convertOpenAPIToCollection(parsed.source);
+        collection = convertPostmanToCollection(parsed.source);
         break;
       case "graphql":
         collection = convertGraphQLToCollection(parsed.source);
@@ -213,8 +237,8 @@ export default function ImportAPI(): JSX.Element {
     const collection2: APICollection = {
       id: crypto.randomUUID(),
       name: collection.name,
-      description: "",
-      auth: { type: "none", credentials: {} },
+      description: collection.description || "",
+      auth: collection.auth || { type: "none", credentials: {} },
       variables: collection.variables || [],
       folders: collection.folders || [],
       requests: collection.requests,
@@ -277,7 +301,6 @@ export default function ImportAPI(): JSX.Element {
           ],
           queryParams: [],
           contentType: "application/json",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         },
@@ -304,6 +327,7 @@ export default function ImportAPI(): JSX.Element {
             id: crypto.randomUUID(),
             key: param.name,
             value: param.example || param.default || "",
+            description: param.description || "",
           }));
 
         // Extract query parameters
@@ -312,6 +336,7 @@ export default function ImportAPI(): JSX.Element {
           .map((param: any) => ({
             key: param.name,
             value: param.example || param.default || "",
+            description: param.description || "",
           }));
 
         // Extract request body (prefer application/json)
@@ -360,7 +385,6 @@ export default function ImportAPI(): JSX.Element {
           headers,
           queryParams,
           contentType: content ? Object.keys(content)[0] : "",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         });
@@ -375,7 +399,10 @@ export default function ImportAPI(): JSX.Element {
 
   return (
     <>
-      <ImportButton onClick={() => setIsModalOpen(true)}>Import</ImportButton>
+      <ImportBar>
+        <LogoImg src={logo} alt="Logo" />
+        <ImportButton onClick={() => setIsModalOpen(true)}>Import</ImportButton>
+      </ImportBar>
 
       {isModalOpen && (
         <ModalOverlay>
@@ -496,7 +523,6 @@ function convertRAMLToCollection(raml: any): Collection {
             headers,
             queryParams,
             contentType: "application/json",
-            formData: [],
             auth: { type: "", credentials: {} },
             response: []
           });
@@ -519,7 +545,6 @@ function convertRAMLToCollection(raml: any): Collection {
           headers: [],
           queryParams: [],
           contentType: "",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         },
@@ -588,6 +613,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
             key: param.key,
             value: param.value || param.default || "",
             description: param.description || "",
+            isSelected: true
           }));
         url = item.request.url.raw || buildPostmanUrl(item.request.url);
       }
@@ -597,8 +623,11 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
       const credentials = authObj[authType] || {};
 
       const headers = (item.request.header || []).map((h: any) => ({
+        id: crypto.randomUUID(),
         key: h.key,
         value: h.value,
+        description: h.description || "",
+        isSelected: true
       }));
 
       // Handle request body
@@ -614,6 +643,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
                 value: item.value || "",
                 type: item.type || "text",
                 src: item.src || "",
+                isSelected: true
               })),
             };
             break;
@@ -625,6 +655,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
                   key: item.key || "",
                   value: item.value || "",
                   type: "text",
+                  isSelected: true
                 })
               ),
             };
@@ -675,7 +706,6 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
           item.request.body?.options?.raw?.language === "json"
             ? "application/json"
             : "text/plain",
-        formData: [],
         auth: {
           type: authType,
           credentials: Array.isArray(credentials)
@@ -708,9 +738,11 @@ function convertPostmanToCollection(postman: any): APICollection {
       credentials: {}
     },
     variables: postman.variable?.map((v: any) => ({
-      key: v.key || "",
-      value: v.value || "",
-      type: "string"
+      id: crypto.randomUUID(),
+      name: v.key || "",
+      initialValue: v.value || "",
+      currentValue: v.value || "",
+      isSelected: true
     })) || []
   };
 }

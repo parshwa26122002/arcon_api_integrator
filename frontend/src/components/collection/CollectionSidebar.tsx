@@ -28,7 +28,7 @@ interface TreeFolder extends APIFolder {
 
 const Container = styled.div`
   padding: 16px;
-  color: #e1e1e1;
+  color: var(--color-sidebar-text);
   height: 100%;
   position: relative;
   overflow-y: auto;
@@ -42,16 +42,16 @@ const Container = styled.div`
   }
 
   &::-webkit-scrollbar-track {
-    background: #2d2d2d;
+    background: var(--color-sidebar-scrollbar-track);
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #4a4a4a;
+    background: var(--color-sidebar-scrollbar-thumb);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: #5a5a5a;
+    background: var(--color-sidebar-scrollbar-thumb-hover);
   }
 `;
 
@@ -60,7 +60,7 @@ const EmptyState = styled.div`
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #999;
+  color: var(--color-sidebar-empty-text);
   font-size: 14px;
   text-align: center;
   padding: 20px;
@@ -87,12 +87,12 @@ const TreeItem = styled.div<{ depth: number; isActive?: boolean }>`
   gap: 6px;
   cursor: pointer;
   border-radius: 4px;
-  color: ${props => props.isActive ? '#e1e1e1' : '#999'};
+  color: ${props => props.isActive ? 'var(--color-sidebar-item-active-text)' : 'var(--color-sidebar-item-text)'};
   position: relative;
   
   &:hover {
-    background-color: #383838;
-    color: #e1e1e1;
+    background-color: var(--color-sidebar-item-hover-bg);
+    color: var(--color-sidebar-item-active-text);
 
     .more-options {
       visibility: visible;
@@ -118,7 +118,7 @@ const MoreOptionsButton = styled.button`
   width: 24px;
 
   &:hover {
-    background-color: #4a4a4a;
+    background-color: var(--color-sidebar-moreoptions-hover-bg);
     border-radius: 4px;
   }
 `;
@@ -128,12 +128,12 @@ const DropdownMenu = styled.div<{ isOpen: boolean }>`
   position: fixed;
   margin-left: 4px;
   margin-top: -12px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-sidebar-dropdown-bg);
+  border: 1px solid var(--color-sidebar-dropdown-border);
   border-radius: 4px;
   z-index: 9999;
   min-width: 150px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--color-sidebar-dropdown-shadow);
 `;
 
 interface MenuItemProps {
@@ -146,12 +146,12 @@ const MenuItem = styled.div<MenuItemProps>`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #e1e1e1;
+  color: var(--color-sidebar-menuitem-text);
   cursor: pointer;
   font-size: 12px;
 
   &:hover {
-    background-color: #383838;
+    background-color: var(--color-sidebar-menuitem-hover-bg);
   }
 
   svg {
@@ -244,20 +244,20 @@ const SearchContainer = styled.div`
 
 const SearchInput = styled.input`
   padding: 8px;
-  background-color: #383838;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-sidebar-search-bg);
+  border: 1px solid var(--color-sidebar-search-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-sidebar-search-text);
   font-size: 12px;
   flex: 1;
 
   &:focus {
     outline: none;
-    border-color: #7d4acf;
+    border-color: var(--color-sidebar-search-focus-border);
   }
 
   &::placeholder {
-    color: #999;
+    color: var(--color-sidebar-search-placeholder);
   }
 `;
 
@@ -562,9 +562,26 @@ const TreeNode: React.FC<{
     moreOptionsProps.onMenuClick(''); // Close menu
   };
 
-  const handleRunFolder = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRunFolder = (folderId: string, collectionId: string) => {
     // TODO: Implement folder run
+    if (runnerTabRequest === folderId) {
+      // Force re-selection
+      setActiveCollection(null);
+      setActiveRequest(null);
+      setActiveFolder(null);
+      setRunnerTabRequest(null);
+      setTimeout(() => {
+        setRunnerTabRequest(folderId); // this updates Zustand state
+        setActiveRequest(null);
+        setActiveFolder(folderId);
+        setActiveCollection(collectionId);
+      }, 0);
+    } else {
+      setActiveCollection(collectionId);
+      setActiveRequest(null);
+      setActiveFolder(folderId);
+      setRunnerTabRequest(folderId);
+    }
     console.log('Run folder');
     moreOptionsProps.onMenuClick(''); // Close menu
   };
@@ -722,7 +739,7 @@ const TreeNode: React.FC<{
                 <FiPlus size={14} />
                 Add Request
               </MenuItem>
-              <MenuItem onClick={handleRunFolder}>
+              <MenuItem onClick={(e) => {handleRunFolder(item.id,item.collectionId); e.stopPropagation();}}>
                 <FiPlay size={14} />
                 Run Folder
               </MenuItem>

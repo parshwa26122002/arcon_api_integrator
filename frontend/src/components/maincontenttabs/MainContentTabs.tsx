@@ -34,11 +34,11 @@ const TabBarWrapper = styled.div<TabBarWrapperProps>`
   align-items: center;
   gap: 8px;
   padding: 8px;
-  background-color: #1e1e1e;
+  background-color: var(--color-tabbar-bg);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #555 #1e1e1e;
+  scrollbar-color: var(--color-tabbar-scrollbar) var(--color-tabbar-scrollbar-track);
   max-width: 1040px;
 
   &::-webkit-scrollbar {
@@ -46,12 +46,12 @@ const TabBarWrapper = styled.div<TabBarWrapperProps>`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #555;
+    background: var(--color-tabbar-scrollbar);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: var(--color-tabbar-scrollbar-track);
   }
 `;
 
@@ -62,7 +62,7 @@ const UnsavedDot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #fca130;
+  background-color: var(--color-warning);
   padding-left: 4px;
 `;
 
@@ -228,7 +228,9 @@ const MainContentTabs: React.FC = () => {
         auth: request.auth || { type: 'none', credentials: {} },
         body: convertRequestBodyToTabBody(request.body),
         response: request.response || [],
+        showSchemaInput: false,
         hasUnsavedChanges: false,
+        showSchemaOutput: false,
         originalState: {
           method: request.method || 'GET',
           url: request.url || '',
@@ -236,7 +238,7 @@ const MainContentTabs: React.FC = () => {
           headers: request.headers || [],
           auth: request.auth || { type: 'none', credentials: {} },
           body: convertRequestBodyToTabBody(request.body),
-          response: request.response || []
+          response: request.response || [],
         }
       };
     } else {
@@ -251,6 +253,8 @@ const MainContentTabs: React.FC = () => {
         auth: { type: 'none', credentials: {} },
         body: { mode: 'none' },
         hasUnsavedChanges: false,
+        showSchemaInput: false,
+        showSchemaOutput: false,
         originalState: {
           method: 'GET',
           url: '',
@@ -340,7 +344,30 @@ const MainContentTabs: React.FC = () => {
       setActiveTab(newTab.id);
       setTabs([...tabs, newTab]);
   };
-    
+  
+  const createNewRunnerFolderTab = (collectionId: string) => {  
+  
+    const newTab: RunnerTabState = {
+      id: tabCounter,
+      type: 'runner',
+      title: `Runner - ${activeFolderId}`,
+      collectionId,
+      folderId: activeFolderId || '',
+      hasUnsavedChanges: false,
+      selectedRequestIds: [],
+      iterations: 1,
+      delay: 1000,
+      resultsByIteration: [],
+      started: false,
+      isOpen: false,
+      selectedResultId: null
+    };
+
+    setTabCounter(t => t + 1);
+    setActiveTab(newTab.id);
+    setTabs([...tabs, newTab]);
+};
+
   const createDocumentationTab = (collectionId: string, title: string, content: string = '') => {
     const newTab: DocumentationTabState = {
       id: tabCounter,
@@ -400,8 +427,11 @@ const MainContentTabs: React.FC = () => {
       } else {
         createNewCollectionTab(activeCollectionId);
       }
-    } else if (runnerTabRequest && activeCollectionId) {
+    } else if (runnerTabRequest && activeCollectionId && !activeRequestId && !activeFolderId) {
       createNewRunnerTab(runnerTabRequest); 
+    }
+    else if(runnerTabRequest && activeFolderId && activeCollectionId && !activeRequestId ) {
+      createNewRunnerFolderTab(activeCollectionId);
     }
   }, [activeCollectionId, activeRequestId, activeFolderId, runnerTabRequest]);
   

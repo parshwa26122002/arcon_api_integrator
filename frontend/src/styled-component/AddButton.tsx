@@ -2,17 +2,17 @@ import { styled } from "styled-components";
 
 export const AddButton = styled.button`
 padding: 8px;
-background-color: #383838;
-border: 1px solid #4a4a4a;
+background-color: var(--color-panel-alt);
+border: 1px solid var(--color-border);
 border-radius: 4px;
-color: #e1e1e1;
+color: var(--color-text);
 cursor: pointer;
 display: flex;
 align-items: center;
 justify-content: center;
 
 &:hover {
-  background-color: #4a4a4a;
+  background-color: var(--color-border);
 }
 
 svg {

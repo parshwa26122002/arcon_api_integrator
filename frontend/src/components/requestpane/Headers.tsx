@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { v4 as uuid } from 'uuid';
 import { FiTrash2 } from 'react-icons/fi';
 import { type Header } from '../../store/collectionStore';
+import { getDynamicVariablesList } from '../../utils/dynamicVariables';
 
 interface HeadersProps {
   headers: Header[];
@@ -18,7 +19,7 @@ const Container = styled.div`
 const Title = styled.h2`
   font-size: 14px;
   font-weight: 600;
-  color: #e1e1e1;
+  color: var(--color-text);
   margin-bottom: 8px;
 `;
 
@@ -31,7 +32,7 @@ const Table = styled.div`
 const TableRow = styled.div`
   display: table-row;
   &:hover {
-    background-color: #333333;
+    background-color: var(--color-panel-alt);
   }
 `;
 
@@ -39,15 +40,15 @@ const TableHeader = styled.div`
   display: table-cell;
   padding: 8px;
   font-weight: 600;
-  color: #e1e1e1;
-  border-bottom: 1px solid #4a4a4a;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
   font-size: 12px;
 `;
 
 const TableCell = styled.div`
   display: table-cell;
   padding: 8px;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
 `;
 
@@ -60,20 +61,20 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #7d4acf;
+  accent-color: var(--color-tab-active);
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -94,8 +95,37 @@ const DeleteButton = styled.button`
   }
 
   &:hover {
-    background-color: #4a4a4a;
-    color: #e1e1e1;
+    background-color: var(--color-border);
+    color: var(--color-text);
+  }
+`;
+
+const InputWrapper = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const SuggestionsContainer = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--color-panel);
+  border: 1px var(--color-border) solid;
+  border-radius: 4px;
+  z-index: 1000;
+`;
+
+const SuggestionItem = styled.div`
+  padding: 8px;
+  cursor: pointer;
+  color: #e1e1e1;
+  
+  &:hover {
+    background-color: var(--color-panel-alt);
+    color: var(--color-text);
   }
 `;
 
@@ -123,6 +153,77 @@ const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) 
       }
     ];
   }
+
+  // Variable suggestions state
+  const [showSuggestions, setShowSuggestions] = useState<{ [key: string]: boolean }>({});
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [activeField, setActiveField] = useState<{ id: string, field: string } | null>(null);
+  const inputRefs = useRef<{ [key: string]: HTMLInputElement }>({});
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!(event.target as Element).closest('.suggestion-wrapper')) {
+        setShowSuggestions({});
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleInputChange = (
+    id: string,
+    field: keyof Omit<Header, 'id'>,
+    value: string,
+    cursorPosition: number
+  ) => {
+    // Check if we're typing a variable
+    const beforeCursor = value.slice(0, cursorPosition);
+    const isTypingVariable = /\$[a-zA-Z]*$/.test(beforeCursor);
+    
+    if (isTypingVariable) {
+      const variablePrefix = beforeCursor.match(/\$[a-zA-Z]*$/)?.[0] || '';
+      const dynamicVars = getDynamicVariablesList();
+      const filteredSuggestions = dynamicVars.filter(v => 
+        v.toLowerCase().startsWith(variablePrefix.toLowerCase())
+      );
+      setSuggestions(filteredSuggestions);
+      setShowSuggestions({ ...showSuggestions, [id + field]: true });
+      setActiveField({ id, field });
+    } else {
+      setShowSuggestions({ ...showSuggestions, [id + field]: false });
+    }
+
+    handleHeaderChange(id, field, value);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    if (!activeField) return;
+
+    const { id, field } = activeField;
+    const input = inputRefs.current[id + field];
+    if (!input) return;
+
+    const cursorPosition = input.selectionStart || 0;
+    const currentValue = input.value;
+    const beforeCursor = currentValue.slice(0, cursorPosition);
+    const afterCursor = currentValue.slice(cursorPosition);
+    const variableStart = beforeCursor.lastIndexOf('$');
+    
+    const newValue = beforeCursor.slice(0, variableStart) + suggestion + afterCursor;
+    handleHeaderChange(id, field as keyof Omit<Header, 'id'>, newValue);
+
+    // Reset suggestions
+    setShowSuggestions({ ...showSuggestions, [id + field]: false });
+    setActiveField(null);
+
+    // Set cursor position after the inserted suggestion
+    setTimeout(() => {
+      const newCursorPos = variableStart + suggestion.length;
+      input.focus();
+      input.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
 
   const handleHeaderChange = (
     id: string,
@@ -196,28 +297,73 @@ const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) 
               />
             </CheckboxCell>
             <TableCell>
-              <Input
-                type="text"
-                value={header.key}
-                onChange={(e) => handleHeaderChange(header.id, 'key', e.target.value)}
-                placeholder="Header name"
-              />
+              <InputWrapper className="suggestion-wrapper">
+                <Input
+                  type="text"
+                  ref={el => { if (el) inputRefs.current[header.id + 'key'] = el; }}
+                  value={header.key}
+                  onChange={(e) => handleInputChange(header.id, 'key', e.target.value, e.target.selectionStart || 0)}
+                  placeholder="Header name"
+                />
+                {showSuggestions[header.id + 'key'] && suggestions.length > 0 && (
+                  <SuggestionsContainer>
+                    {suggestions.map((suggestion) => (
+                      <SuggestionItem
+                        key={suggestion}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </SuggestionItem>
+                    ))}
+                  </SuggestionsContainer>
+                )}
+              </InputWrapper>
             </TableCell>
             <TableCell>
-              <Input
-                type="text"
-                value={header.value}
-                onChange={(e) => handleHeaderChange(header.id, 'value', e.target.value)}
-                placeholder="Header value"
-              />
+              <InputWrapper className="suggestion-wrapper">
+                <Input
+                  type="text"
+                  ref={el => { if (el) inputRefs.current[header.id + 'value'] = el; }}
+                  value={header.value}
+                  onChange={(e) => handleInputChange(header.id, 'value', e.target.value, e.target.selectionStart || 0)}
+                  placeholder="Header value"
+                />
+                {showSuggestions[header.id + 'value'] && suggestions.length > 0 && (
+                  <SuggestionsContainer>
+                    {suggestions.map((suggestion) => (
+                      <SuggestionItem
+                        key={suggestion}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </SuggestionItem>
+                    ))}
+                  </SuggestionsContainer>
+                )}
+              </InputWrapper>
             </TableCell>
             <TableCell>
-              <Input
-                type="text"
-                value={header.description}
-                onChange={(e) => handleHeaderChange(header.id, 'description', e.target.value)}
-                placeholder="Header description"
-              />
+              <InputWrapper className="suggestion-wrapper">
+                <Input
+                  type="text"
+                  ref={el => { if (el) inputRefs.current[header.id + 'description'] = el; }}
+                  value={header.description}
+                  onChange={(e) => handleInputChange(header.id, 'description', e.target.value, e.target.selectionStart || 0)}
+                  placeholder="Header description"
+                />
+                {showSuggestions[header.id + 'description'] && suggestions.length > 0 && (
+                  <SuggestionsContainer>
+                    {suggestions.map((suggestion) => (
+                      <SuggestionItem
+                        key={suggestion}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </SuggestionItem>
+                    ))}
+                  </SuggestionsContainer>
+                )}
+              </InputWrapper>
             </TableCell>
             <TableCell>
               <DeleteButton 
@@ -234,4 +380,4 @@ const Headers: React.FC<HeadersProps> = ({ headers: initialHeaders, onChange }) 
   );
 };
 
-export default Headers; 
+export default Headers;

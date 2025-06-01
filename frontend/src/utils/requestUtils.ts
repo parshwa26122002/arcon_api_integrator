@@ -23,7 +23,8 @@ export const convertRequestBodyToTabBody = (requestBody: any): TabBodyType => {
             src: item.src,
             fileType: item.fileType,
             fileSize: item.fileSize,
-            content: item.content
+            content: item.content,
+            isSelected: item.isSelected || false
         }))
       };
     case 'urlencoded':
@@ -31,7 +32,9 @@ export const convertRequestBodyToTabBody = (requestBody: any): TabBodyType => {
         mode: 'urlencoded',
         urlencoded: requestBody.urlencoded?.map((item: UrlEncodedItem) => ({
           key: item.key || '',
-          value: item.value || ''
+          value: item.value || '',
+          type: item.type || 'text',
+          isSelected: item.isSelected || false
         })) || []
       };
     case 'file':
@@ -76,7 +79,8 @@ export const convertTabBodyToRequestBody = (tabBody: TabBodyType): any => {
             src: item.src,
             fileType: item.fileType,
             fileSize: item.fileSize,
-            content: item.content
+            content: item.content,
+            isSelected: item.isSelected
         }))
       };
     case 'urlencoded':
@@ -85,7 +89,8 @@ export const convertTabBodyToRequestBody = (tabBody: TabBodyType): any => {
         urlencoded: tabBody.urlencoded?.map((item: UrlEncodedItem) => ({
           key: item.key,
           value: item.value,
-          type: 'text'
+          type: item.type,
+          isSelected: item.isSelected
         }))
       };
     case 'file':
