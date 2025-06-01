@@ -176,20 +176,18 @@ class GraphQLSchemaParser:
 
     def parse_fields(self, fields_content: str) -> List[GraphQLField]:
         fields = []
-        field_lines = re.split(r'\s*(?<!\()\n|\r\n|\r(?![^\(\)]*\))', fields_content.strip())
-        field_lines = [line.strip() for line in field_lines if line.strip()]
-
-        field_lines = [line.strip() for line in fields_content.split('\n') if line.strip()]
-        
-        for line in field_lines:
-            try:
-                field = self.parse_single_field(line)
-                if field:
-                    fields.append(field)
-            except Exception as e:
-                print(f"[WARNING] Failed to parse field '{line}': {str(e)}")
+        # Match fieldName(args...): ReturnType or fieldName: ReturnType
+        pattern = r'(\w+\s*(?:\([^)]*\))?\s*:\s*[^}]+?)(?=\s+\w+\s*(?:\(|:)|$)'
+        matches = re.findall(pattern, fields_content)
+        for line in matches:
+            line = line.strip()
+            if not line or line.startswith('#'):
                 continue
-        
+            # Remove inline comments
+            line = line.split('#')[0].strip()
+            field = self.parse_single_field(line)
+            if field:
+                fields.append(field)
         return fields
 
     def parse_single_field(self, field_line: str) -> Optional[GraphQLField]:
