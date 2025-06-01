@@ -296,14 +296,14 @@ const handleSend = async (request: APIRequest) => {
               contentTypeHeader = 'text/plain';
             }
             break;
-          case 'form-data':
-            const formData = new FormData();
-            request.body.formData?.forEach(item => {
-              if (item.key && item.value) {
-                formData.append(item.key, item.value);
-              }
-            });
-            bodyToSend = formData;
+          case 'formdata':
+            //const formData = new FormData();
+            //?.forEach(item => {
+            //  if (item.key && item.value) {
+            //    formData.append(item.key, item.value);
+            //  }
+            //});
+            bodyToSend = request.body.formData;
             // Don't set Content-Type for FormData, browser will set it automatically with boundary
             contentTypeHeader = '';  // Use empty string instead of undefined
             break;
@@ -316,7 +316,17 @@ const handleSend = async (request: APIRequest) => {
             });
             bodyToSend = params.toString();
             contentTypeHeader = 'application/x-www-form-urlencoded';
-            break;
+                break;
+           case 'graphql':
+              bodyToSend = JSON.stringify({
+                query: request.body.graphql?.query || '',
+                variables: request.body.graphql?.variables ? JSON.parse(request.body.graphql.variables) : {}
+              });
+              contentTypeHeader = 'application/json';
+                break;
+            case 'file':
+              bodyToSend = JSON.stringify(request.body.file);
+              break;
         }
       }
 

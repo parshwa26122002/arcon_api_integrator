@@ -1,4 +1,4 @@
-import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportKeyValueWithDescription, URLExport, ExportBody } from '../store/collectionStore';
+import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportKeyValueWithDescription, URLExport, ExportBody, ResponseExport } from '../store/collectionStore';
 import { storageService } from '../services/StorageService';
 import html2pdf from 'html2pdf.js';
 function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefined {
@@ -40,18 +40,24 @@ function convertAuth(auth?: { type: string; credentials: Record<string, string> 
         }));
         return { type: auth.type, apikey: credentialsArray }
     }
+    if (auth.type == 'oauth2') {
+        const credentialsArray: ExportKeyValueType[] = Object.entries(auth.credentials).map(([key, value]) => ({
+            key: key,
+            value: value,
+            type: 'string'
+        }));
+        return { type: auth.type, oauth2: credentialsArray }
+    }
+    if (auth.type == 'oauth1') {
+        const credentialsArray: ExportKeyValueType[] = Object.entries(auth.credentials).map(([key, value]) => ({
+            key: key,
+            value: value,
+            type: 'string'
+        }));
+        return { type: auth.type, oauth1: credentialsArray }
+    }
 
     return { type: auth.type };
-}
-function extractHostParts(url: string): string[] {
-    try {
-        const parsedUrl = new URL(url);
-        const hostname = parsedUrl.hostname; // e.g. "example.domain.com"
-        return hostname.split('.');
-    } catch (error) {
-        console.warn(`Invalid URL provided: "${url}". Error:`, error);
-        return [];
-    }
 }
 function convertRequest(request: APIRequest): ExportCollectionItem {
     const query: ExportKeyValueWithDescription[] = (request.queryParams || []).map(q => ({
@@ -59,14 +65,20 @@ function convertRequest(request: APIRequest): ExportCollectionItem {
         value: q.value,
         description: q.description
     }));
+    const parsedUrl = new URL(request.url);
+    const hostname = parsedUrl.hostname; // e.g. "example.domain.com"
+    hostname.split('.');
     const url: URLExport = {
         raw: request.url,
-        protocol: request.url.split(':')[0] || '',
-        host: extractHostParts(request.url),
+        protocol: parsedUrl.protocol.replace(':', ''),
+        host: hostname.split('.'),
+        port: parsedUrl.port || '',
+        path: parsedUrl.pathname.split('/').filter(Boolean),
     }
     if (query && query.length > 0) {
         url.query = query;
     }
+
     let body: ExportBody | undefined = undefined;
     if (request.body) {
         if (request.body.mode === 'raw') {
@@ -107,7 +119,32 @@ function convertRequest(request: APIRequest): ExportCollectionItem {
                 }
             };
         }
+        else if (request.body.mode == 'graphql') {
+            body = {
+                mode: 'graphql',
+                graphql: {
+                    query: request.body.graphql?.query || '',
+                    variables: request.body.graphql?.variables || ''
+                }
+            };
+        }
     }
+    const response: ResponseExport[] = (request.response || []).map(r => ({
+        originalRequest: {
+            method: request.method,
+            header: (request.headers || []).map(h => ({
+                key: h.key,
+                value: h.value,
+                type: 'text',
+                description: h.description
+            })),
+            url,
+            auth: convertAuth(request.auth),
+            body
+        },
+        status: r.status,
+        code: r.code,
+    }));
     return {
         name: request.name,
         request: {
@@ -122,7 +159,7 @@ function convertRequest(request: APIRequest): ExportCollectionItem {
             auth: convertAuth(request.auth),
             body
         },
-        response: []
+        response
     };
 }
 

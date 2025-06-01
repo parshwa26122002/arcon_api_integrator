@@ -53,7 +53,7 @@ interface DocumentationPaneProps {
 //          <pre>${request.body.raw}</pre>
 //        </div>
 //      `;
-//            } else if (mode === 'form-data' && request.body.formData?.length) {
+//            } else if (mode === 'formdata' && request.body.formData?.length) {
 //                const filtered = request.body.formData.filter(i => i.isSelected !== false && i.key && i.value);
 //                if (filtered.length) {
 //                    bodySection = renderKeyValueTable('Body (Form Data)', filtered);
@@ -433,6 +433,20 @@ function renderCollectionHTML(col: APICollection | null): string {
                 </div>
               `;
     }
+    else if (colAuthType === 'oauth2') {
+
+        colAuth = `<div class="sub-section">
+                  <h5> Authorization (API Key) </h5>
+                  <div class="kv-container">
+                       ${col.auth && Object.entries(col.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+    }
     else {
         colAuth = `<div class="sub-section">
                   <h5> Authorization (Inherit From Parent) </h5>
@@ -566,6 +580,34 @@ function renderCollectionHTML(col: APICollection | null): string {
                 </div>
               `;
         }
+        else if (colAuthType === 'oauth2') {
+
+            colAuth = `<div class="sub-section">
+                  <h5> Authorization (OAuth 2.0) </h5>
+                  <div class="kv-container">
+                       ${request.auth && Object.entries(request.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+        }
+        else if (colAuthType === 'oauth1') {
+
+            colAuth = `<div class="sub-section">
+                  <h5> Authorization (OAuth 1.0) </h5>
+                  <div class="kv-container">
+                       ${request.auth && Object.entries(request.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+        }
         else {
             authSection = `<div class="sub-section">
                   <h5> Authorization (Inherit From Parent) </h5>
@@ -592,7 +634,24 @@ function renderCollectionHTML(col: APICollection | null): string {
             } else if (mode === 'formdata' && request.body.formData?.length) {
                 const filtered = request.body.formData.filter(i => i.isSelected !== false && i.key && i.value);
                 if (filtered.length) {
-                    bodySection = renderKeyValueTable('Body (Form Data)', filtered);
+                    bodySection = `
+                                <div class="sub-section">
+                                <h5>Body (Form Data)</h5>
+                                <table>
+                                    <thead>
+                                    <tr><th>Key</th><th>Value</th><th>Description</th></tr>
+                                    </thead>
+                                    <tbody>
+                                    ${filtered.map(item => `
+                                        <tr>
+                                        <td>${item.key}</td>
+                                        <td>${item.src || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                    </tbody>
+                                </table>
+                                </div>
+                            `;
                 }
             } else if (mode === 'urlencoded' && request.body.urlencoded?.length) {
                 const filtered = request.body.urlencoded.filter(i => i.isSelected !== false && i.key && i.value);
@@ -607,6 +666,15 @@ function renderCollectionHTML(col: APICollection | null): string {
                           ${request.body.file.src ? `<p><strong>Source:</strong> ${request.body.file.src}</p>` : ''}
                         </div>
                       `;
+            }
+            else if (mode === 'graphql' && request.body.graphql) {
+                bodySection = `
+                    <div class="sub-section">
+                        <h5>Body (GraphQL)</h5>
+                        <pre>${request.body.graphql?.query}</pre>
+                        <pre>${request.body.graphql?.variables}</pre>
+                    </div>
+                    `
             }
         }
 
@@ -694,6 +762,34 @@ function renderCollectionHTML(col: APICollection | null): string {
                   <h5> Authorization (Bearer) </h5>
                   <div class="kv-container">
                        <div><strong>token:</strong> Add token </div>
+                  </div>
+                </div>
+              `;
+        }
+        else if (colAuthType === 'oauth2') {
+
+            colAuth = `<div class="sub-section">
+                  <h5> Authorization (OAuth 2.0) </h5>
+                  <div class="kv-container">
+                       ${folder.auth && Object.entries(folder.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+        }
+        else if (colAuthType === 'oauth1') {
+
+            colAuth = `<div class="sub-section">
+                  <h5> Authorization (OAuth 1.0) </h5>
+                  <div class="kv-container">
+                       ${folder.auth && Object.entries(folder.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${value}</div>
+                            </div>
+                        `).join('')}
                   </div>
                 </div>
               `;
@@ -804,6 +900,9 @@ function renderCollectionHTML(col: APICollection | null): string {
       .method-POST { background-color: #3498db; }
       .method-PUT { background-color: #f39c12; }
       .method-DELETE { background-color: #e74c3c; }
+      .method-PATCH { background-color: #9b59b6; }
+      .method-OPTIONS { background-color: #16a085; }
+      .method-HEAD { background-color: #7f8c8d; }
       .section {
         margin-top: 32px;
         padding-top: 16px;

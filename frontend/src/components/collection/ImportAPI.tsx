@@ -609,7 +609,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
           case "formdata":
             body = {
               mode: "formdata" as const,
-              formdata: (item.request.body.formdata || []).map((item: any) => ({
+                formData: (item.request.body.formdata || []).map((item: any) => ({
                 key: item.key || "",
                 value: item.value || "",
                 type: item.type || "text",

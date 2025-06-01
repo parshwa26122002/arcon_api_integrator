@@ -271,7 +271,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         newBody.raw = '';
         newBody.options = { raw: { language: 'json' } };
         break;  
-      case 'form-data':
+      case 'formdata':
         newBody.formData = [{ key: '', value: '', type: 'text', isSelected: false }];
         break;
       case 'urlencoded':
@@ -297,7 +297,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     key: '',
     value: '',
     type: 'text',
-    isSelected: false
+    isSelected: false,
   });
 
   const createEmptyUrlEncodedItem = (): UrlEncodedItem => ({
@@ -542,7 +542,9 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         file: {
           name: file.name,
           content: reader.result as string,
-          src: file.name
+          src: file.name,
+          fileType: file.type,
+          fileSize: file.size
         }
       };
 
@@ -555,7 +557,48 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     };
     reader.readAsDataURL(file);
   };
-  
+  const handleFileChangeFormData = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const base64string = reader.result as string;
+        const existingFormData = body.formData || [];
+        const newFormData = existingFormData.map(item => ({ ...item }));
+
+        // Ensure the target index exists
+        while (newFormData.length <= index) {
+            newFormData.push(createEmptyFormDataItem());
+        }
+
+        newFormData[index] = {
+            ...newFormData[index],
+            type: 'file',
+            key: newFormData[index].key,
+            value: '', // value is not used for files
+            src: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            content: base64string,
+            isSelected: true,
+        };
+
+        const newBody = {
+            ...body,
+            formData: newFormData,
+        };
+
+        setLocalBody(newBody);
+        onChange(newBody);
+
+        if (activeCollectionId && activeRequestId) {
+            updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+        }
+    };
+      reader.readAsDataURL(file);
+
+  };
   const handleGraphQLQueryChange = (value: string) => {
     // Validate GraphQL query
     let isValidQuery = true;
@@ -669,7 +712,11 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
                           newFormData[index] = {
                             ...newFormData[index],
                             src: undefined,
-                            value: ''
+                            value: '',
+                            fileType: undefined,
+                            fileSize: undefined,
+                            content: undefined,
+                            type: 'file',
                           };
                           const newBody: RequestBody = {
                             ...body,
@@ -689,8 +736,8 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
                     <FileButton as="label" style={{ margin: 0 }}>
                       <FiFile /> Choose File
                       <FileInput
-                        type="file"
-                        onChange={handleFileChange}
+                       type="file"
+                       onChange={e => handleFileChangeFormData(e, index)}
                       />
                     </FileButton>
                   )
@@ -777,7 +824,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     }
 
     switch (body.mode) {
-      case 'form-data':
+      case 'formdata':
         return renderFormData();
 
       case 'raw':
@@ -829,15 +876,40 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
 
       case 'file':
         return (
-          <FormContainer>
-            <FileButton>
-              <FiFile /> {body.file?.name || 'Select File'}
-              <FileInput
-                type="file"
-                onChange={handleFileChange}
-              />
-            </FileButton>
-          </FormContainer>
+            <FormContainer>
+                {body.file?.name ? (
+                    <FileDisplay>
+                        <FileIcon />
+                        <FileNameText title={body.file.name}>{body.file.name}</FileNameText>
+                        <DeleteFileButton
+                            onClick={() => {
+                                const newBody: RequestBody = {
+                                    ...body,
+                                    file: { name: '', content: '', src: '' }
+                                };
+                                setLocalBody(newBody);
+                                onChange(newBody);
+                                if (activeCollectionId && activeRequestId) {
+                                    updateRequest(activeCollectionId, activeRequestId, { body: newBody });
+                                }
+                            }}
+                        >
+                            ×
+                        </DeleteFileButton>
+                    </FileDisplay>
+                ) : (
+                    <label style={{ width: '100%' }}>
+                        <FileButton as="span">
+                            <FiFile /> Select File
+                        </FileButton>
+                        <FileInput
+                            type="file"
+                            onChange={handleFileChange}
+                            tabIndex={-1}
+                        />
+                    </label>
+                )}
+            </FormContainer>
         );
 
       case 'urlencoded':
@@ -937,7 +1009,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     <Container>
       <Select value={body.mode} onChange={handleModeChange}>
         <option value="none">none</option>
-        <option value="form-data">form-data</option>
+        <option value="formdata">form-data</option>
         <option value="urlencoded">urlencoded</option>
         <option value="raw">raw</option>
         <option value="file">file</option>
