@@ -436,7 +436,21 @@ function renderCollectionHTML(col: APICollection | null): string {
     else if (colAuthType === 'oauth2') {
 
         colAuth = `<div class="sub-section">
-                  <h5> Authorization (API Key) </h5>
+                  <h5> Authorization (OAuth 2.0) </h5>
+                  <div class="kv-container">
+                       ${col.auth && Object.entries(col.auth.credentials).map(([key, value]) => `
+                            <div class="kv-item">
+                            <div><strong>${key}:</strong> ${value}</div>
+                            </div>
+                        `).join('')}
+                  </div>
+                </div>
+              `;
+    }
+    else if (colAuthType === 'oauth1') {
+
+        colAuth = `<div class="sub-section">
+                  <h5> Authorization (OAuth 1.0) </h5>
                   <div class="kv-container">
                        ${col.auth && Object.entries(col.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
