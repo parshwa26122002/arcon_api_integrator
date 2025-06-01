@@ -13,6 +13,7 @@ import SaveToCollectionModal from '../modals/SaveToCollectionModal';
 import PaneHeader from '../paneheader/PaneHeader';
 import RunnerPane from '../runnerpane/RunnerPane';
 import DocumentationPane from '../documentationpane/DocumentationPane';
+import workspace from '../../assets/workspace-bg.png'
 
 
 const ScrollbarArea = styled.div`
@@ -812,8 +813,15 @@ const MainContentTabs: React.FC = () => {
           <FiPlus />
         </AddButton>
       </ScrollbarArea>
-
-      {renderTabContent()}
+      {
+        tabs.length === 0 && (
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundImage: `url(${workspace})`, height:200, backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+          </div>
+        )
+      }
+      {
+        tabs.length > 0 && renderTabContent()
+      }
 
       {showUnsavedModal && (
         <UnsavedChangesModal
