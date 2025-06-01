@@ -19,7 +19,7 @@ const Container = styled.div`
 const Title = styled.h2`
   font-size: 14px;
   font-weight: 600;
-  color: #e1e1e1;
+  color: var(--color-text);
   margin-bottom: 8px;
 `;
 
@@ -32,7 +32,7 @@ const Table = styled.div`
 const TableRow = styled.div`
   display: table-row;
   &:hover {
-    background-color: #333333;
+    background-color: var(--color-panel-alt);
   }
 `;
 
@@ -40,15 +40,15 @@ const TableHeader = styled.div`
   display: table-cell;
   padding: 8px;
   font-weight: 600;
-  color: #e1e1e1;
-  border-bottom: 1px solid #4a4a4a;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
   font-size: 12px;
 `;
 
 const TableCell = styled.div`
   display: table-cell;
   padding: 8px;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
 `;
 
@@ -60,14 +60,14 @@ const CheckboxCell = styled(TableCell)`
 const Input = styled.input`
   width: 100%;
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -75,7 +75,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #7d4acf;
+  accent-color: var(--color-tab-active);
 `;
 
 const DeleteButton = styled.button`
@@ -95,8 +95,8 @@ const DeleteButton = styled.button`
   }
 
   &:hover {
-    background-color: #4a4a4a;
-    color: #e1e1e1;
+    background-color: var(--color-border);
+    color: var(--color-text);
   }
 `;
 
@@ -141,17 +141,17 @@ const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChan
   // Add empty row if the last row has content
   const lastParam = params[params.length - 1];
   if (lastParam && (lastParam.key || lastParam.value || lastParam.description)) {
-    params = [
-      ...params,
-      {
-        id: uuid(),
-        key: '',
-        value: '',
-        description: '',
-        isSelected: false
-      }
-    ];
-  }
+      params = [
+        ...params,
+        {
+          id: uuid(),
+          key: '',
+          value: '',
+          description: '',
+          isSelected: false
+        }
+      ];
+    }
 
   // Variable suggestions state
   const [showSuggestions, setShowSuggestions] = React.useState<{ [key: string]: boolean }>({});
@@ -375,4 +375,4 @@ const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChan
   );
 };
 
-export default QueryParams; 
+export default QueryParams;

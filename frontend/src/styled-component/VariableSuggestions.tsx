@@ -4,8 +4,8 @@ import { getDynamicVariablesList } from '../utils/dynamicVariables';
 
 const SuggestionsContainer = styled.div<{ visible: boolean }>`
   position: absolute;
-  background: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
@@ -19,12 +19,12 @@ const SuggestionsContainer = styled.div<{ visible: boolean }>`
   }
 
   &::-webkit-scrollbar-track {
-    background: #2d2d2d;
+    background: var(--color-panel);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #4a4a4a;
+    background: var(--color-border);
     border-radius: 4px;
   }
 `;
@@ -32,13 +32,13 @@ const SuggestionsContainer = styled.div<{ visible: boolean }>`
 const SuggestionItem = styled.div<{ isSelected: boolean }>`
   padding: 8px 12px;
   cursor: pointer;
-  background: ${props => props.isSelected ? '#4a4a4a' : 'transparent'};
-  color: #e1e1e1;
+  background: ${props => props.isSelected ? 'var(--color-border)' : 'transparent'};
+  color: var(--color-text);
   font-family: monospace;
   font-size: 13px;
 
   &:hover {
-    background: #3d3d3d;
+    background: var(--color-panel-alt);
   }
 `;
 
@@ -138,4 +138,4 @@ export const VariableSuggestions: React.FC<VariableSuggestionsProps> = ({
       ))}
     </SuggestionsContainer>
   );
-}; 
+};

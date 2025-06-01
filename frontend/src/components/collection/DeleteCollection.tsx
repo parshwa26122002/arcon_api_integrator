@@ -5,7 +5,7 @@ import { FiTrash2 } from 'react-icons/fi';
 const DeleteButton = styled.button`
   background: none;
   border: none;
-  color: #ff4444;
+  color: var(--color-error);
   padding: 6px 12px;
   display: flex;
   align-items: center;
@@ -16,7 +16,7 @@ const DeleteButton = styled.button`
   text-align: left;
 
   &:hover {
-    background-color: #383838;
+    background-color: var(--color-panel-alt);
   }
 
   svg {
@@ -38,11 +38,11 @@ const ConfirmationDialog = styled.div`
 `;
 
 const DialogContent = styled.div`
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   padding: 24px;
   border-radius: 8px;
   width: 400px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
 `;
 
 const DialogHeader = styled.div`
@@ -50,13 +50,13 @@ const DialogHeader = styled.div`
   
   h2 {
     margin: 0;
-    color: #e1e1e1;
+    color: var(--color-text);
     font-size: 16px;
   }
 `;
 
 const DialogMessage = styled.p`
-  color: #e1e1e1;
+  color: var(--color-text);
   margin: 0 0 20px 0;
   font-size: 14px;
 `;
@@ -69,15 +69,15 @@ const DialogButtons = styled.div`
 
 const Button = styled.button<{ $danger?: boolean }>`
   padding: 8px 16px;
-  background-color: ${props => props.$danger ? '#ff4444' : '#383838'};
-  color: #e1e1e1;
-  border: 1px solid ${props => props.$danger ? '#ff4444' : '#4a4a4a'};
+  background-color: ${props => props.$danger ? 'var(--color-error)' : 'var(--color-panel-alt)'};
+  color: var(--color-text);
+  border: 1px solid ${props => props.$danger ? 'var(--color-error)' : 'var(--color-border)'};
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
 
   &:hover {
-    background-color: ${props => props.$danger ? '#ff6666' : '#404040'};
+    background-color: ${props => props.$danger ? '#ff6666' : 'var(--color-border)'};
   }
 `;
 
@@ -154,4 +154,4 @@ const DeleteCollection: React.FC<DeleteCollectionProps> = ({
   );
 };
 
-export default DeleteCollection; 
+export default DeleteCollection;

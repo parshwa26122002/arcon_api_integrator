@@ -8,7 +8,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -17,19 +17,19 @@ const Container = styled.div`
 
 const TabList = styled.div`
   display: flex;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px solid var(--color-border);
   padding: 0 16px;
 `;
 
 const TabContent = styled.div`
   padding: 20px;
-  color: #e1e1e1;
+  color: var(--color-text);
   flex: 1;
   overflow-y: auto;
 `;
 
 const FolderTitle = styled.h2`
-  color: #e1e1e1;
+  color: var(--color-text);
   margin: 0 0 16px 0;
   font-size: 24px;
 `;
@@ -38,17 +38,17 @@ const Description = styled.textarea`
   width: 100%;
   min-height: 200px;
   padding: 12px;
-  background-color: #383838;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 14px;
   resize: vertical;
   margin-bottom: 16px;
 
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 
   &::placeholder {
@@ -122,4 +122,4 @@ const FolderPane: React.FC<FolderPaneProps> = ({ folder, onUpdate }) => {
   );
 };
 
-export default FolderPane; 
+export default FolderPane;

@@ -76,11 +76,11 @@ const TreeItem = styled.div<{ depth: number; isSelected: boolean }>`
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  color: #e1e1e1;
-  background-color: ${props => props.isSelected ? '#383838' : 'transparent'};
+  color: var(--color-text);
+  background-color: ${props => props.isSelected ? 'var(--color-panel-alt)' : 'transparent'};
   
   &:hover {
-    background-color: #383838;
+    background-color: var(--color-panel-alt);
   }
 `;
 
@@ -93,7 +93,7 @@ const FolderIconWrapper = styled.div`
   border-radius: 4px;
   
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--color-border);
   }
 
   svg {
@@ -112,7 +112,7 @@ const ChevronIcon = styled.div<{ isExpanded: boolean }>`
 `;
 
 const FolderIcon = styled(FiFolder)<{ isExpanded?: boolean }>`
-  color: ${props => props.isExpanded ? '#49cc90' : '#e1e1e1'};
+  color: ${props => props.isExpanded ? 'var(--color-success)' : 'var(--color-text)'};
   transition: color 0.2s;
 `;
 
@@ -120,7 +120,7 @@ const EditableTreeItem = styled(TreeItem)`
   input {
     background: transparent;
     border: none;
-    color: #e1e1e1;
+    color: var(--color-text);
     font-size: inherit;
     padding: 0;
     margin: 0;
@@ -395,4 +395,4 @@ const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({
   );
 };
 
-export default SaveToCollectionModal; 
+export default SaveToCollectionModal;

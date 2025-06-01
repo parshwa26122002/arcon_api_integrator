@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import Editor from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import type { IDisposable } from 'monaco-editor';
 import { FiFile, FiTrash2 } from 'react-icons/fi';
 import { useCollectionStore } from '../../store/collectionStore';
 import { getDynamicVariablesList, setVariableConfigurations } from '../../utils/dynamicVariables';
@@ -52,16 +51,16 @@ const Container = styled.div`
 const Select = styled.select`
   padding: 6px 8px;
   width: 150px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  background-color: #2d2d2d;
-  color: #e1e1e1;
+  background-color: var(--color-panel);
+  color: var(--color-text);
   font-size: 12px;
   cursor: pointer;
 
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -74,16 +73,16 @@ const FileButton = styled.button`
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
   width: 100%;
   
   &:hover {
-    background-color: #333333;
+    background-color: var(--color-panel-alt);
   }
 `;
 
@@ -104,7 +103,7 @@ const Table = styled.div`
 const TableRow = styled.div`
   display: table-row;
   &:hover {
-    background-color: #333333;
+    background-color:var(--color-panel-alt);
   }
 `;
 
@@ -112,15 +111,15 @@ const TableHeader = styled.div`
   display: table-cell;
   padding: 8px;
   font-weight: 600;
-  color: #e1e1e1;
-  border-bottom: 1px solid #4a4a4a;
+  color:var(--color-text);
+  border-bottom: var(--color-border);
   font-size: 12px;
 `;
 
 const TableCell = styled.div`
   display: table-cell;
   padding: 8px;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: var(--color-border);
   vertical-align: middle;
   width: 50%;
 `;
@@ -143,15 +142,15 @@ interface StyledInputProps {
 const Input = styled.input<StyledInputProps>`
   width: 100%;
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel-alt);
+  border: 1px var(--color-border);
   border-radius: ${props => props.$isKeyInput ? '4px 0 0 4px' : '4px'};
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
 
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color:var(--color-tab-active);
   }
 
   &::placeholder {
@@ -161,18 +160,18 @@ const Input = styled.input<StyledInputProps>`
 
 const TypeSelect = styled.select`
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel-alt);
+  border: 1px var(--color-border);
   border-left: none;
   border-radius: 0 4px 4px 0;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
   width: 80px;
   cursor: pointer;
 
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color:var(--color-tab-active);
   }
 `;
 
@@ -181,9 +180,9 @@ const NoBodyText = styled.p`
   font-size: 12px;
   text-align: center;
   padding: 1rem;
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   border-radius: 4px;
-  border: 1px dashed #4a4a4a;
+  border: 1px dashed var(--color-border);
 `;
 
 const EditorContainer = styled.div`
@@ -205,10 +204,10 @@ const FileDisplay = styled.div`
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color:var(--color-panel-alt);
+  border: 1px var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 12px;
   width: 100%;
 `;
@@ -244,7 +243,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #7d4acf;
+  accent-color:var(--color-tab-active);
 `;
 
 const CheckboxLabel = styled.label`
@@ -280,7 +279,8 @@ const DeleteButton = styled.button`
 
 const CheckVariablesButton = styled.button`
   padding: 8px 16px;
-  background-color: #4a4a4a;
+  background-color: var(--color-tab-active);
+  border: 1px solid var(--color-border);
   border: none;
   border-radius: 4px;
   color: white;
@@ -291,7 +291,7 @@ const CheckVariablesButton = styled.button`
   margin-top: 16px;
   
   &:hover {
-    background-color: #5a5a5a;
+    background-color: var(--color-button-hover);
   }
 `;
 
@@ -311,39 +311,39 @@ const FormRow = styled.div`
 `;
 
 const Label = styled.label`
-  color: #e1e1e1;
+  color:var(--color-text);
   font-size: 14px;
   min-width: 100px;
 `;
 
 const NumberInput = styled.input`
   padding: 6px 8px;
-  background-color: #383838;
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel-alt);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 14px;
   width: 100px;
   
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
   }
 `;
 
 const ApplyButton = styled.button`
   padding: 6px 12px;
-  background-color: #4a4a4a;
+  background-color: var(--color-border);
   border: none;
   border-radius: 4px;
-  color: white;
+  color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s;
   
   &:hover {
-    background-color: #5a5a5a;
+    background-color: var(--color-tab-active);
   }
 `;
 
@@ -363,12 +363,12 @@ const TopControls = styled.div`
 `;
 
 const VariableNameLabel = styled.div`
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 12px;
   padding: 4px 8px;
-  background-color: #383838;
+  background-color: var(--color-panel-alt);
   border-radius: 4px;
   display: inline-block;
 `;
@@ -381,18 +381,14 @@ const ConfigFormsContainer = styled.div`
   max-height: 300px;
   overflow-y: auto;
   padding-right: 8px;
-
   &::-webkit-scrollbar {
     width: 8px;
   }
-
   &::-webkit-scrollbar-track {
-    background: #2d2d2d;
-    border-radius: 4px;
+    background: var(--color-panel);
   }
-
   &::-webkit-scrollbar-thumb {
-    background: #4a4a4a;
+    background: var(--color-border);
     border-radius: 4px;
   }
 `;
@@ -408,7 +404,7 @@ const ApplyAllButton = styled(ApplyButton)`
 `;
 
 const ErrorMessage = styled.div`
-  color: #ff4444;
+  color: var(--color-error);
   font-size: 12px;
   margin-top: 8px;
   padding: 8px;
@@ -441,15 +437,15 @@ interface StyledSuggestiveInputProps {
 const StyledSuggestiveInput = styled(SuggestiveInput)<StyledSuggestiveInputProps>`
   width: 100%;
   padding: 6px 8px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color:var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: ${props => props.$isKeyInput ? '4px 0 0 4px' : '4px'};
-  color: #e1e1e1;
+  color:var(--color-text);
   font-size: 12px;
 
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color:var(--color-tab-active);
   }
 
   &::placeholder {
@@ -504,7 +500,6 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   const [invalidVariables, setInvalidVariables] = useState<string[]>([]);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
-  const completionProviderRef = useRef<IDisposable | null>(null);
   const [showCustomSuggestions, setShowCustomSuggestions] = useState(false);
   const [customSuggestions, setCustomSuggestions] = useState<string[]>([]);
   const [suggestionPosition, setSuggestionPosition] = useState({ top: 0, left: 0 });
@@ -666,7 +661,6 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
           // Get cursor position in screen coordinates
           const cursorCoords = editor.getScrolledVisiblePosition(position);
           const editorCoords = editor.getDomNode()?.getBoundingClientRect();
-          const scrollTop = editor.getScrollTop();
           
           if (cursorCoords && editorCoords) {
             const top = editorCoords.top + cursorCoords.top + 20; // Add some offset
@@ -1051,7 +1045,6 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   
   const handleGraphQLQueryChange = (value: string) => {
     // Validate GraphQL query
-    let isValidQuery = true;
     let queryError = '';
     
     try {
@@ -1059,16 +1052,13 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
       if (value.trim()) {
         if (!value.includes('query') && !value.includes('mutation')) {
           queryError = 'Query must include either "query" or "mutation" keyword';
-          isValidQuery = false;
         } else if ((value.match(/\{/g) || []).length !== (value.match(/\}/g) || []).length) {
           queryError = 'Invalid query: Mismatched curly braces';
-          isValidQuery = false;
         }
       }
     } catch (err) {
       const error = err as Error;
       queryError = `Invalid query: ${error.message}`;
-      isValidQuery = false;
     }
 
     onChange({
@@ -1084,7 +1074,6 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
 
   const handleGraphQLVariablesChange = (value: string) => {
     // Validate JSON variables
-    let isValidVariables = true;
     let variablesError = '';
     
     try {
@@ -1094,7 +1083,6 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     } catch (err) {
       const error = err as Error;
       variablesError = `Invalid JSON: ${error.message}`;
-      isValidVariables = false;
     }
 
     onChange({
@@ -1576,9 +1564,9 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
         return (
           <EditorContainer>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>
+              <Label style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>
                 GraphQL Query
-              </label>
+              </Label>
               <Editor
                 height="300px"
                 defaultLanguage="graphql"
@@ -1609,13 +1597,13 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
             </div>
             
             <div>
-              <label style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>
+              <Label style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>
                 Variables (JSON)
-              </label>
-              <label style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', marginBottom: '8px' }}>
+              </Label>
+              <Label style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', marginBottom: '8px' }}>
                 <input type="checkbox" checked={isPrettyVariables} onChange={() => setIsPrettyVariables(!isPrettyVariables)} />
                 Pretty Print Variables
-              </label>
+              </Label>
               <Editor
                 height="200px"
                 defaultLanguage="json"
@@ -1726,4 +1714,4 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
   );
 };
 
-export default RequestBodyComponent; 
+export default RequestBodyComponent;

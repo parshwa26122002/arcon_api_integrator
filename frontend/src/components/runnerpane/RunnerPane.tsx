@@ -17,9 +17,9 @@ const RequestSection = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #383838;
+  background-color: var(--color-panel-alt);
   border-radius: 6px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
   padding: 8px;
   height: 530px;
   overflow-y: auto;
@@ -29,15 +29,15 @@ const ScheduleSection = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #383838;
+  background-color: var(--color-panel-alt);
   border-radius: 6px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
   padding: 16px;
 `;
 
 const SectionTitle = styled.h3`
   margin-bottom: 12px;
-  color: #ffffff;
+  color: var(--color-text);
 `;
 
 const FieldGroup = styled.div`
@@ -54,16 +54,16 @@ const Label = styled.label`
 
 const Input = styled.input`
   padding: 8px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  background-color: #2d2d2d;
-  color: #ffffff;
+  background-color: var(--color-panel);
+  color: var(--color-text);
   font-size: 14px;
 `;
 
 const Button = styled.button`
   padding: 10px 16px;
-  background-color: #7d4acf;
+  background-color: var(--color-tab-active);
   color: #ffffff;
   border: none;
   border-radius: 4px;
@@ -77,10 +77,10 @@ const Button = styled.button`
 const HeaderRow = styled.div`
   display: flex;
   padding: 8px 12px;
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   font-weight: bold;
   color: #cccccc;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--color-border);
   font-size: 14px;
 `;
 
@@ -88,7 +88,7 @@ const Row = styled.div`
   display: flex;
   padding: 8px 12px;
   align-items: center;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--color-border);
   &:hover {
     background-color: #333;
   }
@@ -107,7 +107,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -119,23 +119,23 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   height: 16px;
   margin-right: 12px;
   cursor: pointer;
-  accent-color: #7d4acf;
+  accent-color: var(--color-tab-active);
 `;
 
 const ResultContainer = styled.div`
   display: flex;
   height: calc(100vh - 80px);
-  background-color: #1e1e1e;
-  color: #ffffff;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   font-family: 'Segoe UI', sans-serif;
 `;
 
 
 const ResultCard = styled.div`
   padding: 8px 10px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
-  background-color: #1e1e1e;
+  background-color: var(--color-bg);
   margin-bottom: 8px;
   gap: 18px;
   &:hover {
@@ -146,7 +146,7 @@ const ResultCard = styled.div`
 const LeftPane = styled.div`
   flex: 1;
   padding: 16px;
-  border-right: 1px solid #333;
+  border-right: 1px solid var(--color-border);
   overflow-y: auto;
 `;
 
@@ -154,8 +154,8 @@ const RightPane = styled.div<{ isOpen: boolean }>`
   width: ${({ isOpen }) => (isOpen ? '50%' : '0')};
   overflow: hidden;
   transition: width 0.3s ease;
-  background-color: #1e1e1e;
-  border-left: 1px solid #444;
+  background-color: var(--color-bg);
+  border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
 `;
@@ -165,10 +165,10 @@ const StatusTag = styled.span<{ code: number }>`
   border-radius: 4px;
   font-size: 12px;
   font-weight: bold;
-  color: white;
+  color: #fff;
   background-color: ${({ code }) => {
-    if (code >= 200 && code < 300) return '#49cc90';
-    if (code >= 400 && code < 500) return '#f93e3e';
+    if (code >= 200 && code < 300) return 'var(--color-success)';
+    if (code >= 400 && code < 500) return 'var(--color-error)';
     return '#999';
   }};
 `;
@@ -179,8 +179,8 @@ const ResponseContent = styled.div`
   overflow-y: auto;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
   font-size: 14px;
-  color: #e1e1e1;
-  background-color: #2d2d2d;
+  color: var(--color-text);
+  background-color: var(--color-panel);
   border-radius: 0 0 6px 6px;
 `;
 
@@ -189,10 +189,10 @@ const MethodTag = styled.span<{ method: string }>`
   font-size: 13px;
   color: ${({ method }) => {
     switch (method) {
-      case 'GET': return '#61affe';
-      case 'POST': return '#49cc90';
-      case 'PUT': return '#fca130';
-      case 'DELETE': return '#f93e3e';
+      case 'GET': return 'var(--color-info)';
+      case 'POST': return 'var(--color-success)';
+      case 'PUT': return 'var(--color-warning)';
+      case 'DELETE': return 'var(--color-error)';
       case 'PATCH': return '#f582ea';
       default: return '#999';
     }
@@ -202,9 +202,9 @@ const MethodTag = styled.span<{ method: string }>`
 
 const ResponseHeader = styled.div`
   padding: 6px 16px;
-  border-bottom: 1px solid #4a4a4a;
+  border-bottom: 1px solid var(--color-border);
   font-weight: 600;
-  color: #e1e1e1;
+  color: var(--color-text);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -218,9 +218,9 @@ const ResponseLeftSection = styled.div`
 
 const ResponseStatus = styled.span<{ code: number }>`
   color: ${props => {
-    if (props.code >= 200 && props.code < 300) return '#49cc90'; // Success - Green
-    if (props.code >= 400) return '#f93e3e'; // Error - Red
-    return '#e1e1e1'; // Default color
+    if (props.code >= 200 && props.code < 300) return 'var(--color-success)';
+    if (props.code >= 400) return 'var(--color-error)';
+    return 'var(--color-text)';
   }};
 `;
 
@@ -234,7 +234,7 @@ const IconButton = styled.button`
   align-items: center;
 
   &:hover {
-    color: #49cc90;
+    color: var(--color-success);
   }
 `;
 

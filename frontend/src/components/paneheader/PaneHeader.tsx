@@ -7,24 +7,24 @@ const HeaderContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border-bottom: 1px solid var(--color-border);
 `;
 
 const TabTitle = styled.span`
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 600;
 `;
 
 const SaveButton = styled(FiSave)<{ disabled: boolean }>`
   font-size: 18px;
-  color: ${props => props.disabled ? '#6a6a6a' : '#e1e1e1'};
+  color: ${props => props.disabled ? '#6a6a6a' : 'var(--color-text)'};
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: color 0.2s;
 
   &:hover {
-    color: ${props => props.disabled ? '#6a6a6a' : '#49cc90'};
+    color: var(--color-success);
   }
 `;
 
@@ -47,4 +47,4 @@ const PaneHeader: React.FC<PaneHeaderProps> = ({ title, hasUnsavedChanges, onSav
   );
 };
 
-export default PaneHeader; 
+export default PaneHeader;
