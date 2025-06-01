@@ -19,7 +19,6 @@ app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
         url,
         method,
           headers,
-          body,
         checkBodyType
       });
 

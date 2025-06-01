@@ -319,7 +319,6 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
             break;
           case 'formdata':
             bodyToSend = JSON.stringify(processedRequest.body.formData?.filter((item: FormDataItem) => item.key?.trim() && item.type?.trim() )  || []);
-            console.log("formdata", bodyToSend);
             contentTypeHeader = '';  // Browser will set it automatically with boundary
             break;
           case 'urlencoded':
