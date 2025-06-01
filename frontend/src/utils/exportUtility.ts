@@ -9,28 +9,32 @@ function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefi
         type: 'string'
     }));
 }
-function convertURLToExport(url: string, variables: Variable[]): URLConversionExport {
+export function convertURLToExport(url: string, variables: Variable[]): URLConversionExport {
     if (variables.length > 0) {
-        variables = variables.filter(v => v.name && v.name.trim() !== '');
-        const urlParts = url.split('/');
-        const convertedParts = urlParts.map(part => {
-            const variable = variables.find(v => v.name === `{{${v.name}}}`);
-            if (variable) {
-                return `${variable.currentValue ?? variable.currentValue ?? ''}`;
-            }
-            return part;
-        });
-        const raw = convertedParts.join('/');
+        const filteredVars = Array.isArray(variables)
+            ? variables.filter(v => v.name && v.name.trim() !== '')
+            : [];
+        console.log("variables", variables);
+        console.log("filter", filteredVars);
+        // Replace all variable references in the form {{varName}} with currentValue
+        let raw = url;
+        for (const variable of filteredVars) {
+            const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+            console.log("filter", pattern);
+            raw = raw.replace(pattern, variable.currentValue ?? variable.initialValue ?? '');
+            console.log("raw", raw);
+        }
+        //const raw = convertedParts.join('/');
         try {
             const parsed = new URL(raw);
-            const url: URLExport = {
+            const urlEx: URLExport = {
                 raw,
                 protocol: parsed.protocol.replace(':', ''),
                 host: parsed.hostname.split('.'),
                 port: parsed.port || '',
                 path: parsed.pathname.split('/').filter(Boolean),
             };
-            return url;
+            return urlEx;
         } catch (error) {
             // If the URL is invalid, return minimal info
             const slashIndex = raw.indexOf('/');
@@ -70,14 +74,14 @@ function convertURLToExport(url: string, variables: Variable[]): URLConversionEx
         const raw = url;
         try {
             const parsed = new URL(raw);
-            const url: URLExport = {
+            const urlEx2: URLExport = {
                 raw,
                 protocol: parsed.protocol.replace(':', ''),
                 host: parsed.hostname.split('.'),
                 port: parsed.port || '',
                 path: parsed.pathname.split('/').filter(Boolean),
             };
-            return url;
+            return urlEx2;
         } catch (error) {
             // If the URL is invalid, return minimal info
             const slashIndex = raw.indexOf('/');
@@ -102,14 +106,14 @@ function convertURLToExport(url: string, variables: Variable[]): URLConversionEx
                     hostPart = hostPart.slice(0, -portMatch[1].length);
                 }
             }
-            const url2: URLConversionExport = {
+            const urlEX3: URLConversionExport = {
                 raw,
                 port: port == '' ? '' : undefined,
                 protocol: protocol || undefined,
                 host: hostPart ? hostPart.split('.') : [],
                 path: pathPart ? pathPart.split('/').filter(Boolean) : []
             }
-            return url2;
+            return urlEX3;
             console.log("Exception exportUtility convertURLToExport", error);
         }
     }

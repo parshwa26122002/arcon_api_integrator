@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { exportAsHTML, exportAsPDF } from '../../utils/exportUtility';
 import { storageService } from '../../services/StorageService';
-import type { APICollection, APIRequest, APIFolder } from '../../store/collectionStore';
+import type { APICollection, APIRequest, APIFolder, Variable } from '../../store/collectionStore';
 import { convertURLToExport } from '../../utils/exportUtility';
 interface DocumentationPaneProps {
     tabState: {
@@ -401,7 +401,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
     //`;
     //}
 
-    function renderRequest(request: APIRequest, id: string): string {
+    function renderRequest(request: APIRequest, variables: Variable[]): string {
         const headers = request.headers?.filter(h => h.isSelected !== false && h.key && h.value) || [];
         const queryParams = request.queryParams?.filter(q => q.key && q.value) || [];
 
@@ -575,14 +575,14 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
           `).join('')}
         </div>
       ` : '';
-        const urlNeeded = convertURLToExport(request.url, id);
+        const urlNeeded = convertURLToExport(request.url, variables);
         return `
       <div class="request-block">
         <h4>
           <span class="request-method method-${request.method}">${request.method}</span>
-          ${urlNeeded.raw}
+          ${request.name}
         </h4>
-        <p class="url">${request.url}</p>
+        <p class="url">${urlNeeded.raw}</p>
         ${authSection}
         ${headersTable}
         ${queryParamsTable}
@@ -592,7 +592,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
     `;
     }
 
-    function renderFolder(folder: APIFolder, id:string): string {
+    function renderFolder(folder: APIFolder, variables: Variable[]): string {
         const folderAuthType = folder.auth?.type || '';
         let folderAuth = '';
         if (folderAuthType === '' || folderAuthType === 'inheritCollection' || folderAuthType === 'none') {
@@ -698,11 +698,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
       `;
 
         const nestedFolders = folder.folders && folder.folders.length
-            ? folder.folders.map(folder => renderFolder(folder, id)).join('')
+            ? folder.folders.map(folder => renderFolder(folder, variables)).join('')
             : '';
 
         const folderRequests = folder.requests && folder.requests.length
-            ? folder.requests.map(request => renderRequest(request, id)).join('')
+            ? folder.requests.map(request => renderRequest(request, variables)).join('')
             : '';
 
         return `
@@ -715,11 +715,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
     }
 
     const renderedFolders = col.folders && col.folders.length
-        ? col.folders.map(folder => renderFolder(folder, id)).join('')
+        ? col.folders.map(folder => renderFolder(folder, col.variables ?? [])).join('')
         : '<p>No folders available.</p>';
 
     const renderedRequests = col.requests && col.requests.length
-        ? col.requests.map(request => renderRequest(request, id)).join('')
+        ? col.requests.map(request => renderRequest(request, col.variables ?? [])).join('')
         : '<p>No standalone requests available.</p>';
 
     return `
