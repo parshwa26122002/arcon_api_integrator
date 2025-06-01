@@ -1,4 +1,4 @@
-import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportKeyValueWithDescription, URLExport, ExportBody, ResponseExport } from '../store/collectionStore';
+import type { APICollection, ExportCollection, ExportKeyValueType, ExportAuth, ExportCollectionItem, APIFolder, APIRequest, Variable, Info, ExportKeyValueWithDescription, URLExport, ExportBody, ResponseExport, URLConversionExport } from '../store/collectionStore';
 import { storageService } from '../services/StorageService';
 import html2pdf from 'html2pdf.js';
 function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefined {
@@ -9,7 +9,111 @@ function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefi
         type: 'string'
     }));
 }
-
+function convertURLToExport(url: string, variables: Variable[]): URLConversionExport {
+    if (variables.length > 0) {
+        variables = variables.filter(v => v.name && v.name.trim() !== '');
+        const urlParts = url.split('/');
+        const convertedParts = urlParts.map(part => {
+            const variable = variables.find(v => v.name === `{{${v.name}}}`);
+            if (variable) {
+                return `${variable.currentValue ?? variable.currentValue ?? ''}`;
+            }
+            return part;
+        });
+        const raw = convertedParts.join('/');
+        try {
+            const parsed = new URL(raw);
+            const url: URLExport = {
+                raw,
+                protocol: parsed.protocol.replace(':', ''),
+                host: parsed.hostname.split('.'),
+                port: parsed.port || '',
+                path: parsed.pathname.split('/').filter(Boolean),
+            };
+            return url;
+        } catch (error) {
+            // If the URL is invalid, return minimal info
+            const slashIndex = raw.indexOf('/');
+            let hostPart = '';
+            let pathPart = '';
+            let port = '';
+            let protocol = '';
+            const protocolMatch = raw.match(/^([a-zA-Z][a-zA-Z0-9+\-.]*):\/\//);
+            if (protocolMatch) {
+                protocol = protocolMatch[1];
+            }
+            if (slashIndex !== -1) {
+                hostPart = raw.slice(0, slashIndex);
+                pathPart = raw.slice(slashIndex + 1);
+            } else {
+                hostPart = raw;
+            }
+            if (hostPart) {
+                const portMatch = hostPart.match(/:(\d+)$/);
+                if (portMatch) {
+                    port = portMatch[1];
+                    hostPart = hostPart.slice(0, -portMatch[1].length);
+                }
+            }
+            const url2: URLConversionExport = {
+                raw,
+                port: port == '' ? '' : undefined,
+                protocol: protocol || undefined,
+                host: hostPart ? hostPart.split('.') : [],
+                path: pathPart ? pathPart.split('/').filter(Boolean) : []
+            }
+            return url2;
+            console.log("Exception exportUtility convertURLToExport", error);
+        }
+    }
+    else {
+        const raw = url;
+        try {
+            const parsed = new URL(raw);
+            const url: URLExport = {
+                raw,
+                protocol: parsed.protocol.replace(':', ''),
+                host: parsed.hostname.split('.'),
+                port: parsed.port || '',
+                path: parsed.pathname.split('/').filter(Boolean),
+            };
+            return url;
+        } catch (error) {
+            // If the URL is invalid, return minimal info
+            const slashIndex = raw.indexOf('/');
+            let hostPart = '';
+            let pathPart = '';
+            let port = '';
+            let protocol = '';
+            const protocolMatch = raw.match(/^([a-zA-Z][a-zA-Z0-9+\-.]*):\/\//);
+            if (protocolMatch) {
+                protocol = protocolMatch[1];
+            }
+            if (slashIndex !== -1) {
+                hostPart = raw.slice(0, slashIndex);
+                pathPart = raw.slice(slashIndex + 1);
+            } else {
+                hostPart = raw;
+            }
+            if (hostPart) {
+                const portMatch = hostPart.match(/:(\d+)$/);
+                if (portMatch) {
+                    port = portMatch[1];
+                    hostPart = hostPart.slice(0, -portMatch[1].length);
+                }
+            }
+            const url2: URLConversionExport = {
+                raw,
+                port: port == '' ? '' : undefined,
+                protocol: protocol || undefined,
+                host: hostPart ? hostPart.split('.') : [],
+                path: pathPart ? pathPart.split('/').filter(Boolean) : []
+            }
+            return url2;
+            console.log("Exception exportUtility convertURLToExport", error);
+        }
+    }
+}
 function convertAuth(auth?: { type: string; credentials: Record<string, string> }): ExportAuth {
     if (!auth || !auth.type || auth.type == 'none' || Object.keys(auth).length === 0) return { type: 'noauth' };
 
@@ -59,20 +163,21 @@ function convertAuth(auth?: { type: string; credentials: Record<string, string> 
 
     return { type: auth.type };
 }
-function convertRequest(request: APIRequest): ExportCollectionItem {
+function convertRequest(request: APIRequest, variables: Variable[]): ExportCollectionItem {
     const query: ExportKeyValueWithDescription[] = (request.queryParams || []).map(q => ({
         key: q.key,
         value: q.value,
         description: q.description
     }));
-    const parsedUrl = new URL(request.url);
-    const hostname = parsedUrl.hostname; // e.g. "example.domain.com"
+    const convertedURLForExport: URLConversionExport = convertURLToExport(request.url, variables);
+    //const parsedUrl = new URL(request.url);
+    //const hostname = parsedUrl.hostname; // e.g. "example.domain.com"
     const url: URLExport = {
-        raw: request.url,
-        protocol: parsedUrl.protocol.replace(':', ''),
-        host: hostname.split('.'),
-        port: parsedUrl.port || '',
-        path: parsedUrl.pathname.split('/').filter(Boolean),
+        raw: convertedURLForExport.raw,
+        protocol: convertedURLForExport.protocol,
+        host: convertedURLForExport.host,
+        port: convertedURLForExport.port || '',
+        path: convertedURLForExport.path ? convertedURLForExport.path.filter(Boolean) : [],
     }
     if (query && query.length > 0) {
         url.query = query;
@@ -162,13 +267,13 @@ function convertRequest(request: APIRequest): ExportCollectionItem {
     };
 }
 
-function convertFolder(folder: APIFolder): ExportCollectionItem {
+function convertFolder(folder: APIFolder, variables: Variable[]): ExportCollectionItem {
     return {
         name: folder.name,
         description: folder.description,
         item: [
-            ...(folder.folders?.map(convertFolder) ?? []),
-            ...(folder.requests?.map(convertRequest) ?? [])
+            ...(folder.folders?.map(folder => convertFolder(folder, variables ?? [])) ?? []),
+            ...(folder.requests?.map(request => convertRequest(request, variables ?? [])) ?? [])
         ],
         auth: convertAuth(folder.auth)
     };
@@ -188,8 +293,8 @@ function convertAPICollectionToExportCollection(api: APICollection): ExportColle
     const exportCollection: ExportCollection = {
         info,
         item: [
-            ...(api.folders?.map(convertFolder) ?? []),
-            ...(api.requests?.map(convertRequest) ?? [])
+            ...(api.folders?.map(folder => convertFolder(folder, api.variables ?? [])) ?? []),
+            ...(api.requests?.map(request => convertRequest(request, api.variables ?? [])) ?? [])
         ],
         auth: convertAuth(api.auth),
     }

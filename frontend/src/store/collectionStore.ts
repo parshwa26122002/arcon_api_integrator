@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
 import { storageService } from '../services/StorageService';
 
+export interface URLConversionExport {
+    raw: string,
+    protocol?: string,
+    host: string[],
+    port?: string,
+    path?: string[],
+}
 export interface Info {
     _postman_id: string,
     name: string,
@@ -42,7 +49,7 @@ export interface ExportKeyValueWithDescriptionType {
 //}
 export interface URLExport {
     raw: string;
-    protocol: string;
+    protocol?: string;
     host: string[];
     port?: string;
     path?: string[];
