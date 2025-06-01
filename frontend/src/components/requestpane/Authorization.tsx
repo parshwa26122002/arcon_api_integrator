@@ -296,7 +296,7 @@ const OAuth2Form: React.FC = () => {
                     url: accessTokenUrl,
                     method: 'POST',
                     headers: headers,
-                    body: new URLSearchParams(params)
+                    body: (new URLSearchParams(params)).toString()
                   };
                   const res = await fetch('http://localhost:4000/api/proxy', {
                     method: 'POST',
@@ -308,7 +308,7 @@ const OAuth2Form: React.FC = () => {
                   });
                   
                   const data = await res.json();
-                  if (data.access_token) setAccessToken(data.access_token);
+                  if (data.body.access_token) setAccessToken(data.body.access_token);
                   else alert('Failed to get access token: ' + JSON.stringify(data));
                 } catch (err) {
                   alert('Error fetching access token: ' + err);
@@ -389,7 +389,7 @@ const OAuth2Form: React.FC = () => {
                     url: accessTokenUrl,
                     method: 'POST',
                     headers: headers,
-                    body: new URLSearchParams(params)
+                    body: (new URLSearchParams(params)).toString()
                   };
                   const res = await fetch('http://localhost:4000/api/proxy', {
                     method: 'POST',
@@ -400,7 +400,7 @@ const OAuth2Form: React.FC = () => {
                     body: JSON.stringify(proxyBody)
                   });
                   const data = await res.json();
-                  if (data.access_token) setAccessToken(data.access_token);
+                  if (data.body.access_token) setAccessToken(data.body.access_token);
                   else alert('Failed to get access token: ' + JSON.stringify(data));
                 } catch (err) {
                   alert('Error fetching access token: ' + err);
