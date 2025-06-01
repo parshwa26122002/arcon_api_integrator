@@ -96,7 +96,7 @@ export const processRequestWithVariables = (request: APIRequest, variables: Vari
           }
         }
         break;
-      case 'form-data':
+      case 'formdata':
         if (body.formData) {
           body.formData = body.formData.map((item: FormDataItem) => ({
             ...item,
