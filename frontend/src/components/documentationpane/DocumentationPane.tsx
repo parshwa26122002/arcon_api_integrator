@@ -253,7 +253,7 @@ interface DocumentationPaneProps {
 //  `;
 //}
 
-function renderCollectionHTML(col: APICollection | null, id: string): string {
+function renderCollectionHTML(col: APICollection | null): string {
     const dummyval = 'Value'
     if (!col) return '<div>Loading...</div>';
     const colAuthType = col.auth?.type || '';
@@ -888,7 +888,7 @@ const DocumentationPane: React.FC<DocumentationPaneProps> = ({ tabState }) => {
     const [collection, setCollection] = useState<APICollection | null>(null);
 
     const handleExport = () => {
-        const html = renderCollectionHTML(collection, tabState.collectionId);
+        const html = renderCollectionHTML(collection);
         if (exportType === 'pdf') {
             exportAsPDF(tabState.title, html);
         } else {
@@ -925,7 +925,7 @@ const DocumentationPane: React.FC<DocumentationPaneProps> = ({ tabState }) => {
                 }}
             >
                 {/* Render documentation content here */}
-                <div dangerouslySetInnerHTML={{ __html: renderCollectionHTML(collection, tabState.collectionId) }} />
+                <div dangerouslySetInnerHTML={{ __html: renderCollectionHTML(collection) }} />
             </div>
         </div>
     );
