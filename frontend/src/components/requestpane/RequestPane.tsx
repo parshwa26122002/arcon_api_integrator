@@ -778,7 +778,6 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     onStateChange({...tabState, showSchemaInput:true});
   }
 
-  const existingSchema = tabState.response?.[0]?.expectedSchema;
   const existingValidation = tabState.response?.[0]?.validationResult;
 
   return (

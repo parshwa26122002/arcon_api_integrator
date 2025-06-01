@@ -360,6 +360,7 @@ export type RunnerTabState = {
       name: string;
       code: number;
       status: string;
+      durationSeconds: number;
       body: string;
       isResponseSaved: boolean;
     }[];
