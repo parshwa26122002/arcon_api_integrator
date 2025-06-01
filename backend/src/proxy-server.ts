@@ -3,12 +3,17 @@ import cors from 'cors';
 import fetch, { RequestInit } from 'node-fetch';
 import authRouter from './auth'
 
+import ramlToPostmanRouter from './ramlToPostman';
+import graphqlToPostmanRouter from './graphqlToPostman';
 const app = express();
 const PORT = 4000;
 
 app.use(cors());
 app.use(json());
 app.use("/api",authRouter)
+
+app.use("/api", ramlToPostmanRouter);
+app.use("/api", graphqlToPostmanRouter);
 // Proxy endpoint that handles all HTTP methods
 app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
   (async () => {
