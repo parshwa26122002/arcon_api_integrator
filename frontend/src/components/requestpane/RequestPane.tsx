@@ -626,9 +626,9 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                   urlObj = new URL(tabState.url);
                 } catch {
                   // If invalid, don't update URL
-                  onStateChange(newState);
-                  if (tabState.collectionId && tabState.requestId) {
-                    updateRequest(tabState.collectionId, tabState.requestId, { queryParams: newParams });
+              onStateChange(newState);
+              if (tabState.collectionId && tabState.requestId) {
+                updateRequest(tabState.collectionId, tabState.requestId, { queryParams: newParams });
                   }
                   return;
                 }

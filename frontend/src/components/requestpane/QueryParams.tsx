@@ -82,7 +82,7 @@ const DeleteButton = styled.button`
   visibility: hidden;
   background: none;
   border: none;
-  color: #888;
+  color: var(--color-muted);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -107,19 +107,22 @@ const SuggestionsContainer = styled.div`
   width: 100%;
   max-height: 200px;
   overflow-y: auto;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color:var(--color-panel);
+  border: 1px var(--color-border) solid;
+  color: var(--color-text);
   border-radius: 4px;
   z-index: 1000;
+  font-size: 12px;
 `;
 
 const SuggestionItem = styled.div`
   padding: 8px;
   cursor: pointer;
-  color: #e1e1e1;
+  color: var(--color-text);
+  font-family: monospace;
   
   &:hover {
-    background-color: #3d3d3d;
+    background-color: var(--color-panel-alt);
   }
 `;
 

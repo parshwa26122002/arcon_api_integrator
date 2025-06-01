@@ -8,7 +8,7 @@ export const Tab = styled.button<TabProps>`
   padding: 6px 24px;
   background-color: transparent;
   border: none;
-  color: ${props => props.active ? 'var(--color-text)' : '#999999'};
+  color: ${props => props.active ? 'var(--color-text)' : 'var(--color-muted)'};
   cursor: pointer;
   font-size: 14px;
   font-weight: ${props => props.active ? '600' : 'normal'};

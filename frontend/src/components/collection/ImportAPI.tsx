@@ -56,14 +56,15 @@ const ModalHeader = styled.div`
 
 const CloseButton = styled.button`
   background: none;
-  border: none;
-  color: #999;
+  border: none;  color: var(--color-muted);
   cursor: pointer;
   font-size: 20px;
   padding: 4px;
-  
+  background-color: transparent;
   &:hover {
     color: var(--color-text);
+    background-color: none;
+    border-color: transparent;
   }
 `;
 
@@ -133,7 +134,7 @@ const FileInputButton = styled.button`
 `;
 
 const ErrorText = styled.p`
-  color: #ff6b6b;
+  color: var(--color-error);
   font-size: 12px;
   margin-top: 8px;
 `;

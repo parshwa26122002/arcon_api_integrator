@@ -32,14 +32,14 @@ const Title = styled.h2`
 
 const Select = styled.select`
   padding: 8px;
-  background-color:var(--color-panel);
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color:var(--color-text);
+  color: var(--color-text);
   width: 200px;
   &:focus {
     outline: none;
-    border-color:var(--color-tab-active);
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -61,7 +61,7 @@ const ToggleButton = styled.button`
   right: 12px;
   background: none;
   border: none;
-  color: #808080;
+  color: var(--color-muted);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -69,7 +69,7 @@ const ToggleButton = styled.button`
   justify-content: center;
 
   &:hover {
-    color: #a0a0a0;
+    color: var(--color-text);
   }
 `;
 
@@ -90,6 +90,14 @@ const Input = styled.input`
     outline: none;
     border-color: var(--color-tab-active);
   }
+`;
+
+const TokenDisplay = styled.div`
+  background: var(--color-panel-dark);
+  color: var(--color-text);
+  padding: 8px;
+  border-radius: 4px;
+  word-break: break-all;
 `;
 
 const OAuth2Form: React.FC = () => {
@@ -320,7 +328,7 @@ const OAuth2Form: React.FC = () => {
             {accessToken && (
               <div style={{ marginTop: 12 }}>
                 <strong>Access Token:</strong>
-                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
+                <TokenDisplay>{accessToken}</TokenDisplay>
               </div>
             )}
           </>
@@ -412,7 +420,7 @@ const OAuth2Form: React.FC = () => {
             {accessToken && (
               <div style={{ marginTop: 12 }}>
                 <strong>Access Token:</strong>
-                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
+                <TokenDisplay>{accessToken}</TokenDisplay>
               </div>
             )}
           </>
@@ -608,7 +616,7 @@ const OAuth2Form: React.FC = () => {
             {oauthToken && (
               <div style={{ marginTop: 12 }}>
                 <strong>Access Token:</strong>
-                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{oauthToken}</div>
+                <TokenDisplay>{oauthToken}</TokenDisplay>
               </div>
             )}
           </>
@@ -637,7 +645,7 @@ const OAuth2Form: React.FC = () => {
 
 const GetTokenButton = styled.button`
   padding: 8px 16px;
-  background-color: #0066cc;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -648,7 +656,7 @@ const GetTokenButton = styled.button`
   margin-bottom: 24px;
 
   &:hover {
-    background-color: #0052a3;
+    background-color: var(--color-primary-hover);
   }
 `;
 

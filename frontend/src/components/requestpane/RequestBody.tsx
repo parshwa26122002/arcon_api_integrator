@@ -103,7 +103,7 @@ const Table = styled.div`
 const TableRow = styled.div`
   display: table-row;
   &:hover {
-    background-color:var(--color-panel-alt);
+    background-color: none;
   }
 `;
 
@@ -462,8 +462,8 @@ const CustomSuggestionsContainer = styled.div`
   position: fixed;
   max-height: 200px;
   overflow-y: auto;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  background-color:var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   z-index: 1000;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -473,7 +473,7 @@ const CustomSuggestionsContainer = styled.div`
 const CustomSuggestionItem = styled.div`
   padding: 8px 12px;
   cursor: pointer;
-  color: #e1e1e1;
+  color: #var(--color-text);
   font-size: 12px;
   
   &:hover {

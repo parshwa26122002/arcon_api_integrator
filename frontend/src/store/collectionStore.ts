@@ -631,7 +631,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       headers: request.headers,
       queryParams: request.queryParams,
       body: request.body,
-      contentType: request.body.mode,
+      contentType: request.body?.mode || 'none',
       auth: request.auth,
       response: request.response || []
     };

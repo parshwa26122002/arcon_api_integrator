@@ -44,8 +44,7 @@ const Description = styled.textarea`
   border: 1px solid var(--color-border);
   border-radius: 4px;
   color: var(--color-text);
-  font-size: 14px;
-  resize: vertical;
+  font-size: 14px;  resize: vertical;
   margin-bottom: 16px;
 
   &:focus {
@@ -54,14 +53,14 @@ const Description = styled.textarea`
   }
 
   &::placeholder {
-    color: #888;
+    color: var(--color-input-placeholder);
   }
 `;
 
 const ViewDocButton = styled.button`
   background: none;
   border: none;
-  color: #7c3aed;
+  color: var(--color-primary);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -71,6 +70,7 @@ const ViewDocButton = styled.button`
 
   &:hover {
     text-decoration: underline;
+    background: none;
   }
 `;
 
@@ -92,18 +92,16 @@ const SearchInput = styled.input`
     outline: none;
     border-color:var(--color-tab-active);
   }
-
   &::placeholder {
-    color: #888;
+    color: var(--color-input-placeholder);
   }
 `;
 
 const SearchIcon = styled(FiSearch)`
-  position: absolute;
-  left: 12px;
+  position: absolute;  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #888;
+  color: var(--color-muted);
 `;
 
 const VariableTable = styled.div`
@@ -147,10 +145,9 @@ const Checkbox = styled.input`
 `;
 
 const DeleteButton = styled.button`
-  visibility: hidden;
-  background: none;
+  visibility: hidden;  background: none;
   border: none;
-  color: #888;
+  color: var(--color-muted);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -162,9 +159,8 @@ const DeleteButton = styled.button`
     visibility: visible;
   }
 
-  &:hover {
-    background-color: #4a4a4a;
-    color: #e1e1e1;
+  &:hover {    background-color: var(--color-panel-alt);
+    color: var(--color-text);
   }
 `;
 
