@@ -378,6 +378,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       let contentTypeHeader = processedRequest.contentType;
 
       if (processedRequest.body) {
+
         switch (processedRequest.body.mode) {
           case 'raw':
             bodyToSend = processedRequest.body.raw;
@@ -392,14 +393,8 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
               contentTypeHeader = 'text/plain';
             }
             break;
-          case 'form-data':
-            const formData = new FormData();
-            processedRequest.body.formData?.forEach((item: FormDataItem) => {
-              if (item.key && item.value) {
-                formData.append(item.key, item.value);
-              }
-            });
-            bodyToSend = formData;
+          case 'formdata':
+            bodyToSend = JSON.stringify(processedRequest.body.formData?.filter((item: FormDataItem) => item.key?.trim() && item.type?.trim() )  || []);
             contentTypeHeader = '';  // Browser will set it automatically with boundary
             break;
           case 'urlencoded':
@@ -418,6 +413,9 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
               variables: processedRequest.body.graphql?.variables ? JSON.parse(processedRequest.body.graphql.variables) : {}
             });
             contentTypeHeader = 'application/json';
+            break;
+          case 'file':
+            bodyToSend = JSON.stringify(processedRequest.body.file);
             break;
         }
       }
@@ -512,7 +510,8 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         url: finalUrl.toString(),
         method: processedRequest.method,
         headers,
-        body: bodyToSend
+        body: bodyToSend,
+        checkBodyType: processedRequest.body?.mode
       });
 
       // Prepare the proxy request body
@@ -520,20 +519,21 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         url: finalUrl.toString(),
         method: processedRequest.method,
         headers,
+        checkBodyType: processedRequest.body?.mode
       };
 
       // Only add body if it exists and method is not GET
       if (bodyToSend !== undefined && processedRequest.method !== 'GET') {
-        if (bodyToSend instanceof FormData) {
-          // Convert FormData to an object
-          const formDataObj: Record<string, string> = {};
-          bodyToSend.forEach((value, key) => {
-            formDataObj[key] = value.toString();
-          });
-          proxyBody.body = formDataObj;
-        } else {
+        //if (bodyToSend instanceof FormData) {
+        //  // Convert FormData to an object
+        //  const formDataObj: Record<string, string> = {};
+        //  bodyToSend.forEach((value, key) => {
+        //    formDataObj[key] = value.toString();
+        //  });
+        //  proxyBody.body = formDataObj;
+        //} else {
           proxyBody.body = bodyToSend;
-        }
+        //}
       }
 
       // Make the request through the proxy

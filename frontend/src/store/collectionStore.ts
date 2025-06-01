@@ -44,6 +44,8 @@ export interface URLExport {
     raw: string;
     protocol: string;
     host: string[];
+    port?: string;
+    path?: string[];
     query?: ExportKeyValueWithDescription[];
 }
 export interface ExportAuth {
@@ -51,6 +53,8 @@ export interface ExportAuth {
     bearer?: ExportKeyValueType[];
     apikey?: ExportKeyValueType[];
     basic?: ExportKeyValueType[];
+    oauth2?: ExportKeyValueType[];
+    oauth1?: ExportKeyValueType[];
 }
 export interface ExportFolderItem {
     name: string;
@@ -96,7 +100,7 @@ export type ExportBody =
         graphql: ExportBodyGraphql;
     };
 export interface RequestObject {
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH';
     header: ExportHeader[];
     body?: ExportBody;
     url: URLExport;
@@ -106,7 +110,7 @@ export interface RequestObject {
 export interface ExportRequestItem {
     name: string;
     request: RequestObject;
-    response: Record<string, unknown>[];
+    response: ResponseExport[];
 }
 export type ExportCollectionItem = ExportFolderItem | ExportRequestItem;
 export interface ExportCollection {
@@ -117,7 +121,7 @@ export interface ExportCollection {
 }
 export interface ResponseExport {
     originalRequest: RequestObject;
-    header: ExportHeader[];
+    header?: ExportHeader[];
     body?: string;
     status: string;
     code: number;
@@ -144,6 +148,9 @@ export interface FormDataItem {
   type: 'text' | 'file';
   src?: string;
   isSelected?: boolean;
+  fileType?: string; // MIME type for file
+  fileSize?: number; // Size of the file in bytes
+  content?: string; // Content of the file as ArrayBuffer
 }
 
 export interface UrlEncodedItem {
@@ -162,10 +169,12 @@ export interface FileBody {
   name: string;
   content: string;
   src?: string;
+  fileType?: string;
+  fileSize?: number;
 }
 
 export interface RequestBody {
-  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded' | 'graphql';
+  mode: 'none' | 'raw' | 'formdata' | 'file' | 'urlencoded' | 'graphql';
   raw?: string;
   options?: {
     raw?: {
@@ -249,7 +258,7 @@ export interface Request {
 export type HttpMethod = APIRequest['method'];
 
 export type TabBodyType = {
-  mode: 'none' | 'raw' | 'form-data' | 'file' | 'urlencoded' | 'graphql';
+  mode: 'none' | 'raw' | 'formdata' | 'file' | 'urlencoded' | 'graphql';
   raw?: string;
   options?: {
     raw?: {

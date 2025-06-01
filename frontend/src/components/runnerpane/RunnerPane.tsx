@@ -428,7 +428,7 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
             contentTypeHeader = 'text/plain';
           }
           break;
-        case 'form-data':
+        case 'formdata':
           const formData = new FormData();
           processedRequest.body.formData?.forEach((item: FormDataItem) => {
             if (item.key && item.value) {
