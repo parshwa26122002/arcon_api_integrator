@@ -15,12 +15,16 @@ export const convertRequestBodyToTabBody = (requestBody: any): TabBodyType => {
       };
     case 'formdata':
       return {
-        mode: 'form-data',
-        formData: (requestBody.formdata || []).map((item: FormDataItem) => ({
+        mode: 'formdata',
+        formData: (requestBody.formData || []).map((item: FormDataItem) => ({
           key: item.key || '',
           value: item.value || '',
-          type: item.type || 'text',
-          isSelected: item.isSelected || false
+            type: item.type || 'text',
+            src: item.src,
+            fileType: item.fileType,
+            fileSize: item.fileSize,
+            content: item.content,
+            isSelected: item.isSelected || false
         }))
       };
     case 'urlencoded':
@@ -37,8 +41,9 @@ export const convertRequestBodyToTabBody = (requestBody: any): TabBodyType => {
       return requestBody.file?.src ? {
         mode: 'file',
         file: {
-          name: requestBody.file.src,
-          content: ''
+          name: requestBody.file.src || '',
+          content: requestBody.file.content || '',
+          src: requestBody.file.src || ''
         }
       } : { mode: 'none' };
     case 'graphql':
@@ -64,14 +69,18 @@ export const convertTabBodyToRequestBody = (tabBody: TabBodyType): any => {
           raw: { language: tabBody.options?.raw?.language || 'json' }
         }
       };
-    case 'form-data':
+    case 'formdata':
       return {
         mode: 'formdata',
-        formdata: tabBody.formData?.map((item: FormDataItem) => ({
+        formData: tabBody.formData?.map((item: FormDataItem) => ({
           key: item.key,
           value: item.value,
-          type: item.type,
-          isSelected: item.isSelected
+            type: item.type,
+            src: item.src,
+            fileType: item.fileType,
+            fileSize: item.fileSize,
+            content: item.content,
+            isSelected: item.isSelected
         }))
       };
     case 'urlencoded':
@@ -88,7 +97,9 @@ export const convertTabBodyToRequestBody = (tabBody: TabBodyType): any => {
       return {
         mode: 'file',
         file: {
-          src: tabBody.file?.name || ''
+            src: tabBody.file?.name || '',
+            content: tabBody.file?.content || '',
+            name: tabBody.file?.name || ''
         }
       };
     case 'graphql':

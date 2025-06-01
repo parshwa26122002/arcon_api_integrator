@@ -190,9 +190,16 @@ export default function ImportAPI(): JSX.Element {
 
     try {
       // Create a new File object from the raw text
-      const file = new File([rawText], "import.json", {
-        type: "application/json",
-      });
+      let file:any;
+      if(rawText.trim().substring(0).includes("RAML")){
+        file = new File([rawText], "import.raml", {
+          type: "raml",
+        });
+      }else{
+        file = new File([rawText], "import.json", {
+          type: "application/json",
+        });
+      }
       const parsed = await parseImportFile(file);
       handleParsedData(parsed);
     } catch (err: any) {
@@ -631,7 +638,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
           case "formdata":
             body = {
               mode: "formdata" as const,
-              formdata: (item.request.body.formdata || []).map((item: any) => ({
+                formData: (item.request.body.formdata || []).map((item: any) => ({
                 key: item.key || "",
                 value: item.value || "",
                 type: item.type || "text",
