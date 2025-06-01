@@ -978,7 +978,7 @@ function renderCollectionHTML(col: APICollection | null): string {
                 <tr><th>Name</th><th>Value</th></tr>
               </thead>
               <tbody>
-                ${col.variables.map(v => `<tr><td>${v.name}</td><td>${v.initialValue}</td></tr>`).join('')}
+                ${col.variables.map(v => `<tr><td>${v.name}</td><td>${v.currentValue ?? v.initialValue ?? ''}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : '<p>No variables defined.</p>'}

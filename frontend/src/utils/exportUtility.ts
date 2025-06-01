@@ -5,7 +5,7 @@ function convertVariables(variables?: Variable[]): ExportKeyValueType[] | undefi
     if (!variables) return undefined;
     return variables.map(v => ({
         key: v.name,
-        value: v.initialValue ?? '',
+        value: v.currentValue ?? v.initialValue ?? '',
         type: 'string'
     }));
 }
