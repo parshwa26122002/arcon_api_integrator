@@ -265,7 +265,9 @@ const OAuth2Form: React.FC = () => {
                   return;
                 }
                 try {
-                  const res = await fetch(accessTokenUrl, {
+                  // Make the request through the proxy
+                  let proxyBody = {
+                    url: accessTokenUrl,
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/x-www-form-urlencoded',
@@ -279,7 +281,16 @@ const OAuth2Form: React.FC = () => {
                       password: password,
                       scope
                     })
+                  };
+                  const res = await fetch('http://localhost:4000/api/proxy', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Accept-Encoding': 'identity'
+                    },
+                    body: JSON.stringify(proxyBody)
                   });
+                  
                   const data = await res.json();
                   if (data.access_token) setAccessToken(data.access_token);
                   else alert('Failed to get access token: ' + JSON.stringify(data));
@@ -337,11 +348,12 @@ const OAuth2Form: React.FC = () => {
                   return;
                 }
                 try {
-                  const res = await fetch(accessTokenUrl, {
+                  let proxyBody = {
+                    url: accessTokenUrl,
                     method: 'POST',
-                    headers: { 
+                    headers: {
                       'Content-Type': 'application/x-www-form-urlencoded',
-                      'Accept': 'application/json' 
+                      'Accept': 'application/json'
                     },
                     body: new URLSearchParams({
                       grant_type: 'client_credentials',
@@ -349,6 +361,14 @@ const OAuth2Form: React.FC = () => {
                       client_secret: clientSecret,
                       scope
                     })
+                  };
+                  const res = await fetch('http://localhost:4000/api/proxy', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Accept-Encoding': 'identity'
+                    },
+                    body: JSON.stringify(proxyBody)
                   });
                   const data = await res.json();
                   if (data.access_token) setAccessToken(data.access_token);

@@ -189,7 +189,8 @@ export default function ImportAPI(): JSX.Element {
 
     switch (parsed.type) {
       case "openapi":
-        collection = convertOpenAPIToCollection(parsed.source);
+        //collection = convertOpenAPIToCollection(parsed.source);
+        collection = convertPostmanToCollection(parsed.source);
         break;
       case "graphql":
         collection = convertGraphQLToCollection(parsed.source);
