@@ -1,7 +1,16 @@
 export const getAuthToken = (): boolean => {
-  const cookie = document.cookie;
-  const authToken = cookie.match("authToken");
-  return authToken ? true:false
+  try {
+    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as { [key: string]: string });
+    
+    return !!cookies['authToken'];
+  } catch (e) {
+    console.error('Error checking auth token:', e);
+    return false;
+  }
 };
 
 export const isAuthenticated = (): boolean => {
