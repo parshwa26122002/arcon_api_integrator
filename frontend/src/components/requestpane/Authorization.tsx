@@ -114,6 +114,7 @@ const OAuth2Form: React.FC = () => {
   const [nonce, setNonce] = useState('');
   const [timestamp, setTimestamp] = useState('');
   const [version, setVersion] = useState('1.0');
+  const [clientAuthMethod, setClientAuthMethod] = useState<'basic' | 'body'>('body');
 
   const togglePasswordVisibility = (field: string) => {
     setShowPasswords(prev => ({
@@ -258,6 +259,13 @@ const OAuth2Form: React.FC = () => {
               <Label>Scope</Label>
               <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => setScope(e.target.value)} />
             </FormGroup>
+            <FormGroup>
+              <Label>Client Authentication</Label>
+              <Select value={clientAuthMethod} onChange={e => setClientAuthMethod(e.target.value as 'basic' | 'body')}>
+                <option value="basic">Send as Basic Auth Header</option>
+                <option value="body">Send client credentials in body</option>
+              </Select>
+            </FormGroup>
             <GetTokenButton
               onClick={async () => {
                 if (!accessTokenUrl || !clientId || !clientSecret || !username || !password) {
@@ -265,22 +273,28 @@ const OAuth2Form: React.FC = () => {
                   return;
                 }
                 try {
+                  const headers: Record<string, string> = {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
+                  };
+                  const params: Record<string, string> = {
+                    grant_type: 'password',
+                    username,
+                    password,
+                    scope,
+                  };
+                  if (clientAuthMethod === 'basic') {
+                    headers['Authorization'] = 'Basic ' + btoa(`${clientId}:${clientSecret}`);
+                  } else {
+                    params.client_id = clientId;
+                    params.client_secret = clientSecret;
+                  }
                   // Make the request through the proxy
                   let proxyBody = {
                     url: accessTokenUrl,
                     method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/x-www-form-urlencoded',
-                      'Accept': 'application/json'
-                    },
-                    body: new URLSearchParams({
-                      grant_type: 'password',
-                      client_id: clientId,
-                      client_secret: clientSecret,
-                      username: username,
-                      password: password,
-                      scope
-                    })
+                    headers: headers,
+                    body: new URLSearchParams(params)
                   };
                   const res = await fetch('http://localhost:4000/api/proxy', {
                     method: 'POST',
@@ -341,6 +355,13 @@ const OAuth2Form: React.FC = () => {
               <Label>Scope</Label>
               <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => setScope(e.target.value)} />
             </FormGroup>
+            <FormGroup>
+              <Label>Client Authentication</Label>
+              <Select value={clientAuthMethod} onChange={e => setClientAuthMethod(e.target.value as 'basic' | 'body')}>
+                <option value="basic">Send as Basic Auth Header</option>
+                <option value="body">Send client credentials in body</option>
+              </Select>
+            </FormGroup>
             <GetTokenButton
               onClick={async () => {
                 if (!accessTokenUrl || !clientId || !clientSecret) {
@@ -348,19 +369,25 @@ const OAuth2Form: React.FC = () => {
                   return;
                 }
                 try {
+                  const headers: Record<string, string> = {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
+                  };
+                  const params: Record<string, string> = {
+                    grant_type: 'client_credentials',
+                    scope,
+                  };
+                  if (clientAuthMethod === 'basic') {
+                    headers['Authorization'] = 'Basic ' + btoa(`${clientId}:${clientSecret}`);
+                  } else {
+                    params.client_id = clientId;
+                    params.client_secret = clientSecret;
+                  }
                   let proxyBody = {
                     url: accessTokenUrl,
                     method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/x-www-form-urlencoded',
-                      'Accept': 'application/json'
-                    },
-                    body: new URLSearchParams({
-                      grant_type: 'client_credentials',
-                      client_id: clientId,
-                      client_secret: clientSecret,
-                      scope
-                    })
+                    headers: headers,
+                    body: new URLSearchParams(params)
                   };
                   const res = await fetch('http://localhost:4000/api/proxy', {
                     method: 'POST',
@@ -426,15 +453,16 @@ const OAuth2Form: React.FC = () => {
               <Label>State</Label>
               <Input type="text" placeholder="Enter state"value={state} onChange={e => setState(e.target.value)} />
             </FormGroup>
+            <FormGroup>
+              <Label>Client Authentication</Label>
+              <Select value={clientAuthMethod} onChange={e => setClientAuthMethod(e.target.value as 'basic' | 'body')}>
+                <option value="basic">Send as Basic Auth Header</option>
+                <option value="body">Send client credentials in body</option>
+              </Select>
+            </FormGroup>
             <GetTokenButton onClick={handleGetToken}>
               Get Access Token
             </GetTokenButton>
-            {accessToken && (
-              <div style={{ marginTop: 12 }}>
-                <strong>Access Token:</strong>
-                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
-              </div>
-      )}
           </>
         );
 
@@ -597,7 +625,7 @@ const OAuth2Form: React.FC = () => {
           <option value="password">Password Credentials</option>
           <option value="client">Client Credentials</option>
           <option value="code">Authorization Code</option>
-          <option value="oauth1">OAuth 1.0</option>
+          {/* <option value="oauth1">OAuth 1.0</option> */}
         </Select>
       </FormGroup>
       {renderGrantTypeFields()}
@@ -1052,7 +1080,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
         <Label>Type</Label>
         <Select value={auth.type} onChange={handleTypeChange}>
           <option value="noAuth">No Auth</option>
-          <option value="inheritCollection">Inherit from collection</option>
+          {isRequest && <option value="inheritCollection">Inherit auth from parent</option>}
           <option value="basic">Basic Auth</option>
           <option value="bearer">Bearer Token</option>
           <option value="oauth2">OAuth 2.0</option>
