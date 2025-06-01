@@ -99,7 +99,7 @@ const CloseIcon = styled.span`
   padding-left: 4px;
 
   &:hover {
-    color: #e1e1e1;
+    color: var(--color-text);
   }
 `;
 
@@ -645,6 +645,76 @@ const MainContentTabs: React.FC = () => {
     closeTab(tab.id);
   };
 
+    const handleSave = async (tab: TabState) => {
+    if (!tab.collectionId) {
+      setShowSaveModal(true);
+      return;
+    }
+
+    // Save to existing location
+    if (isRequestTab(tab) && tab.requestId) {
+      const requestBody = convertTabBodyToRequestBody(tab.body);
+      await updateRequest(tab.collectionId, tab.requestId, {
+        method: tab.method,
+        url: tab.url,
+        queryParams: tab.queryParams,
+        headers: tab.headers,
+        auth: tab.auth,
+        body: requestBody,
+        response: tab.response || []
+      });
+    } else if (isCollectionTab(tab)) {
+      await updateCollection(tab.collectionId, {
+        description: tab.description,
+        auth: tab.auth,
+        variables: tab.variables
+      });
+    } else if (isFolderTab(tab) && tab.folderId) {
+      await updateFolder(tab.collectionId, tab.folderId, {
+        description: tab.description,
+        auth: tab.auth
+      });
+    }
+
+    // Update tab state
+    setTabs(prev => prev.map(t => {
+      if (t.id !== tab.id) return t;
+      
+      const updatedTab = { ...t, hasUnsavedChanges: false };
+      if (isRequestTab(updatedTab)) {
+        return {
+          ...updatedTab,
+          originalState: {
+            method: updatedTab.method,
+            url: updatedTab.url,
+            queryParams: updatedTab.queryParams,
+            headers: updatedTab.headers,
+            auth: updatedTab.auth,
+            body: updatedTab.body
+          }
+        };
+      } else if (isCollectionTab(updatedTab)) {
+        return {
+          ...updatedTab,
+          originalState: {
+            description: updatedTab.description,
+            auth: updatedTab.auth,
+            variables: updatedTab.variables
+          }
+        };
+      } else if (isFolderTab(updatedTab)) {
+        return {
+          ...updatedTab,
+          originalState: {
+            description: updatedTab.description,
+            auth: updatedTab.auth
+          }
+        };
+      }
+      return updatedTab;
+    }));
+  };
+
   const getCurrentTab = () => tabs.find(tab => tab.id === activeTab) || null;
 
   const renderTabContent = () => {
@@ -709,7 +779,7 @@ const MainContentTabs: React.FC = () => {
         <PaneHeader
           title={currentTab.title}
           hasUnsavedChanges={currentTab.hasUnsavedChanges}
-          onSave={() => handleSaveTab(currentTab)}
+          onSave={() => handleSave(currentTab)}
         />
         {content}
       </div>
