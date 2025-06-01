@@ -20,13 +20,13 @@ app.use("/api", graphqlToPostmanRouter);
 app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
   (async () => {
     try {
-      const { url, method, headers, body } = req.body;
+      const { url, method, headers, body, checkBodyType } = req.body;
       
       console.log('Received proxy request:', {
         url,
         method,
-        headers,
-        bodyType: typeof body
+          headers,
+        checkBodyType
       });
 
       if (!url) {
@@ -45,13 +45,58 @@ app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
 
       // Add body for non-GET requests
       if (method !== 'GET' && body !== undefined) {
-        if (body instanceof FormData) {
-          reqInit.body = body;
-        } else if (typeof body === 'string') {
+        //if (body instanceof FormData) {
+        //  reqInit.body = body;
+          //} else
+        if (typeof body === 'string') {
           reqInit.body = body;
         } else {
           reqInit.body = JSON.stringify(body);
         }
+        let formDataArray: any[] = [];
+        if (checkBodyType === 'formdata' && typeof reqInit.body === 'string') {
+            formDataArray = JSON.parse(reqInit.body);
+            const formData = new FormData();
+            if (Array.isArray(formDataArray)) {
+                for (const item of formDataArray) {
+                    if (!item.key || item.isSelected === false) continue;
+
+                    if (item.type === 'file' && item.content && item.fileType) {
+                        // item.content is expected to be a base64 string (e.g., "data:...;base64,....")
+                        let base64Data = item.content;
+                        if (base64Data.startsWith('data:')) {
+                            base64Data = base64Data.split(',')[1];
+                        }
+                        const buffer = Buffer.from(base64Data, 'base64');
+                        const blob = new Blob([buffer], { type: item.fileType });
+                        formData.append(
+                            item.key,
+                            blob,
+                            item.src || 'file',
+                        );
+                    } else if (item.type === 'text') {
+                        formData.append(item.key, item.value || '');
+                    }
+                }
+
+            }
+            //delete reqInit.headers['Content-Type']; // Let FormData set it with boundary
+            reqInit.body = formData;
+
+        }
+        if (checkBodyType === 'file' && typeof reqInit.body === 'string') {
+            let fileData = JSON.parse(reqInit.body);
+            let base64Data = fileData.content;
+            if (base64Data.startsWith('data:')) {
+                base64Data = base64Data.split(',')[1];
+            }
+            const buffer = Buffer.from(base64Data, 'base64');
+            if (reqInit.headers && typeof reqInit.headers === 'object' && !Array.isArray(reqInit.headers)) {
+                (reqInit.headers as Record<string, string>)['Content-Type'] = fileData.fileType || 'application/octet-stream';
+            }
+            reqInit.body = buffer;
+            //const blob = new Blob([buffer], { type: fileData.fileType });
+        } 
       }
 
       console.log('Sending request to:', url);
