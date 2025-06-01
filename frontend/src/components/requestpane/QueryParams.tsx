@@ -141,17 +141,17 @@ const QueryParams: React.FC<QueryParamsProps> = ({ params: initialParams, onChan
   // Add empty row if the last row has content
   const lastParam = params[params.length - 1];
   if (lastParam && (lastParam.key || lastParam.value || lastParam.description)) {
-    params = [
-      ...params,
-      {
-        id: uuid(),
-        key: '',
-        value: '',
-        description: '',
-        isSelected: false
-      }
-    ];
-  }
+      params = [
+        ...params,
+        {
+          id: uuid(),
+          key: '',
+          value: '',
+          description: '',
+          isSelected: false
+        }
+      ];
+    }
 
   // Variable suggestions state
   const [showSuggestions, setShowSuggestions] = React.useState<{ [key: string]: boolean }>({});

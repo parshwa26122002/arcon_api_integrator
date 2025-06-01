@@ -194,6 +194,7 @@ export interface Response {
   status: string;
   code: number;
   body: string;
+  durationSeconds: number;
   expectedSchema?: string;
   expectedCode?: number;
   expectedStatus?: string; 
@@ -277,6 +278,7 @@ export interface RequestTabState {
     status: string;
     code: number;
     body: string;
+    durationSeconds: number;
     timestamp?: string;
     expectedSchema?: string;
     expectedCode?: number;
@@ -297,6 +299,7 @@ export interface RequestTabState {
       status: string;
       code: number;
       body: string;
+      durationSeconds: number;
       timestamp?: string;
       expectedSchema?: string;
       expectedCode?: number;

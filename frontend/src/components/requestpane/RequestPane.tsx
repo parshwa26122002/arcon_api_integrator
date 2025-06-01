@@ -239,27 +239,52 @@ interface RequestPaneProps {
 }
 
 const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) => {
-  const request = useCollectionStore(state => {
-    const collection = state.collections.find(c => c.id === state.activeCollectionId);
-    return collection?.requests.find(r => r.id === state.activeRequestId) || null;
-  });
+  // const request = useCollectionStore(state => {
+  //   // Recursively search for the request in collections and folders
+  //   function findRequestInFolders(folders: any[], requestId: string): any | null {
+  //     for (const folder of folders) {
+  //       // Search in this folder's requests
+  //       if (folder.requests) {
+  //         const found = folder.requests.find((r: any) => r.id === requestId);
+  //         if (found) return found;
+  //       }
+  //       // Recurse into subfolders
+  //       if (folder.folders) {
+  //         const found = findRequestInFolders(folder.folders, requestId);
+  //         if (found) return found;
+  //       }
+  //     }
+  //     return null;
+  //   }
+  //   const collection = state.collections.find(c => c.id === state.activeCollectionId);
+  //   if (!collection) return null;
+  //   // Search in collection root requests
+  //   let req = collection.requests.find(r => r.id === state.activeRequestId) || null;
+  //   if (req) return req;
+  //   // Search in folders recursively
+  //   if (collection.folders && state.activeRequestId) {
+  //     req = findRequestInFolders(collection.folders, state.activeRequestId);
+  //   }
+  //   return req || null;
+  // });
   const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
   const [isResponseSaved, setIsResponseSaved] = useState(true);
   const [, setShowSearch] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   
   // Move response state into tabState updates
-  const updateTabResponse = useCallback((responseText: string, status: string, code: number) => {
+  const updateTabResponse = useCallback((responseText: string, status: string, code: number, durationSeconds: number) => {
     const newState = {
       ...tabState,
       response: [{
         body: responseText,
         status: status,
         code: code,
+        durationSeconds: durationSeconds,
         timestamp: new Date().toISOString(),
-        expectedSchema: request?.response[0]?.expectedSchema,
-        expectedCode: request?.response[0]?.expectedCode,
-        expectedStatus: request?.response[0]?.expectedStatus
+        expectedSchema: tabState.response?.[0]?.expectedSchema,
+        expectedCode: tabState.response?.[0]?.expectedCode,
+        expectedStatus: tabState.response?.[0]?.expectedStatus
         
       }]
     };
@@ -284,7 +309,6 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     const input = e.target.value;
     const newState = { ...tabState, url: input };
     onStateChange(newState);
-  
     const queryParams: typeof tabState.queryParams = [];
   
     const queryStart = input.indexOf('?');
@@ -308,18 +332,38 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
   
     const updatedState = { ...tabState, url: input, queryParams };
     onStateChange(updatedState);
-  }, [tabState, onStateChange]);
-  
+    // If this tab is linked to a collection, update collection state too
+    if (tabState.collectionId && tabState.requestId) {
+      updateRequest(tabState.collectionId, tabState.requestId, {
+        url: e.target.value
+      });
+    }
+  }, [tabState, onStateChange, updateRequest]);
 
   const handleSend = async () => {
-    if (!request) return;
+    // if (!tabState) return;
 
-    if (!request.url) {
-      updateTabResponse('Error: Please enter a URL', 'Error', 0);
+    if (!tabState.url) {
+      updateTabResponse('Error: Please enter a URL', 'Error', 0, 0);
       return;
     }
 
     try {
+      // Build an APIRequest object from tabState
+      const apiRequest = {
+        id: tabState.requestId || '',
+        name: tabState.title || '',
+        method: tabState.method,
+        url: tabState.url,
+        queryParams: tabState.queryParams || [],
+        headers: tabState.headers || [],
+        auth: tabState.auth || { type: 'none', credentials: {} },
+        body: tabState.body,
+        contentType: tabState.headers.find(h => h.key?.toLowerCase() === 'content-type')?.value || '',
+        formData: tabState.body?.formData || [],
+        response: tabState.response || [],
+      };
+
       // Get collection variables if this request belongs to a collection
       const collection = useCollectionStore.getState().collections.find(
         c => c.id === tabState.collectionId
@@ -327,7 +371,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       const variables = collection?.variables || [];
 
       // Process request with variables
-      const processedRequest = processRequestWithVariables(request, variables);
+      const processedRequest = processRequestWithVariables(apiRequest, variables);
 
       // Prepare request body and determine content type
       let bodyToSend = undefined;
@@ -382,8 +426,9 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       const headers: Record<string, string> = {};
 
       // Add authorization headers based on auth type
-      if (request.auth.type === 'inheritCollection') {
-        const parentAuth = getNearestParentAuth(request.id, true);
+      let parentAuth = null;
+      if (tabState.auth.type === 'inheritCollection') {
+        parentAuth = tabState.requestId ? getNearestParentAuth(tabState.requestId, true) : undefined;
         if (parentAuth) {
           if (parentAuth.type === 'basic') {
             const { username, password } = parentAuth.credentials;
@@ -396,7 +441,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
             if (token) {
               headers['Authorization'] = `Bearer ${token}`;
             }
-          } else if (parentAuth.type === 'apiKey') {
+          } else if (parentAuth.type === 'apiKey' && parentAuth.credentials.in === "header") {
             const { key, value } = parentAuth.credentials;
             if (key && value) {
               headers[key] = value;
@@ -404,8 +449,8 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
           }
         }
       }
-      if (request.auth.type === 'basic') {
-        const { username, password } = request.auth.credentials;
+      if (tabState.auth.type === 'basic') {
+        const { username, password } = tabState.auth.credentials;
         if (username && password) {
           const base64Credentials = btoa(`${username}:${password}`);
           headers['Authorization'] = `Basic ${base64Credentials}`;
@@ -443,8 +488,23 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
             finalUrl.searchParams.append(param.key, param.value || '');
           }
         });
+        if (tabState.auth.credentials.in === "query") {
+          // Add API key to query parameters if specified
+          const { key, value } = tabState.auth.credentials;
+          if (key && value) {
+            finalUrl.searchParams.append(key, value);
+          }
+        }
+        else if (parentAuth && parentAuth.credentials.in === "query") {
+          // Add API key to query parameters if specified in parent auth
+          const { key, value } = parentAuth.credentials;
+          if (key && value) {
+            finalUrl.searchParams.append(key, value);
+          }
+
+        }
       } catch (error) {
-        updateTabResponse(`Error: Invalid URL - ${processedRequest.url}`, 'Error', 0);
+        updateTabResponse(`Error: Invalid URL - ${tabState.url}`, 'Error', 0, 0);
         return;
       }
 
@@ -491,10 +551,11 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         const responseText = await response.text();
         
         let formattedResponse = responseText;
+        let jsonData: any = null;
         if (contentType?.includes('application/json')) {
           try {
-            const jsonData = JSON.parse(responseText);
-            formattedResponse = JSON.stringify(jsonData, null, 2);
+            jsonData = JSON.parse(responseText);
+            formattedResponse = JSON.stringify(jsonData.body, null, 2);
           } catch {
             formattedResponse = responseText;
           }
@@ -503,27 +564,29 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         updateTabResponse(
           formattedResponse,
           response.statusText,
-          response.status
+          response.status,
+          jsonData.durationSeconds || 0
         );
 
       } catch (error) {
         console.error('Failed to process response:', error);
-        updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0);
+        updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0, 0);
       }
     } catch (error) {
       console.error('Request failed:', error);
-      updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0);
+      updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0, 0);
     }
     setIsResponseSaved(false);
   };
 
   const SaveResponse = useCallback(() => {
-    if (!tabState.collectionId || !tabState.requestId || !request || !tabState.response) return;
+    if (!tabState.collectionId || !tabState.requestId || !tabState.response) return;
   
     const latestResponse = {
       status: tabState.response[0].status,
       code: tabState.response[0].code,
       body: tabState.response[0].body,
+      durationSeconds: tabState.response[0].durationSeconds,
       timestamp: new Date().toISOString(),
       expectedResponse:{}
     };
@@ -533,7 +596,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       response: [latestResponse],
     });
     setIsResponseSaved(true);
-  }, [request, tabState, updateRequest]);
+  }, [tabState, updateRequest]);
 
   const renderTabContent = useMemo(() => {
     switch (activeTab) {
@@ -542,10 +605,41 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
           <QueryParams
             params={tabState.queryParams}
             onChange={(newParams) => {
-              const newState = { ...tabState, queryParams: newParams };
+              // Update queryParams in state as before
+              let newState = { ...tabState, queryParams: newParams };
+
+              // --- Begin: Sync URL input with Query Params ---
+              try {
+                // Parse the base URL (without query params)
+                let urlObj;
+                try {
+                  urlObj = new URL(tabState.url);
+                } catch {
+                  // If invalid, don't update URL
+                  onStateChange(newState);
+                  if (tabState.collectionId && tabState.requestId) {
+                    updateRequest(tabState.collectionId, tabState.requestId, { queryParams: newParams });
+                  }
+                  return;
+                }
+                // Remove all existing search params
+                urlObj.search = '';
+                // Add all selected query params
+                newParams.forEach(param => {
+                  if (param.isSelected && param.key) {
+                    urlObj.searchParams.append(param.key, param.value || '');
+                  }
+                });
+                // Update the URL in state
+                newState.url = urlObj.toString();
+              } catch {
+                // If any error, fallback to just updating params
+              }
+              // --- End: Sync URL input with Query Params ---
+
               onStateChange(newState);
               if (tabState.collectionId && tabState.requestId) {
-                updateRequest(tabState.collectionId, tabState.requestId, { queryParams: newParams });
+                updateRequest(tabState.collectionId, tabState.requestId, { queryParams: newParams, url: newState.url });
               }
             }}
           />
@@ -608,11 +702,11 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       const response = JSON.parse(responseRaw);
       const mismatches: string[] = [];
 
-      if(request?.response[0]?.expectedCode != tabState.response?.[0]?.code) {
-        mismatches.push(`Expected code: ${request?.response[0]?.expectedCode}, got: ${tabState.response?.[0]?.code}`);
+      if(tabState.response?.[0]?.expectedCode != tabState.response?.[0]?.code) {
+        mismatches.push(`Expected code: ${tabState.response?.[0]?.expectedCode}, got: ${tabState.response?.[0]?.code}`);
       }
-      if(request?.response[0]?.expectedStatus != tabState.response?.[0]?.status) {
-        mismatches.push(`Expected status: ${request?.response[0]?.expectedStatus}, got: ${tabState.response?.[0]?.status}`);
+      if(tabState.response?.[0]?.expectedStatus != tabState.response?.[0]?.status) {
+        mismatches.push(`Expected status: ${tabState.response?.[0]?.expectedStatus}, got: ${tabState.response?.[0]?.status}`);
       }
       Object.keys(schema).forEach(key => {
         const expectedType = schema[key];
@@ -684,6 +778,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     onStateChange({...tabState, showSchemaInput:true});
   }
 
+  const existingSchema = tabState.response?.[0]?.expectedSchema;
   const existingValidation = tabState.response?.[0]?.validationResult;
 
   return (
@@ -755,6 +850,12 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
               ) : (
                 ''
               )}
+              {tabState.response && tabState.response.length > 0 && typeof tabState.response[0] === 'object' &&
+                tabState.response[0].durationSeconds !== undefined ? (
+                <span style={{ marginLeft: 16, color: '#aaa', fontSize: 13 }}>
+                  {`Time: ${tabState.response[0].durationSeconds.toFixed(3)}s`}
+                </span>
+              ) : null}
             </ResponseLeftSection>
 
             <ResponseActions>
@@ -799,7 +900,10 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
           }
           <ResponseContent>
             <Editor
-              onMount={(editor) => (editorRef.current = editor)}
+              onMount={(editor) => {
+                editorRef.current = editor;
+                editor.updateOptions({ readOnly: true });
+              }}
               defaultLanguage="json"
               value={
                 (() => {
@@ -819,7 +923,8 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                 scrollBeyondLastLine: false,
                 padding: { top: 8, bottom: 8 },
                 lineHeight: 18,
-                wordWrap: 'on'
+                wordWrap: 'on',
+                readOnly: true
               }}
             />
           </ResponseContent>
