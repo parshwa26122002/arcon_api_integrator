@@ -46,7 +46,7 @@ interface SuggestiveInputProps {
 }
 
 export const SuggestiveInput: React.FC<SuggestiveInputProps> = ({
-  value: initialValue,
+  // value: initialValue,
   onChange,
   placeholder,
   multiline = false,

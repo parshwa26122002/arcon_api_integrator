@@ -194,22 +194,22 @@ const AuthFileUploader: React.FC<Props> = ({ onAuthenticated }) => {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const isAuthenticated = async (file: File): Promise<boolean> => {
-    const formData = new FormData();
-    formData.append('file', file);
+  // const isAuthenticated = async (file: File): Promise<boolean> => {
+  //   const formData = new FormData();
+  //   formData.append('file', file);
 
-    try {
-      const response = await fetch("http://localhost:4000/api/authenticate", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      return data.authenticated;
-    } catch (error) {
-      console.error("Error checking authentication:", error);
-      return false;
-    }
-  };
+  //   try {
+  //     const response = await fetch("http://localhost:4000/api/authenticate", {
+  //       method: "POST",
+  //       body: formData,
+  //     });
+  //     const data = await response.json();
+  //     return data.authenticated;
+  //   } catch (error) {
+  //     console.error("Error checking authentication:", error);
+  //     return false;
+  //   }
+  // };
 
   // const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
   //   const file = e.target.files?.[0];

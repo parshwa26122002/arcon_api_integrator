@@ -11,7 +11,6 @@ import { Editor } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import {FiCheckCircle, FiCopy, FiSave, FiSearch, FiTrash2, FiX } from 'react-icons/fi';
 import { processRequestWithVariables } from '../../utils/variableUtils';
-import { el } from '@faker-js/faker';
 
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
@@ -547,7 +546,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       }
 
       // Make the request through the proxy
-      const response = await fetch('http://localhost:4000/api/proxy', {
+      const response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

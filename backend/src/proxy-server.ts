@@ -3,10 +3,14 @@ import cors from 'cors';
 import fetch, { RequestInit } from 'node-fetch';
 import authRouter from './auth'
 import openapiRouter from './openapiToPostman';
-
+import path from 'path';
 import ramlToPostmanRouter from './ramlToPostman';
 import graphqlToPostmanRouter from './graphqlToPostman';
 const app = express();
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
 const PORT = 4000;
 
 app.use(cors());
@@ -173,6 +177,11 @@ app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
     });
   });
 });
+
+// Catch-all to serve React app for unknown routes
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+// });
 
 app.listen(PORT, () => {
   console.log(`Proxy server running on http://localhost:${PORT}`);

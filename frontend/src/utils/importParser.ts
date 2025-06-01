@@ -17,7 +17,7 @@ export async function parseImportFile(file: File): Promise<ParsedResult> {
       formData.append('graphqlFile', file);
 
       try {
-        const response = await fetch("http://localhost:4000/api/convertGraphQLToPostmanCollection", {
+        const response = await fetch("https://arcon-api-integrator-wic7.onrender.com/api/convertGraphQLToPostmanCollection", {
           method: "POST",
           body: formData,
         });
@@ -43,7 +43,7 @@ export async function parseImportFile(file: File): Promise<ParsedResult> {
       formData.append('ramlFile', file);
 
       try {
-        const response = await fetch("http://localhost:4000/api/convertRamlToPostmanCollection", {
+        const response = await fetch("https://arcon-api-integrator-wic7.onrender.com/api/convertRamlToPostmanCollection", {
           method: "POST",
           body: formData,
         });
@@ -75,7 +75,7 @@ export async function parseImportFile(file: File): Promise<ParsedResult> {
     console.log('Parsed Content:', parsed); // Debug log
 
     if (parsed?.openapi && typeof parsed.openapi === 'string' && parsed.openapi.startsWith('3.')) {
-      const response = await fetch('http://localhost:4000/api/convert', {
+      const response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(parsed)

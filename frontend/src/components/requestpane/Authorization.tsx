@@ -102,12 +102,11 @@ const TokenDisplay = styled.div`
 
 interface OAuth2FormProps {
   auth: AuthState;
-  onChange: (auth: AuthState) => void;
   handleCredentialChange: (key: string, value: string) => void;
   disabledFields?: boolean;
 }
 
-const OAuth2Form: React.FC<OAuth2FormProps> = ({ auth, onChange, handleCredentialChange, disabledFields }) => {
+const OAuth2Form: React.FC<OAuth2FormProps> = ({ auth, handleCredentialChange, disabledFields }) => {
   // Use props instead of local state for all fields
   const grantType = auth.credentials.grantType || 'password';
   const accessTokenUrl = auth.credentials.accessTokenUrl || '';
@@ -743,7 +742,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
         );
 
       case 'oauth2':
-        return <OAuth2Form auth={parentAuth} onChange={() => {}} handleCredentialChange={() => {}} disabledFields />;
+        return <OAuth2Form auth={parentAuth} handleCredentialChange={() => {}} disabledFields />;
 
       case 'oauth1':
         return (
@@ -926,7 +925,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
         );
 
       case 'oauth2':
-        return <OAuth2Form auth={auth} onChange={onChange} handleCredentialChange={handleCredentialChange} />;
+        return <OAuth2Form auth={auth} handleCredentialChange={handleCredentialChange} />;
 
       case 'oauth1':
         return (

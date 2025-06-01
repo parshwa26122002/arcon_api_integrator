@@ -43,7 +43,7 @@ export const convertRequestBodyToTabBody = (requestBody: any): TabBodyType => {
         file: {
           name: requestBody.file.src || '',
           content: requestBody.file.content || '',
-          src: requestBody.file.src || ''
+          // src: requestBody.file.src || ''
         }
       } : { mode: 'none' };
     case 'graphql':
