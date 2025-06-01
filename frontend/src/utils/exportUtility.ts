@@ -67,7 +67,6 @@ function convertRequest(request: APIRequest): ExportCollectionItem {
     }));
     const parsedUrl = new URL(request.url);
     const hostname = parsedUrl.hostname; // e.g. "example.domain.com"
-    hostname.split('.');
     const url: URLExport = {
         raw: request.url,
         protocol: parsedUrl.protocol.replace(':', ''),
