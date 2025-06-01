@@ -12,7 +12,6 @@ const PageWrapper = styled.div`
   width: 100vw;
   display: flex;
   flex-direction: row;
-  margin-left: 40px
 `;
 
 const LeftSide = styled.div`
