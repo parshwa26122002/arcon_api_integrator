@@ -429,13 +429,13 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
           }
           break;
         case 'formdata':
-          const formData = new FormData();
-          processedRequest.body.formData?.forEach((item: FormDataItem) => {
-            if (item.key && item.value) {
-              formData.append(item.key, item.value);
-            }
-          });
-          bodyToSend = formData;
+          //const formData = new FormData();
+          //processedRequest.body.formData?.forEach((item: FormDataItem) => {
+          //  if (item.key && item.value) {
+          //    formData.append(item.key, item.value);
+          //  }
+              //});
+          bodyToSend = processedRequest.body.formData;
           contentTypeHeader = '';  // Browser will set it automatically with boundary
           break;
         case 'urlencoded':
@@ -455,6 +455,9 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
           });
           contentTypeHeader = 'application/json';
           break;
+        case 'file':
+              bodyToSend = JSON.stringify(processedRequest.body.file);
+           break;
       }
     }
 
