@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 /.vs
 frontend/package-lock.json
+
+encrypt.js
+encrypted.bin

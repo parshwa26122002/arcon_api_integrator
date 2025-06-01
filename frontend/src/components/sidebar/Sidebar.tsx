@@ -23,10 +23,10 @@ const ContentContainer = styled.div`
   overflow-y: auto;
 `;
 
-const HistoryContainer = styled.div`
-  padding: 16px;
-  color: var(--color-text);
-`;
+// const HistoryContainer = styled.div`
+//   padding: 16px;
+//   color: var(--color-text);
+// `;
 
 const Sidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'collection' | 'history'>('collection');
