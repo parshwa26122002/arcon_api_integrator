@@ -597,7 +597,7 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
     }
 
     // Make the request through the proxy
-    const response = await fetch('http://localhost:4000/api/proxy', {
+    const response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

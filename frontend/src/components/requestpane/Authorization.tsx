@@ -302,7 +302,7 @@ const OAuth2Form: React.FC<OAuth2FormProps> = ({ auth, handleCredentialChange, d
                     headers: headers,
                     body: (new URLSearchParams(params)).toString()
                   };
-                  const res = await fetch('http://localhost:4000/api/proxy', {
+                  const res = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -396,7 +396,7 @@ const OAuth2Form: React.FC<OAuth2FormProps> = ({ auth, handleCredentialChange, d
                     headers: headers,
                     body: (new URLSearchParams(params)).toString()
                   };
-                  const res = await fetch('http://localhost:4000/api/proxy', {
+                  const res = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
