@@ -562,9 +562,26 @@ const TreeNode: React.FC<{
     moreOptionsProps.onMenuClick(''); // Close menu
   };
 
-  const handleRunFolder = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRunFolder = (folderId: string, collectionId: string) => {
     // TODO: Implement folder run
+    if (runnerTabRequest === folderId) {
+      // Force re-selection
+      setActiveCollection(null);
+      setActiveRequest(null);
+      setActiveFolder(null);
+      setRunnerTabRequest(null);
+      setTimeout(() => {
+        setRunnerTabRequest(folderId); // this updates Zustand state
+        setActiveRequest(null);
+        setActiveFolder(folderId);
+        setActiveCollection(collectionId);
+      }, 0);
+    } else {
+      setActiveCollection(collectionId);
+      setActiveRequest(null);
+      setActiveFolder(folderId);
+      setRunnerTabRequest(folderId);
+    }
     console.log('Run folder');
     moreOptionsProps.onMenuClick(''); // Close menu
   };
@@ -722,7 +739,7 @@ const TreeNode: React.FC<{
                 <FiPlus size={14} />
                 Add Request
               </MenuItem>
-              <MenuItem onClick={handleRunFolder}>
+              <MenuItem onClick={(e) => {handleRunFolder(item.id,item.collectionId); e.stopPropagation();}}>
                 <FiPlay size={14} />
                 Run Folder
               </MenuItem>

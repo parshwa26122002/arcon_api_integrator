@@ -5,12 +5,13 @@ import QueryParams from './QueryParams';
 import Authorization from './Authorization';
 import Headers from './Headers';
 import RequestBody from './RequestBody';
-import { getNearestParentAuth, useCollectionStore, type HttpMethod, type RequestTabState } from '../../store/collectionStore';
+import { getNearestParentAuth, useCollectionStore, type FormDataItem, type Header, type HttpMethod, type QueryParam, type RequestTabState, type UrlEncodedItem } from '../../store/collectionStore';
 import { Tab } from '../../styled-component/Tab';
 import { Editor } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { FiCheck, FiCheckCircle, FiCopy, FiEdit2, FiSave, FiSearch, FiTrash2, FiX } from 'react-icons/fi';
+import {FiCheckCircle, FiCopy, FiSave, FiSearch, FiTrash2, FiX } from 'react-icons/fi';
 import { processRequestWithVariables } from '../../utils/variableUtils';
+
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
   GET: '#61affe',
@@ -235,31 +236,6 @@ interface RequestPaneProps {
   onStateChange: (newState: RequestTabState) => void;
 }
 
-interface FormDataItem {
-  key: string;
-  value: string;
-  type?: 'text' | 'file';
-}
-
-interface UrlEncodedItem {
-  key: string;
-  value: string;
-}
-
-interface HeaderItem {
-  key: string;
-  value: string;
-  description?: string;
-  isSelected?: boolean;
-}
-
-interface QueryParamItem {
-  key: string;
-  value: string;
-  description?: string;
-  isSelected?: boolean;
-}
-
 const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) => {
   const request = useCollectionStore(state => {
     const collection = state.collections.find(c => c.id === state.activeCollectionId);
@@ -303,16 +279,35 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
   }, [tabState, onStateChange, updateRequest]);
 
   const handleUrlChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const newState = { ...tabState, url: e.target.value };
+    const input = e.target.value;
+    const newState = { ...tabState, url: input };
     onStateChange(newState);
-    
-    // If this tab is linked to a collection, update collection state too
-    if (tabState.collectionId && tabState.requestId) {
-      updateRequest(tabState.collectionId, tabState.requestId, {
-        url: e.target.value
-      });
+  
+    const queryParams: typeof tabState.queryParams = [];
+  
+    const queryStart = input.indexOf('?');
+    if (queryStart !== -1) {
+      const queryString = input.substring(queryStart + 1);
+      const pairs = queryString.split('&');
+  
+      for (const pair of pairs) {
+        const [key, value = ''] = pair.split('=');
+        if (key) {
+          queryParams.push({
+            id: crypto.randomUUID(),
+            key: decodeURIComponent(key),
+            value: decodeURIComponent(value),
+            isSelected: true,
+            description: ''
+          });
+        }
+      }
     }
-  }, [tabState, onStateChange, updateRequest]);
+  
+    const updatedState = { ...tabState, url: input, queryParams };
+    onStateChange(updatedState);
+  }, [tabState, onStateChange]);
+  
 
   const handleSend = async () => {
     if (!request) return;
@@ -426,7 +421,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       }
 
       // Add custom headers from the Headers tab
-      processedRequest.headers.forEach((header: HeaderItem) => {
+      processedRequest.headers.forEach((header: Header) => {
         if (header.key && header.value) {
           headers[header.key] = header.value;
         }
@@ -441,7 +436,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       let finalUrl: URL;
       try {
         finalUrl = new URL(processedRequest.url);
-        processedRequest.queryParams.forEach((param: QueryParamItem) => {
+        processedRequest.queryParams.forEach((param: QueryParam) => {
           if (param.key) {
             finalUrl.searchParams.append(param.key, param.value || '');
           }
@@ -687,7 +682,6 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     onStateChange({...tabState, showSchemaInput:true});
   }
 
-  const existingSchema = request?.response[0]?.expectedSchema;
   const existingValidation = tabState.response?.[0]?.validationResult;
 
   return (

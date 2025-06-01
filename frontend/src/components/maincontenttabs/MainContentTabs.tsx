@@ -344,7 +344,30 @@ const MainContentTabs: React.FC = () => {
       setActiveTab(newTab.id);
       setTabs([...tabs, newTab]);
   };
-    
+  
+  const createNewRunnerFolderTab = (collectionId: string) => {  
+  
+    const newTab: RunnerTabState = {
+      id: tabCounter,
+      type: 'runner',
+      title: `Runner - ${activeFolderId}`,
+      collectionId,
+      folderId: activeFolderId || '',
+      hasUnsavedChanges: false,
+      selectedRequestIds: [],
+      iterations: 1,
+      delay: 1000,
+      resultsByIteration: [],
+      started: false,
+      isOpen: false,
+      selectedResultId: null
+    };
+
+    setTabCounter(t => t + 1);
+    setActiveTab(newTab.id);
+    setTabs([...tabs, newTab]);
+};
+
   const createDocumentationTab = (collectionId: string, title: string, content: string = '') => {
     const newTab: DocumentationTabState = {
       id: tabCounter,
@@ -404,8 +427,11 @@ const MainContentTabs: React.FC = () => {
       } else {
         createNewCollectionTab(activeCollectionId);
       }
-    } else if (runnerTabRequest && activeCollectionId) {
+    } else if (runnerTabRequest && activeCollectionId && !activeRequestId && !activeFolderId) {
       createNewRunnerTab(runnerTabRequest); 
+    }
+    else if(runnerTabRequest && activeFolderId && activeCollectionId && !activeRequestId ) {
+      createNewRunnerFolderTab(activeCollectionId);
     }
   }, [activeCollectionId, activeRequestId, activeFolderId, runnerTabRequest]);
   

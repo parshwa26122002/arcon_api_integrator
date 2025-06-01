@@ -2,7 +2,7 @@
 import React, { useState, type JSX } from 'react';
 import styled from 'styled-components';
 import { parseImportFile } from '../../utils/importParser';
-import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
+import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type AuthState, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
 
 const ImportButton = styled.button`
   padding: 8px 16px;
@@ -140,6 +140,8 @@ const ErrorText = styled.p`
 
 interface Collection {
   name: string;
+  description?: string;
+  auth?: AuthState;
   requests: APIRequest[];
   folders?: APIFolder[];
   variables?: Variable[];
@@ -214,8 +216,8 @@ export default function ImportAPI(): JSX.Element {
     const collection2: APICollection = {
       id: crypto.randomUUID(),
       name: collection.name,
-      description: "",
-      auth: { type: "none", credentials: {} },
+      description: collection.description || "",
+      auth: collection.auth || { type: "none", credentials: {} },
       variables: collection.variables || [],
       folders: collection.folders || [],
       requests: collection.requests,
@@ -278,7 +280,6 @@ export default function ImportAPI(): JSX.Element {
           ],
           queryParams: [],
           contentType: "application/json",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         },
@@ -305,6 +306,7 @@ export default function ImportAPI(): JSX.Element {
             id: crypto.randomUUID(),
             key: param.name,
             value: param.example || param.default || "",
+            description: param.description || "",
           }));
 
         // Extract query parameters
@@ -313,6 +315,7 @@ export default function ImportAPI(): JSX.Element {
           .map((param: any) => ({
             key: param.name,
             value: param.example || param.default || "",
+            description: param.description || "",
           }));
 
         // Extract request body (prefer application/json)
@@ -361,7 +364,6 @@ export default function ImportAPI(): JSX.Element {
           headers,
           queryParams,
           contentType: content ? Object.keys(content)[0] : "",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         });
@@ -497,7 +499,6 @@ function convertRAMLToCollection(raml: any): Collection {
             headers,
             queryParams,
             contentType: "application/json",
-            formData: [],
             auth: { type: "", credentials: {} },
             response: []
           });
@@ -520,7 +521,6 @@ function convertRAMLToCollection(raml: any): Collection {
           headers: [],
           queryParams: [],
           contentType: "",
-          formData: [],
           auth: { type: "", credentials: {} },
           response: [],
         },
@@ -589,6 +589,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
             key: param.key,
             value: param.value || param.default || "",
             description: param.description || "",
+            isSelected: true
           }));
         url = item.request.url.raw || buildPostmanUrl(item.request.url);
       }
@@ -598,8 +599,11 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
       const credentials = authObj[authType] || {};
 
       const headers = (item.request.header || []).map((h: any) => ({
+        id: crypto.randomUUID(),
         key: h.key,
         value: h.value,
+        description: h.description || "",
+        isSelected: true
       }));
 
       // Handle request body
@@ -615,6 +619,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
                 value: item.value || "",
                 type: item.type || "text",
                 src: item.src || "",
+                isSelected: true
               })),
             };
             break;
@@ -626,6 +631,7 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
                   key: item.key || "",
                   value: item.value || "",
                   type: "text",
+                  isSelected: true
                 })
               ),
             };
@@ -676,7 +682,6 @@ function extractFoldersAndRequests(items: any[]): { folders: any[], requests: AP
           item.request.body?.options?.raw?.language === "json"
             ? "application/json"
             : "text/plain",
-        formData: [],
         auth: {
           type: authType,
           credentials: Array.isArray(credentials)
@@ -709,9 +714,11 @@ function convertPostmanToCollection(postman: any): APICollection {
       credentials: {}
     },
     variables: postman.variable?.map((v: any) => ({
-      key: v.key || "",
-      value: v.value || "",
-      type: "string"
+      id: crypto.randomUUID(),
+      name: v.key || "",
+      initialValue: v.value || "",
+      currentValue: v.value || "",
+      isSelected: true
     })) || []
   };
 }
