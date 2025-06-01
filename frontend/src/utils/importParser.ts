@@ -12,10 +12,55 @@ export async function parseImportFile(file: File): Promise<ParsedResult> {
 
   try {
     if (ext === 'graphql') {
-      return {
-        type: 'graphql',
-        source: content,
-      };
+      const formData = new FormData();
+      formData.append('graphqlFile', file);
+
+      try {
+        const response = await fetch("http://localhost:4000/api/convertGraphQLToPostmanCollection", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Conversion failed.");
+        }
+
+        const json = await response.json();     
+        
+        return {
+          type: 'postman',
+          source: json,
+        };
+      } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred during conversion.");
+      }
+    }
+
+    if(ext == 'raml'){
+      const formData = new FormData();
+      formData.append('ramlFile', file);
+
+      try {
+        const response = await fetch("http://localhost:4000/api/convertRamlToPostmanCollection", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Conversion failed.");
+        }
+
+        const json = await response.json();     
+        
+        return {
+          type: 'postman',
+          source: json,
+        };
+      } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred during conversion.");
+      }
     }
 
     let parsed: any;

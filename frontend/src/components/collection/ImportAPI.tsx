@@ -174,9 +174,16 @@ export default function ImportAPI(): JSX.Element {
 
     try {
       // Create a new File object from the raw text
-      const file = new File([rawText], "import.json", {
-        type: "application/json",
-      });
+      let file:any;
+      if(rawText.trim().substring(0).includes("RAML")){
+        file = new File([rawText], "import.raml", {
+          type: "raml",
+        });
+      }else{
+        file = new File([rawText], "import.json", {
+          type: "application/json",
+        });
+      }
       const parsed = await parseImportFile(file);
       handleParsedData(parsed);
     } catch (err: any) {
