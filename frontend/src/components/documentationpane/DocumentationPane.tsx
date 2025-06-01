@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { exportAsHTML, exportAsPDF } from '../../utils/exportUtility';
 import { storageService } from '../../services/StorageService';
-import type { APICollection, APIRequest, APIFolder } from '../../store/collectionStore';
-
+import type { APICollection, APIRequest, APIFolder, Variable } from '../../store/collectionStore';
+import { convertURLToExport } from '../../utils/exportUtility';
 interface DocumentationPaneProps {
     tabState: {
         title: string;
@@ -253,7 +253,7 @@ interface DocumentationPaneProps {
 //  `;
 //}
 
-function renderCollectionHTML(col: APICollection | null): string {
+function renderCollectionHTML(col: APICollection | null, id: string): string {
     const dummyval = 'Value'
     if (!col) return '<div>Loading...</div>';
     const colAuthType = col.auth?.type || '';
@@ -401,7 +401,7 @@ function renderCollectionHTML(col: APICollection | null): string {
     //`;
     //}
 
-    function renderRequest(request: APIRequest): string {
+    function renderRequest(request: APIRequest, variables: Variable[]): string {
         const headers = request.headers?.filter(h => h.isSelected !== false && h.key && h.value) || [];
         const queryParams = request.queryParams?.filter(q => q.key && q.value) || [];
 
@@ -575,14 +575,14 @@ function renderCollectionHTML(col: APICollection | null): string {
           `).join('')}
         </div>
       ` : '';
-
+        const urlNeeded = convertURLToExport(request.url, variables);
         return `
       <div class="request-block">
         <h4>
           <span style="color: black" class="request-method method-${request.method}">${request.method}</span>
           ${request.name}
         </h4>
-        <p style="color: black" class="url">${request.url}</p>
+        <p style="color: black" class="url">${urlNeeded.raw}</p>
         ${authSection}
         ${headersTable}
         ${queryParamsTable}
@@ -592,7 +592,7 @@ function renderCollectionHTML(col: APICollection | null): string {
     `;
     }
 
-    function renderFolder(folder: APIFolder): string {
+    function renderFolder(folder: APIFolder, variables: Variable[]): string {
         const folderAuthType = folder.auth?.type || '';
         let folderAuth = '';
         if (folderAuthType === '' || folderAuthType === 'inheritCollection' || folderAuthType === 'none') {
@@ -698,11 +698,11 @@ function renderCollectionHTML(col: APICollection | null): string {
       `;
 
         const nestedFolders = folder.folders && folder.folders.length
-            ? folder.folders.map(renderFolder).join('')
+            ? folder.folders.map(folder => renderFolder(folder, variables)).join('')
             : '';
 
         const folderRequests = folder.requests && folder.requests.length
-            ? folder.requests.map(renderRequest).join('')
+            ? folder.requests.map(request => renderRequest(request, variables)).join('')
             : '';
 
         return `
@@ -715,11 +715,11 @@ function renderCollectionHTML(col: APICollection | null): string {
     }
 
     const renderedFolders = col.folders && col.folders.length
-        ? col.folders.map(renderFolder).join('')
+        ? col.folders.map(folder => renderFolder(folder, col.variables ?? [])).join('')
         : '<p style="color: black">No folders available.</p>';
 
     const renderedRequests = col.requests && col.requests.length
-        ? col.requests.map(renderRequest).join('')
+        ? col.requests.map(request => renderRequest(request, col.variables ?? [])).join('')
         : '<p style="color: black">No standalone requests available.</p>';
 
     return `
@@ -888,7 +888,7 @@ const DocumentationPane: React.FC<DocumentationPaneProps> = ({ tabState }) => {
     const [collection, setCollection] = useState<APICollection | null>(null);
 
     const handleExport = () => {
-        const html = renderCollectionHTML(collection);
+        const html = renderCollectionHTML(collection, tabState.collectionId);
         if (exportType === 'pdf') {
             exportAsPDF(tabState.title, html);
         } else {
@@ -925,7 +925,7 @@ const DocumentationPane: React.FC<DocumentationPaneProps> = ({ tabState }) => {
                 }}
             >
                 {/* Render documentation content here */}
-                <div dangerouslySetInnerHTML={{ __html: renderCollectionHTML(collection) }} />
+                <div dangerouslySetInnerHTML={{ __html: renderCollectionHTML(collection, tabState.collectionId) }} />
             </div>
         </div>
     );
