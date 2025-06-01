@@ -11,6 +11,7 @@ import { Editor } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import {FiCheckCircle, FiCopy, FiSave, FiSearch, FiTrash2, FiX } from 'react-icons/fi';
 import { processRequestWithVariables } from '../../utils/variableUtils';
+import { el } from '@faker-js/faker';
 
 // HTTP Methods with their corresponding colors
 const HTTP_METHODS = {
@@ -347,6 +348,15 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
       updateTabResponse('Error: Please enter a URL', 'Error', 0, 0);
       return;
     }
+    const requestbody = { ...tabState.body };
+    if(requestbody.mode == 'formdata'){
+      requestbody.formData = tabState.body.formData?.filter((item: FormDataItem) => item.isSelected == true);
+    }
+    else if(requestbody.mode == 'urlencoded'){ 
+      requestbody.urlencoded = tabState.body.urlencoded?.filter((item: UrlEncodedItem) => item.isSelected == true);
+    }
+    const queryParams = tabState.queryParams.filter(x => x.isSelected);
+    const selheaders = tabState.headers.filter(x => x.isSelected);
 
     try {
       // Build an APIRequest object from tabState
@@ -355,10 +365,10 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         name: tabState.title || '',
         method: tabState.method,
         url: tabState.url,
-        queryParams: tabState.queryParams || [],
-        headers: tabState.headers || [],
+        queryParams: queryParams || [],
+        headers: selheaders || [],
         auth: tabState.auth || { type: 'none', credentials: {} },
-        body: tabState.body,
+        body: requestbody,
         contentType: tabState.headers.find(h => h.key?.toLowerCase() === 'content-type')?.value || '',
         formData: tabState.body?.formData || [],
         response: tabState.response || [],

@@ -403,11 +403,35 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
   }
 
   try {
+        const requestbody = {
+        ...request.body,
+        mode: request.body?.mode ?? 'none', 
+        };
+        if(requestbody.mode == 'formdata'){
+          requestbody.formData = request.body?.formData?.filter((item: FormDataItem) => item.isSelected == true);
+        }
+        else if(requestbody.mode == 'urlencoded'){ 
+          requestbody.urlencoded = request.body?.urlencoded?.filter((item: UrlEncodedItem) => item.isSelected == true);
+        }
+        const queryParams = request.queryParams.filter(x => x.isSelected);
+        const selheaders = request.headers.filter(x => x.isSelected);
 
+      const apiRequest = {
+        id: request.id || '',
+        name: request.name || 'Untitled Request',
+        method: request.method,
+        url: request.url,
+        queryParams: queryParams || [],
+        headers: selheaders || [],
+        auth: request.auth || { type: 'none', credentials: {} },
+        body: requestbody || {mode:'none'},
+        contentType: request.headers.find(h => h.key?.toLowerCase() === 'content-type')?.value || '',
+        response: request.response || [],
+      };
     const variables = collection?.variables || [];
 
     // Process request with variables
-    const processedRequest = processRequestWithVariables(request, variables);
+    const processedRequest = processRequestWithVariables(apiRequest, variables);
 
     // Prepare request body and determine content type
     let bodyToSend = undefined;

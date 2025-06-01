@@ -638,7 +638,7 @@ const RequestBodyComponent: React.FC<RequestBodyProps> = ({ body, onChange }) =>
     }
 
     // Handle editor content changes
-    editor.onKeyUp((e) => {
+    editor.onKeyUp(() => {
       const position = editor.getPosition();
       if (!position) return;
 

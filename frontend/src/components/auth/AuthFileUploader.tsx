@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import authImage from '../../assets/authpage.png';
 import logoImg from '../../assets/logo.jpeg';
@@ -210,18 +210,18 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
     }
   };
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
 
-    const auth = await isAuthenticated(file);
-    if (auth) {
-      document.cookie = `authToken=asdfghjigfgvergrurh84t4tvhrnvwvwe8; Max-Age=3600; path=/`;
-      onAuthenticated();
-    } else {
-      alert("Authentication failed.");
-    }
-  };
+  //   const auth = await isAuthenticated(file);
+  //   if (auth) {
+  //     document.cookie = `authToken=asdfghjigfgvergrurh84t4tvhrnvwvwe8; Max-Age=3600; path=/`;
+  //     onAuthenticated();
+  //   } else {
+  //     alert("Authentication failed.");
+  //   }
+  // };
 
   const handleLogin = async () => {
     if (!file) return alert('Please upload a file');
