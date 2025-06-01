@@ -268,6 +268,7 @@ const dynamicVariables: Record<string, DynamicVariableFunction> = {
   $randomLatitude: () => faker.location.latitude().toString(),
   $randomLongitude: () => faker.location.longitude().toString(),
   $randomTimeZone: () => faker.location.timeZone(),
+  $randomPhoneNumber: () => faker.phone.number(),
   
   // Numbers
   $randomInt: (config?: VariableConfig) => {

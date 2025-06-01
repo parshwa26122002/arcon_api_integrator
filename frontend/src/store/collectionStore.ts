@@ -272,9 +272,9 @@ export type TabBodyType = {
       language: 'json' | 'html' | 'xml' | 'text' | 'javascript';
     };
   };
-  formData?: Array<{ key: string; value: string; type: 'text' | 'file'; isSelected?: boolean }>;
+    formData?: Array<{ key: string; value: string; type: 'text' | 'file'; isSelected?: boolean ; src?: string, fileType?: string; fileSize?: number; content?: string }>;
   urlencoded?: Array<{ key: string; value: string; type: string; isSelected: boolean }>;
-  file?: { name: string; content: string };
+    file?: { name: string; content: string; src?: string; fileType?: string; fileSize?: number };
   graphql?: { query: string; variables: string };
 };
 
@@ -638,7 +638,7 @@ export const useCollectionStore = create<CollectionStoreState>((set, get) => ({
       headers: request.headers,
       queryParams: request.queryParams,
       body: request.body,
-      contentType: request.body.mode,
+      contentType: request.body?.mode || 'none',
       auth: request.auth,
       response: request.response || []
     };

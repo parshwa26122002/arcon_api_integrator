@@ -7,6 +7,7 @@ import MainContentTabs from './components/maincontenttabs/MainContentTabs';
 import AuthFileUploader from './components/auth/AuthFileUploader';
 import { isAuthenticated } from './components/auth/useAuth';
 import { FiSun, FiMoon } from 'react-icons/fi';
+import LoadingSpinner from './components/common/LoadingSpinner';
 
 const AppContainer = styled.div`
   display: flex;
@@ -79,24 +80,64 @@ function getPreferredTheme() {
 
 const App: React.FC = () => {
   const initialize = useCollectionStore(state => state.initialize);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isThemeLoaded, setIsThemeLoaded] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const preferredTheme = getPreferredTheme();
+    console.log('Initial theme:', preferredTheme); // Debug log
+    return preferredTheme;
+  });
 
-  const [authenticated, setAuthenticated] = useState<boolean>(isAuthenticated());
-  const [theme, setTheme] = useState<string>(() => getPreferredTheme());
+  // Handle theme initialization
+  useEffect(() => {
+    console.log('Theme effect running, current theme:', theme); // Debug log
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    localStorage.setItem('theme', theme);
+    setIsThemeLoaded(true);
+  }, [theme]);
 
+  // Handle authentication check after theme is loaded
+  useEffect(() => {
+    if (!isThemeLoaded) return;
+    
+    console.log('Checking authentication...'); // Debug log
+    const auth = isAuthenticated();
+    console.log('Authentication result:', auth); // Debug log
+    setAuthenticated(auth);
+    setIsLoading(false);
+  }, [isThemeLoaded]);
+
+  // Initialize store after authentication
   useEffect(() => {
     if (authenticated) {
+      console.log('Initializing store...'); // Debug log
       initialize();
     }
   }, [authenticated, initialize]);
 
-  useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+  if (isLoading || !isThemeLoaded) {
+    console.log('Showing loading spinner...'); // Debug log
+    return <LoadingSpinner />;
+  }
 
   if (!authenticated) {
-    return <AuthFileUploader onAuthenticated={() => setAuthenticated(true)} />;
+    console.log('Showing auth uploader...'); // Debug log
+    return (
+      <>
+        <ThemeToggleButton 
+          onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? <FiMoon /> : <FiSun />}
+        </ThemeToggleButton>
+        <AuthFileUploader onAuthenticated={() => {
+          console.log('Auth callback triggered'); // Debug log
+          setAuthenticated(true);
+        }} />
+      </>
+    );
   }
   
   return (

@@ -161,7 +161,7 @@ const MenuItem = styled.div<MenuItemProps>`
 
 const MethodLabel = styled.span<{ method: string }>`
   color: ${props => {
-    switch (props.method.toUpperCase()) {
+    switch (props.method?.toUpperCase()) {
       case 'GET': return '#61affe';
       case 'POST': return '#49cc90';
       case 'PUT': return '#fca130';

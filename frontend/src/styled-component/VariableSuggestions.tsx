@@ -12,7 +12,7 @@ const SuggestionsContainer = styled.div<{ visible: boolean }>`
   width: 250px;
   z-index: 1000;
   display: ${props => props.visible ? 'block' : 'none'};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--color-shadow);
 
   &::-webkit-scrollbar {
     width: 8px;

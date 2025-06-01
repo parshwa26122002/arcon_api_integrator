@@ -18,7 +18,7 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   border-radius: 8px;
   padding: 24px;
   width: 500px;
@@ -30,7 +30,7 @@ const ModalContent = styled.div`
 `;
 
 const Title = styled.h2`
-  color: #e1e1e1;
+  color: var(--color-text);
   margin: 0;
   font-size: 18px;
 `;
@@ -38,15 +38,19 @@ const Title = styled.h2`
 const Input = styled.input`
   padding: 8px 12px;
   border-radius: 4px;
-  border: 1px solid #4a4a4a;
-  background-color: #383838;
-  color: #e1e1e1;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-panel-alt);
+  color: var(--color-text);
   font-size: 14px;
   width: 100%;
   
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color: var(--color-tab-active);
+  }
+
+  &::placeholder {
+    color: var(--color-input-placeholder);
   }
 `;
 
@@ -55,7 +59,7 @@ const TreeContainer = styled.div`
   overflow-y: auto;
   min-height: 150px;
   max-height: 300px;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   padding: 8px;
   margin: 8px 0;
@@ -104,7 +108,7 @@ const FolderIconWrapper = styled.div`
 const ChevronIcon = styled.div<{ isExpanded: boolean }>`
   display: flex;
   align-items: center;
-  color: #888;
+  color: var(--color-muted);
   
   svg {
     transform: rotate(${props => props.isExpanded ? '90deg' : '0deg'});
@@ -142,8 +146,8 @@ const Button = styled.button<{ primary?: boolean }>`
   padding: 8px 16px;
   border-radius: 4px;
   border: none;
-  background-color: ${props => props.primary ? '#49cc90' : '#4a4a4a'};
-  color: white;
+  background-color: ${props => props.primary ? 'var(--color-tab-active)' : 'var(--color-panel-alt)'};
+  color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
@@ -154,7 +158,7 @@ const Button = styled.button<{ primary?: boolean }>`
   }
   
   &:hover:not(:disabled) {
-    background-color: ${props => props.primary ? '#3db583' : '#5a5a5a'};
+    background-color: ${props => props.primary ? 'var(--color-button-hover)' : 'var(--color-border)'};
   }
 `;
 
@@ -338,7 +342,7 @@ const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({
         
         <ScrollContainer>
           <div>
-            <label htmlFor="name" style={{ color: '#e1e1e1', marginBottom: '4px', display: 'block' }}>
+            <label htmlFor="name" style={{ color: 'var(--color-text)', marginBottom: '4px', display: 'block' }}>
               Name
             </label>
             <Input
@@ -350,7 +354,7 @@ const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({
           </div>
 
           <div>
-            <label style={{ color: '#e1e1e1', marginBottom: '4px', display: 'block' }}>
+            <label style={{ color: 'var(--color-text)', marginBottom: '4px', display: 'block' }}>
               Select location
             </label>
             <TreeContainer>
@@ -380,7 +384,6 @@ const SaveToCollectionModal: React.FC<SaveToCollectionModalProps> = ({
               disabled={!name || !selectedLocationId}
               onClick={() => {
                 if (name && selectedLocationId) {
-                  console.log('selectedLocationId', selectedLocationId);
                   onSave(name, selectedLocationId);
                   onClose();
                 }

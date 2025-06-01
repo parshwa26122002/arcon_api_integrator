@@ -1,10 +1,10 @@
 // src/components/ImportAPI.tsx
-import React, { useState, type JSX } from 'react';
+import React, { useState, type JSX, useEffect } from 'react';
 import styled from 'styled-components';
 import { parseImportFile } from '../../utils/importParser';
 import { useCollectionStore, type APICollection, type APIFolder, type APIRequest, type AuthState, type QueryParam, type RequestBody, type Variable } from '../../store/collectionStore';
 import logo from '../../assets/logo.jpeg';
-
+import logo_black from '../../assets/logo-black-bg.png';
 const ImportButton = styled.button`
   padding: 8px 16px;
   background-color: var(--color-tab-active);
@@ -56,14 +56,15 @@ const ModalHeader = styled.div`
 
 const CloseButton = styled.button`
   background: none;
-  border: none;
-  color: #999;
+  border: none;  color: var(--color-muted);
   cursor: pointer;
   font-size: 20px;
   padding: 4px;
-  
+  background-color: transparent;
   &:hover {
     color: var(--color-text);
+    background-color: none;
+    border-color: transparent;
   }
 `;
 
@@ -133,7 +134,7 @@ const FileInputButton = styled.button`
 `;
 
 const ErrorText = styled.p`
-  color: #ff6b6b;
+  color: var(--color-error);
   font-size: 12px;
   margin-top: 8px;
 `;
@@ -161,12 +162,32 @@ interface Collection {
   variables?: Variable[];
 }
 
+
 export default function ImportAPI(): JSX.Element {
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [importType, setImportType] = useState<"file" | "text">("file");
   const [rawText, setRawText] = useState("");
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
   const { addCollection } = useCollectionStore();
+  
+useEffect(() => {
+  const updateTheme = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    setIsDarkTheme(isDark);
+  };
+
+  updateTheme();
+
+  const observer = new MutationObserver(() => updateTheme());
+
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'], // <== important!
+  });
+
+  return () => observer.disconnect();
+}, []);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError("");
@@ -400,7 +421,9 @@ export default function ImportAPI(): JSX.Element {
   return (
     <>
       <ImportBar>
-        <LogoImg src={logo} alt="Logo" />
+        <LogoImg src={isDarkTheme ? logo_black : logo} 
+          style={{height: isDarkTheme ? '45px' : '48px',}}
+        alt="Logo" />
         <ImportButton onClick={() => setIsModalOpen(true)}>Import</ImportButton>
       </ImportBar>
 

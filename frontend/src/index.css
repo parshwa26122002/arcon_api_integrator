@@ -150,7 +150,7 @@ button:hover {
   --color-sidebar-menuitem-hover-bg: #f3f3f3;
   --color-sidebar-search-bg: #fff;
   --color-sidebar-search-border: #e0e0e0;
-  --color-sidebar-search-text: #213547;
+  --color-sidebar-search-text: #000000;
   --color-sidebar-search-focus-border: #eb434b;
   --color-sidebar-search-placeholder: #aaa;
 }

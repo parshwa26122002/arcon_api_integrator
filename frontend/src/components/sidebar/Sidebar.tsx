@@ -40,23 +40,23 @@ const Sidebar: React.FC = () => {
         >
           Collection
         </Tab>
-        <Tab
+        {/* <Tab
           active={activeTab === 'history'}
           onClick={() => setActiveTab('history')}
         >
           History
-        </Tab>
+        </Tab> */}
       </TabContainer>
       
       <ContentContainer>
-        {activeTab === 'collection' ? (
+        <CollectionSidebar/>
+        {/* {activeTab === 'collection' ? (
           <CollectionSidebar />
         ) : (
           <HistoryContainer>
-            {/* History content will be implemented later */}
             <p>Request history will appear here</p>
           </HistoryContainer>
-        )}
+        )} */}
       </ContentContainer>
     </SidebarContainer>
   );

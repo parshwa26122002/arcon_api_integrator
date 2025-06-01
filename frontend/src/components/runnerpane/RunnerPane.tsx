@@ -48,8 +48,7 @@ const FieldGroup = styled.div`
   margin-bottom: 16px;
 `;
 
-const Label = styled.label`
-  color: #cccccc;
+const Label = styled.label`  color: var(--color-muted);
   font-size: 14px;
 `;
 
@@ -64,23 +63,22 @@ const Input = styled.input`
 
 const Button = styled.button`
   padding: 10px 16px;
-  background-color: var(--color-tab-active);
-  color: #ffffff;
+  background-color: var(--color-tab-active);  color: var(--color-primary-text);
   border: none;
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
   &:hover {
-    background-color: #6a3dcf;
+    background-color: var(--color-primary-hover);
   }
 `;
 
 const HeaderRow = styled.div`
   display: flex;
   padding: 8px 12px;
-  background-color: var(--color-panel);
+  background-color: var(--color-tab-active);
   font-weight: bold;
-  color: #cccccc;
+  color: #var(--color-text);
   border-bottom: 1px solid var(--color-border);
   font-size: 14px;
 `;
@@ -89,9 +87,8 @@ const Row = styled.div`
   display: flex;
   padding: 8px 12px;
   align-items: center;
-  border-bottom: 1px solid var(--color-border);
-  &:hover {
-    background-color: #333;
+  border-bottom: 1px solid var(--color-border);  &:hover {
+    background-color: var(--color-panel-alt);
   }
   font-size: 12px;
 `;
@@ -138,9 +135,8 @@ const ResultCard = styled.div`
   cursor: pointer;
   background-color: var(--color-bg);
   margin-bottom: 8px;
-  gap: 18px;
-  &:hover {
-    background-color: #2a2a2a;
+  gap: 18px;  &:hover {
+    background-color: var(--color-panel-alt);
   }
 `;
 
@@ -165,12 +161,11 @@ const StatusTag = styled.span<{ code: number }>`
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: bold;
-  color: #fff;
+  font-weight: bold;  color: var(--color-primary-text);
   background-color: ${({ code }) => {
     if (code >= 200 && code < 300) return 'var(--color-success)';
     if (code >= 400 && code < 500) return 'var(--color-error)';
-    return '#999';
+    return 'var(--color-muted)';
   }};
 `;
 
@@ -190,12 +185,12 @@ const MethodTag = styled.span<{ method: string }>`
   font-size: 13px;
   color: ${({ method }) => {
     switch (method) {
-      case 'GET': return 'var(--color-info)';
-      case 'POST': return 'var(--color-success)';
-      case 'PUT': return 'var(--color-warning)';
-      case 'DELETE': return 'var(--color-error)';
+      case 'GET': return '#61affe';
+      case 'POST': return '#49cc90';
+      case 'PUT': return '#fca130';
+      case 'DELETE': return '#f93e3e';
       case 'PATCH': return '#f582ea';
-      default: return '#999';
+      default: return '#959da5';
     }
   }};
   margin-right: 8px;
@@ -403,11 +398,35 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
   }
 
   try {
+        const requestbody = {
+        ...request.body,
+        mode: request.body?.mode ?? 'none', 
+        };
+        if(requestbody.mode == 'formdata'){
+          requestbody.formData = request.body?.formData?.filter((item: FormDataItem) => item.isSelected == true);
+        }
+        else if(requestbody.mode == 'urlencoded'){ 
+          requestbody.urlencoded = request.body?.urlencoded?.filter((item: UrlEncodedItem) => item.isSelected == true);
+        }
+        const queryParams = request.queryParams.filter(x => x.isSelected);
+        const selheaders = request.headers.filter(x => x.isSelected);
 
+      const apiRequest = {
+        id: request.id || '',
+        name: request.name || 'Untitled Request',
+        method: request.method,
+        url: request.url,
+        queryParams: queryParams || [],
+        headers: selheaders || [],
+        auth: request.auth || { type: 'none', credentials: {} },
+        body: requestbody || {mode:'none'},
+        contentType: request.headers.find(h => h.key?.toLowerCase() === 'content-type')?.value || '',
+        response: request.response || [],
+      };
     const variables = collection?.variables || [];
 
     // Process request with variables
-    const processedRequest = processRequestWithVariables(request, variables);
+    const processedRequest = processRequestWithVariables(apiRequest, variables);
 
     // Prepare request body and determine content type
     let bodyToSend = undefined;
@@ -429,13 +448,13 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
           }
           break;
         case 'formdata':
-          const formData = new FormData();
-          processedRequest.body.formData?.forEach((item: FormDataItem) => {
-            if (item.key && item.value) {
-              formData.append(item.key, item.value);
-            }
-          });
-          bodyToSend = formData;
+          //const formData = new FormData();
+          //processedRequest.body.formData?.forEach((item: FormDataItem) => {
+          //  if (item.key && item.value) {
+          //    formData.append(item.key, item.value);
+          //  }
+              //});
+          bodyToSend = processedRequest.body.formData;
           contentTypeHeader = '';  // Browser will set it automatically with boundary
           break;
         case 'urlencoded':
@@ -455,6 +474,9 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
           });
           contentTypeHeader = 'application/json';
           break;
+        case 'file':
+              bodyToSend = JSON.stringify(processedRequest.body.file);
+           break;
       }
     }
 
@@ -701,7 +723,7 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
             <Label>Delay (ms)</Label>
             <Input
               type="number"
-              min={100}
+              min={1}
               value={tabState.delay}
               onChange={(e) => { const value = parseInt(e.target.value, 10) || 0;
                 onStateChange({ delay: value });

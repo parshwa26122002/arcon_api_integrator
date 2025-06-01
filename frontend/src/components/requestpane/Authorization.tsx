@@ -32,14 +32,14 @@ const Title = styled.h2`
 
 const Select = styled.select`
   padding: 8px;
-  background-color:var(--color-panel);
-  border: 1px solid #4a4a4a;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color:var(--color-text);
+  color: var(--color-text);
   width: 200px;
   &:focus {
     outline: none;
-    border-color:var(--color-tab-active);
+    border-color: var(--color-tab-active);
   }
 `;
 
@@ -61,7 +61,7 @@ const ToggleButton = styled.button`
   right: 12px;
   background: none;
   border: none;
-  color: #808080;
+  color: var(--color-muted);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -69,7 +69,7 @@ const ToggleButton = styled.button`
   justify-content: center;
 
   &:hover {
-    color: #a0a0a0;
+    color: var(--color-text);
   }
 `;
 
@@ -92,31 +92,34 @@ const Input = styled.input`
   }
 `;
 
-const OAuth2Form: React.FC = () => {
-  const [grantType, setGrantType] = useState<OAuthGrantType>('password');
+const TokenDisplay = styled.div`
+  background: var(--color-panel-dark);
+  color: var(--color-text);
+  padding: 8px;
+  border-radius: 4px;
+  word-break: break-all;
+`;
+
+interface OAuth2FormProps {
+  auth: AuthState;
+  onChange: (auth: AuthState) => void;
+  handleCredentialChange: (key: string, value: string) => void;
+  disabledFields?: boolean;
+}
+
+const OAuth2Form: React.FC<OAuth2FormProps> = ({ auth, onChange, handleCredentialChange, disabledFields }) => {
+  // Use props instead of local state for all fields
+  const grantType = auth.credentials.grantType || 'password';
+  const accessTokenUrl = auth.credentials.accessTokenUrl || '';
+  const username = auth.credentials.username || '';
+  const password = auth.credentials.password || '';
+  const clientId = auth.credentials.clientId || '';
+  const clientSecret = auth.credentials.clientSecret || '';
+  const scope = auth.credentials.scope || '';
+  const state = auth.credentials.state || '';
+  const clientAuthMethod = auth.credentials.clientAuthMethod || 'body';
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
-  // const [callbackUrl, setCallbackUrl] = useState('');
-  // const [authCode, setAuthCode] = useState('');
   const [accessToken, setAccessToken] = useState('');
-  const [requestTokenUrl, setRequestTokenUrl] = useState('');
-  const [authorizeUrl, setAuthorizeUrl] = useState('');
-  const [accessTokenUrl, setAccessTokenUrl] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
-  const [scope, setScope] = useState('');
-  const [state, setState] = useState('');
-  const [consumerKey, setConsumerKey] = useState('');
-  const [consumerSecret, setConsumerSecret] = useState('');
-  const [oauthToken, setOauthToken] = useState('');
-  const [oauthTokenSecret, setOauthTokenSecret] = useState('');
-  const [callbackUrl, setCallbackUrl] = useState('');
-  const [signatureMethod, setSignatureMethod] = useState('HMAC-SHA1');
-  const [nonce, setNonce] = useState('');
-  const [timestamp, setTimestamp] = useState('');
-  const [version, setVersion] = useState('1.0');
-  const [clientAuthMethod, setClientAuthMethod] = useState<'basic' | 'body'>('body');
 
   const togglePasswordVisibility = (field: string) => {
     setShowPasswords(prev => ({
@@ -214,11 +217,11 @@ const OAuth2Form: React.FC = () => {
           <>
             <FormGroup>
               <Label>Access Token URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/token" value={accessTokenUrl} onChange={e => setAccessTokenUrl(e.target.value)} />
+              <Input type="text" placeholder="https://api.example.com/oauth/token" value={accessTokenUrl} onChange={e => handleCredentialChange('accessTokenUrl', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Username</Label>
-              <Input type="text" placeholder="Enter username" value={username || ''} onChange={e => setUsername(e.target.value)} />
+              <Input type="text" placeholder="Enter username" value={username || ''} onChange={e => handleCredentialChange('username', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Password</Label>
@@ -227,7 +230,8 @@ const OAuth2Form: React.FC = () => {
                   type={showPasswords.password ? 'text' : 'password'}
                   placeholder="Enter password"
                   value={password || ''}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => handleCredentialChange('password', e.target.value)}
+                  disabled={!!disabledFields}
                 />
                 <ToggleButton
                   onClick={() => togglePasswordVisibility('password')}
@@ -239,7 +243,7 @@ const OAuth2Form: React.FC = () => {
             </FormGroup>
             <FormGroup>
               <Label>Client ID</Label>
-              <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => setClientId(e.target.value)} />
+              <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => handleCredentialChange('clientId', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Client Secret</Label>
@@ -247,7 +251,8 @@ const OAuth2Form: React.FC = () => {
                 <Input
                   type={showPasswords.clientSecret ? 'text' : 'password'}
                   placeholder="Enter client secret"
-                  value={clientSecret} onChange={e => setClientSecret(e.target.value)}
+                  value={clientSecret} onChange={e => handleCredentialChange('clientSecret', e.target.value)}
+                  disabled={!!disabledFields}
                 />
                 <ToggleButton
                   onClick={() => togglePasswordVisibility('clientSecret')}
@@ -259,11 +264,11 @@ const OAuth2Form: React.FC = () => {
             </FormGroup>
             <FormGroup>
               <Label>Scope</Label>
-              <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => setScope(e.target.value)} />
+              <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => handleCredentialChange('scope', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Client Authentication</Label>
-              <Select value={clientAuthMethod} onChange={e => setClientAuthMethod(e.target.value as 'basic' | 'body')}>
+              <Select value={clientAuthMethod} onChange={e => handleCredentialChange('clientAuthMethod', e.target.value as 'basic' | 'body')} disabled={!!disabledFields}>
                 <option value="basic">Send as Basic Auth Header</option>
                 <option value="body">Send client credentials in body</option>
               </Select>
@@ -296,7 +301,7 @@ const OAuth2Form: React.FC = () => {
                     url: accessTokenUrl,
                     method: 'POST',
                     headers: headers,
-                    body: new URLSearchParams(params)
+                    body: (new URLSearchParams(params)).toString()
                   };
                   const res = await fetch('http://localhost:4000/api/proxy', {
                     method: 'POST',
@@ -308,7 +313,7 @@ const OAuth2Form: React.FC = () => {
                   });
                   
                   const data = await res.json();
-                  if (data.access_token) setAccessToken(data.access_token);
+                  if (data.body.access_token) setAccessToken(data.body.access_token);
                   else alert('Failed to get access token: ' + JSON.stringify(data));
                 } catch (err) {
                   alert('Error fetching access token: ' + err);
@@ -320,7 +325,7 @@ const OAuth2Form: React.FC = () => {
             {accessToken && (
               <div style={{ marginTop: 12 }}>
                 <strong>Access Token:</strong>
-                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
+                <TokenDisplay>{accessToken}</TokenDisplay>
               </div>
             )}
           </>
@@ -331,11 +336,11 @@ const OAuth2Form: React.FC = () => {
           <>
             <FormGroup>
               <Label>Access Token URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/token" value={accessTokenUrl} onChange={e => setAccessTokenUrl(e.target.value)} />
+              <Input type="text" placeholder="https://api.example.com/oauth/token" value={accessTokenUrl} onChange={e => handleCredentialChange('accessTokenUrl', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Client ID</Label>
-              <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => setClientId(e.target.value)} />
+              <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => handleCredentialChange('clientId', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Client Secret</Label>
@@ -343,7 +348,8 @@ const OAuth2Form: React.FC = () => {
                 <Input
                   type={showPasswords.clientSecret ? 'text' : 'password'}
                   placeholder="Enter client secret"
-                  value={clientSecret} onChange={e => setClientSecret(e.target.value)}
+                  value={clientSecret} onChange={e => handleCredentialChange('clientSecret', e.target.value)}
+                  disabled={!!disabledFields}
                 />
                 <ToggleButton
                   onClick={() => togglePasswordVisibility('clientSecret')}
@@ -355,11 +361,11 @@ const OAuth2Form: React.FC = () => {
             </FormGroup>
             <FormGroup>
               <Label>Scope</Label>
-              <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => setScope(e.target.value)} />
+              <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => handleCredentialChange('scope', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Client Authentication</Label>
-              <Select value={clientAuthMethod} onChange={e => setClientAuthMethod(e.target.value as 'basic' | 'body')}>
+              <Select value={clientAuthMethod} onChange={e => handleCredentialChange('clientAuthMethod', e.target.value as 'basic' | 'body')} disabled={!!disabledFields}>
                 <option value="basic">Send as Basic Auth Header</option>
                 <option value="body">Send client credentials in body</option>
               </Select>
@@ -389,7 +395,7 @@ const OAuth2Form: React.FC = () => {
                     url: accessTokenUrl,
                     method: 'POST',
                     headers: headers,
-                    body: new URLSearchParams(params)
+                    body: (new URLSearchParams(params)).toString()
                   };
                   const res = await fetch('http://localhost:4000/api/proxy', {
                     method: 'POST',
@@ -400,7 +406,7 @@ const OAuth2Form: React.FC = () => {
                     body: JSON.stringify(proxyBody)
                   });
                   const data = await res.json();
-                  if (data.access_token) setAccessToken(data.access_token);
+                  if (data.body.access_token) setAccessToken(data.body.access_token);
                   else alert('Failed to get access token: ' + JSON.stringify(data));
                 } catch (err) {
                   alert('Error fetching access token: ' + err);
@@ -412,7 +418,7 @@ const OAuth2Form: React.FC = () => {
             {accessToken && (
               <div style={{ marginTop: 12 }}>
                 <strong>Access Token:</strong>
-                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{accessToken}</div>
+                <TokenDisplay>{accessToken}</TokenDisplay>
               </div>
             )}
           </>
@@ -424,12 +430,12 @@ const OAuth2Form: React.FC = () => {
 
             <FormGroup>
               <Label>Authorization URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/authorize" value={accessTokenUrl} onChange={e => setAccessTokenUrl(e.target.value)}/>
+              <Input type="text" placeholder="https://api.example.com/oauth/authorize" value={accessTokenUrl} onChange={e => handleCredentialChange('accessTokenUrl', e.target.value)} disabled={!!disabledFields}/>
             </FormGroup>
             
             <FormGroup>
               <Label>Client ID</Label>
-              <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => setClientId(e.target.value)}/>
+              <Input type="text" placeholder="Enter client ID" value={clientId} onChange={e => handleCredentialChange('clientId', e.target.value)} disabled={!!disabledFields}/>
             </FormGroup>
             <FormGroup>
               <Label>Client Secret</Label>
@@ -437,7 +443,8 @@ const OAuth2Form: React.FC = () => {
                 <Input
                   type={showPasswords.clientSecret ? 'text' : 'password'}
                   placeholder="Enter client secret"
-                  value={clientSecret} onChange={e => setClientSecret(e.target.value)}
+                  value={clientSecret} onChange={e => handleCredentialChange('clientSecret', e.target.value)}
+                  disabled={!!disabledFields}
                 />
                 <ToggleButton
                   onClick={() => togglePasswordVisibility('clientSecret')}
@@ -449,15 +456,15 @@ const OAuth2Form: React.FC = () => {
             </FormGroup>
             <FormGroup>
               <Label>Scope</Label>
-              <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => setScope(e.target.value)}/>
+              <Input type="text" placeholder="Enter scope (optional)" value={scope} onChange={e => handleCredentialChange('scope', e.target.value)} disabled={!!disabledFields}/>
             </FormGroup>
             <FormGroup>
               <Label>State</Label>
-              <Input type="text" placeholder="Enter state"value={state} onChange={e => setState(e.target.value)} />
+              <Input type="text" placeholder="Enter state" value={state} onChange={e => handleCredentialChange('state', e.target.value)} disabled={!!disabledFields} />
             </FormGroup>
             <FormGroup>
               <Label>Client Authentication</Label>
-              <Select value={clientAuthMethod} onChange={e => setClientAuthMethod(e.target.value as 'basic' | 'body')}>
+              <Select value={clientAuthMethod} onChange={e => handleCredentialChange('clientAuthMethod', e.target.value as 'basic' | 'body')} disabled={!!disabledFields}>
                 <option value="basic">Send as Basic Auth Header</option>
                 <option value="body">Send client credentials in body</option>
               </Select>
@@ -468,151 +475,151 @@ const OAuth2Form: React.FC = () => {
           </>
         );
 
-      case 'oauth1':
-        return (
-          <>
-            <FormGroup>
-              <Label>Request Token URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/request_token" value={requestTokenUrl} onChange={e => setRequestTokenUrl(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Authorize URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/authorize" value={authorizeUrl} onChange={e => setAuthorizeUrl(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Access Token URL</Label>
-              <Input type="text" placeholder="https://api.example.com/oauth/access_token" value={accessTokenUrl} onChange={e => setAccessTokenUrl(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Consumer Key</Label>
-              <Input type="text" placeholder="Enter consumer key" value={consumerKey} onChange={e => setConsumerKey(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Consumer Secret</Label>
-              <InputWrapper>
-                <Input
-                  type={showPasswords.consumerSecret ? 'text' : 'password'}
-                  placeholder="Enter consumer secret"
-                  value={consumerSecret} onChange={e => setConsumerSecret(e.target.value)}
-                />
-                <ToggleButton
-                  onClick={() => togglePasswordVisibility('consumerSecret')}
-                  type="button"
-                >
-                  {showPasswords.consumerSecret ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                </ToggleButton>
-              </InputWrapper>
-            </FormGroup>
-            <FormGroup>
-              <Label>Token (optional)</Label>
-              <Input type="text" placeholder="Enter token (if available)" value={oauthToken} onChange={e => setOauthToken(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Token Secret (optional)</Label>
-              <Input type="text" placeholder="Enter token secret (if available)" value={oauthTokenSecret} onChange={e => setOauthTokenSecret(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Callback URL</Label>
-              <Input type="text" placeholder="http://localhost:3000/callback" value={callbackUrl} onChange={e => setCallbackUrl(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Signature Method</Label>
-              <Select value={signatureMethod} onChange={e => setSignatureMethod(e.target.value)}>
-                <option value="HMAC-SHA1">HMAC-SHA1</option>
-                <option value="PLAINTEXT">PLAINTEXT</option>
-              </Select>
-            </FormGroup>
-            <FormGroup>
-              <Label>Nonce (optional)</Label>
-              <Input type="text" placeholder="Random string (optional)" value={nonce} onChange={e => setNonce(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Timestamp (optional)</Label>
-              <Input type="text" placeholder="Timestamp (optional)" value={timestamp} onChange={e => setTimestamp(e.target.value)} />
-            </FormGroup>
-            <FormGroup>
-              <Label>Version</Label>
-              <Input type="text" placeholder="1.0" value={version} onChange={e => setVersion(e.target.value)} />
-            </FormGroup>
-            <GetTokenButton
-              onClick={async () => {
-                if (!requestTokenUrl || !authorizeUrl || !accessTokenUrl || !consumerKey || !consumerSecret || !callbackUrl) {
-                  alert('Please fill all required OAuth 1.0 fields.');
-                  return;
-                }
-                // Step 1: Request Token
-                try {
-                  const res = await fetch('http://localhost:4000/api/oauth1/request_token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      requestTokenUrl,
-                      consumerKey,
-                      consumerSecret,
-                      callbackUrl,
-                      signatureMethod,
-                      nonce,
-                      timestamp,
-                      version
-                    })
-                  });
-                  const data = await res.json();
-                  if (data.oauth_token) {
-                    // Step 2: Redirect user to authorize URL
-                    const authUrl = `${authorizeUrl}?oauth_token=${encodeURIComponent(data.oauth_token)}`;
-                    window.location.href = authUrl;
-                  } else {
-                    alert('Failed to get request token: ' + JSON.stringify(data));
-                  }
-                } catch (err) {
-                  alert('Error in OAuth 1.0 request token step: ' + err);
-                }
-              }}
-            >
-              Start OAuth 1.0 Flow
-            </GetTokenButton>
-            {/* Step 3: After redirect, exchange oauth_token and oauth_verifier for access token */}
-            {window.location.search.includes('oauth_token') && window.location.search.includes('oauth_verifier') && (
-              <GetTokenButton
-                onClick={async () => {
-                  const params = new URLSearchParams(window.location.search);
-                  const oauth_token = params.get('oauth_token') || '';
-                  const oauth_verifier = params.get('oauth_verifier') || '';
-                  try {
-                    const res = await fetch('http://localhost:4000/api/oauth1/access_token', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        accessTokenUrl,
-                        consumerKey,
-                        consumerSecret,
-                        oauthToken: oauth_token,
-                        oauthVerifier: oauth_verifier,
-                        signatureMethod,
-                        nonce,
-                        timestamp,
-                        version
-                      })
-                    });
-                    const data = await res.json();
-                    if (data.oauth_token) setOauthToken(data.oauth_token);
-                    else alert('Failed to get access token: ' + JSON.stringify(data));
-                  } catch (err) {
-                    alert('Error in OAuth 1.0 access token step: ' + err);
-                  }
-                }}
-              >
-                Exchange for Access Token
-              </GetTokenButton>
-            )}
-            {oauthToken && (
-              <div style={{ marginTop: 12 }}>
-                <strong>Access Token:</strong>
-                <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{oauthToken}</div>
-              </div>
-            )}
-          </>
-        );
+      // case 'oauth1':
+      //   return (
+      //     <>
+      //       <FormGroup>
+      //         <Label>Request Token URL</Label>
+      //         <Input type="text" placeholder="https://api.example.com/oauth/request_token" value={requestTokenUrl} onChange={e => handleCredentialChange('requestTokenUrl', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Authorize URL</Label>
+      //         <Input type="text" placeholder="https://api.example.com/oauth/authorize" value={authorizeUrl} onChange={e => handleCredentialChange('authorizeUrl', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Access Token URL</Label>
+      //         <Input type="text" placeholder="https://api.example.com/oauth/access_token" value={accessTokenUrl} onChange={e => handleCredentialChange('accessTokenUrl', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Consumer Key</Label>
+      //         <Input type="text" placeholder="Enter consumer key" value={consumerKey} onChange={e => handleCredentialChange('consumerKey', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Consumer Secret</Label>
+      //         <InputWrapper>
+      //           <Input
+      //             type={showPasswords.consumerSecret ? 'text' : 'password'}
+      //             placeholder="Enter consumer secret"
+      //             value={consumerSecret} onChange={e => handleCredentialChange('consumerSecret', e.target.value)}
+      //           />
+      //           <ToggleButton
+      //             onClick={() => togglePasswordVisibility('consumerSecret')}
+      //             type="button"
+      //           >
+      //             {showPasswords.consumerSecret ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+      //           </ToggleButton>
+      //         </InputWrapper>
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Token (optional)</Label>
+      //         <Input type="text" placeholder="Enter token (if available)" value={oauthToken} onChange={e => handleCredentialChange('oauthToken', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Token Secret (optional)</Label>
+      //         <Input type="text" placeholder="Enter token secret (if available)" value={oauthTokenSecret} onChange={e => handleCredentialChange('oauthTokenSecret', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Callback URL</Label>
+      //         <Input type="text" placeholder="http://localhost:3000/callback" value={callbackUrl} onChange={e => handleCredentialChange('callbackUrl', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Signature Method</Label>
+      //         <Select value={signatureMethod} onChange={e => handleCredentialChange('signatureMethod', e.target.value)}>
+      //           <option value="HMAC-SHA1">HMAC-SHA1</option>
+      //           <option value="PLAINTEXT">PLAINTEXT</option>
+      //         </Select>
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Nonce (optional)</Label>
+      //         <Input type="text" placeholder="Random string (optional)" value={nonce} onChange={e => handleCredentialChange('nonce', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Timestamp (optional)</Label>
+      //         <Input type="text" placeholder="Timestamp (optional)" value={timestamp} onChange={e => handleCredentialChange('timestamp', e.target.value)} />
+      //       </FormGroup>
+      //       <FormGroup>
+      //         <Label>Version</Label>
+      //         <Input type="text" placeholder="1.0" value={version} onChange={e => handleCredentialChange('version', e.target.value)} />
+      //       </FormGroup>
+      //       <GetTokenButton
+      //         onClick={async () => {
+      //           if (!requestTokenUrl || !authorizeUrl || !accessTokenUrl || !consumerKey || !consumerSecret || !callbackUrl) {
+      //             alert('Please fill all required OAuth 1.0 fields.');
+      //             return;
+      //           }
+      //           // Step 1: Request Token
+      //           try {
+      //             const res = await fetch('http://localhost:4000/api/oauth1/request_token', {
+      //               method: 'POST',
+      //               headers: { 'Content-Type': 'application/json' },
+      //               body: JSON.stringify({
+      //                 requestTokenUrl,
+      //                 consumerKey,
+      //                 consumerSecret,
+      //                 callbackUrl,
+      //                 signatureMethod,
+      //                 nonce,
+      //                 timestamp,
+      //                 version
+      //               })
+      //             });
+      //             const data = await res.json();
+      //             if (data.oauth_token) {
+      //               // Step 2: Redirect user to authorize URL
+      //               const authUrl = `${authorizeUrl}?oauth_token=${encodeURIComponent(data.oauth_token)}`;
+      //               window.location.href = authUrl;
+      //             } else {
+      //               alert('Failed to get request token: ' + JSON.stringify(data));
+      //             }
+      //           } catch (err) {
+      //             alert('Error in OAuth 1.0 request token step: ' + err);
+      //           }
+      //         }}
+      //       >
+      //         Start OAuth 1.0 Flow
+      //       </GetTokenButton>
+      //       {/* Step 3: After redirect, exchange oauth_token and oauth_verifier for access token */}
+      //       {window.location.search.includes('oauth_token') && window.location.search.includes('oauth_verifier') && (
+      //         <GetTokenButton
+      //           onClick={async () => {
+      //             const params = new URLSearchParams(window.location.search);
+      //             const oauth_token = params.get('oauth_token') || '';
+      //             const oauth_verifier = params.get('oauth_verifier') || '';
+      //             try {
+      //               const res = await fetch('http://localhost:4000/api/oauth1/access_token', {
+      //                 method: 'POST',
+      //                 headers: { 'Content-Type': 'application/json' },
+      //                 body: JSON.stringify({
+      //                   accessTokenUrl,
+      //                   consumerKey,
+      //                   consumerSecret,
+      //                   oauthToken: oauth_token,
+      //                   oauthVerifier: oauth_verifier,
+      //                   signatureMethod,
+      //                   nonce,
+      //                   timestamp,
+      //                   version
+      //                 })
+      //               });
+      //               const data = await res.json();
+      //               if (data.oauth_token) setOauthToken(data.oauth_token);
+      //               else alert('Failed to get access token: ' + JSON.stringify(data));
+      //             } catch (err) {
+      //               alert('Error in OAuth 1.0 access token step: ' + err);
+      //             }
+      //           }}
+      //         >
+      //           Exchange for Access Token
+      //         </GetTokenButton>
+      //       )}
+      //       {oauthToken && (
+      //         <div style={{ marginTop: 12 }}>
+      //           <strong>Access Token:</strong>
+      //           <div style={{ background: '#222', color: '#fff', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>{oauthToken}</div>
+      //         </div>
+      //       )}
+      //     </>
+      //   );
     }
   };
 
@@ -622,7 +629,7 @@ const OAuth2Form: React.FC = () => {
         <Label>Grant Type</Label>
         <Select
           value={grantType}
-          onChange={(e) => setGrantType(e.target.value as OAuthGrantType)}
+          onChange={e => handleCredentialChange('grantType', e.target.value as OAuthGrantType)}
         >
           <option value="password">Password Credentials</option>
           <option value="client">Client Credentials</option>
@@ -637,7 +644,7 @@ const OAuth2Form: React.FC = () => {
 
 const GetTokenButton = styled.button`
   padding: 8px 16px;
-  background-color: #0066cc;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -648,7 +655,7 @@ const GetTokenButton = styled.button`
   margin-bottom: 24px;
 
   &:hover {
-    background-color: #0052a3;
+    background-color: var(--color-primary-hover);
   }
 `;
 
@@ -736,7 +743,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
         );
 
       case 'oauth2':
-        return <OAuth2Form />;
+        return <OAuth2Form auth={parentAuth} onChange={() => {}} handleCredentialChange={() => {}} disabledFields />;
 
       case 'oauth1':
         return (
@@ -919,7 +926,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
         );
 
       case 'oauth2':
-        return <OAuth2Form />;
+        return <OAuth2Form auth={auth} onChange={onChange} handleCredentialChange={handleCredentialChange} />;
 
       case 'oauth1':
         return (
@@ -1086,7 +1093,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
           <option value="basic">Basic Auth</option>
           <option value="bearer">Bearer Token</option>
           <option value="oauth2">OAuth 2.0</option>
-          <option value="oauth1">OAuth 1.0</option>
+          {/* <option value="oauth1">OAuth 1.0</option> */}
           <option value="apiKey">API Key</option>
         </Select>
       </FormGroup>

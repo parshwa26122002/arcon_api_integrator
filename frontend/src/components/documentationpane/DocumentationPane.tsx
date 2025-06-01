@@ -263,7 +263,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
                   <h5> Authorization (No Authorization) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong></strong> No Authrization Required </div>
+                        <div style="color: black"><strong></strong> No Authrization Required </div>
                       </div>
                   </div>
                 </div>
@@ -274,8 +274,8 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
                   <h5> Authorization (Basic Auth) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong>User Name:</strong> User </div>
-                        <div><strong>Password:</strong> User Password</div>
+                        <div style="color: black"><strong>User Name:</strong> User </div>
+                        <div style="color: black"><strong>Password:</strong> User Password</div>
                       </div>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
                   <div class="kv-container">
                        ${col.auth && Object.entries(col.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -299,7 +299,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         colAuth = `<div class="sub-section">
                   <h5> Authorization (Bearer) </h5>
                   <div class="kv-container">
-                       <div><strong>token:</strong> Add Token</div>
+                       <div style="color: black"><strong>token:</strong> Add Token</div>
                   </div>
                 </div>
               `;
@@ -311,7 +311,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
                   <div class="kv-container">
                        ${col.auth && Object.entries(col.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -325,7 +325,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
                   <div class="kv-container">
                        ${col.auth && Object.entries(col.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -337,7 +337,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
                   <h5> Authorization (Inherit From Parent) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong></strong> This Request Inherit Authorization Form Parent </div>
+                        <div style="color: black"><strong></strong> This Request Inherit Authorization Form Parent </div>
                       </div>
                   </div>
                 </div>
@@ -348,17 +348,17 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         if (filtered.length === 0) return '';
         return `
       <div class="sub-section">
-        <h5>${title}</h5>
+        <h5 style="color: black">${title}</h5>
         <table>
           <thead>
-            <tr><th>Key</th><th>Value</th><th>Description</th></tr>
+            <tr><th style="color: black">Key</th><th style="color: black">Value</th><thstyle="color: black">Description</th></tr>
           </thead>
           <tbody>
             ${filtered.map(item => `
-              <tr>
-                <td>${item.key}</td>
-                <td>${item.value}</td>
-                <td>${item.description || ''}</td>
+              <tr style="color: black">
+                <td style="color: black" >${item.key}</td>
+                <td style="color: black">${item.value}</td>
+                <td style="color: black">${item.description || ''}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -371,13 +371,13 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         if (filtered.length === 0) return '';
         return `
     <div class="sub-section">
-      <h5>${title}</h5>
+      <h5 style="color: black">${title}</h5>
       <div class="kv-container">
         ${filtered.map(item => `
           <div class="kv-item">
-            <div><strong>Key:</strong> ${item.key}</div>
-            <div><strong>Value:</strong> ${item.value}</div>
-            ${item.description ? `<div><strong>Description:</strong> ${item.description}</div>` : ''}
+            <div style="color: black"><strong>Key:</strong> ${item.key}</div>
+            <div style="color: black"><strong>Value:</strong> ${item.value}</div>
+            ${item.description ? `<div style="color: black"><strong>Description:</strong> ${item.description}</div>` : ''}
           </div>
         `).join('')}
       </div>
@@ -411,10 +411,10 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         let authSection = ''
         if (requestAuthType === '' || requestAuthType === 'inheritCollection' || requestAuthType === 'none') {
             authSection = `<div class="sub-section">
-                  <h5> Authorization (Inherit From Parent) </h5>
+                  <h5 style="color: black"> Authorization (Inherit From Parent) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong></strong> This Request Inherit Authorization Form Parent </div>
+                        <div style="color: black"><strong></strong> This Request Inherit Authorization Form Parent </div>
                       </div>
                   </div>
                 </div>
@@ -422,10 +422,10 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (requestAuthType === 'noAuth') {
             authSection = `<div class="sub-section">
-                  <h5> Authorization (No Authorization) </h5>
+                  <h5 style="color: black"> Authorization (No Authorization) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong></strong> No Authrization Required </div>
+                        <div style="color: black"><strong></strong> No Authrization Required </div>
                       </div>
                   </div>
                 </div>
@@ -433,11 +433,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (requestAuthType === 'basic') {
             authSection = `<div class="sub-section">
-                  <h5> Authorization (Basic Auth) </h5>
+                  <h5 style="color: black"> Authorization (Basic Auth) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong>User Name:</strong> User </div>
-                        <div><strong>Password:</strong> User Password </div>
+                        <div style="color: black"><strong>User Name:</strong> User </div>
+                        <div style="color: black"><strong>Password:</strong> User Password </div>
                       </div>
                   </div>
                 </div>
@@ -445,11 +445,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (requestAuthType === 'apiKey') {
             authSection = `<div class="sub-section">
-                  <h5> Authorization (API Key) </h5>
+                  <h5 style="color: black"> Authorization (API Key) </h5>
                   <div class="kv-container">
                        ${request.auth && Object.entries(request.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -458,9 +458,9 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (requestAuthType === 'bearer') {
             authSection = `<div class="sub-section">
-                  <h5> Authorization (Bearer) </h5>
+                  <h5 style="color: black"> Authorization (Bearer) </h5>
                   <div class="kv-container">
-                       <div><strong>token:</strong> Add Token </div>
+                       <div style="color: black"><strong>token:</strong> Add Token </div>
                   </div>
                 </div>
               `;
@@ -468,11 +468,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         else if (colAuthType === 'oauth2') {
 
             colAuth = `<div class="sub-section">
-                  <h5> Authorization (OAuth 2.0) </h5>
+                  <h5 style="color: black"> Authorization (OAuth 2.0) </h5>
                   <div class="kv-container">
                        ${request.auth && Object.entries(request.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -482,11 +482,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         else if (colAuthType === 'oauth1') {
 
             colAuth = `<div class="sub-section">
-                  <h5> Authorization (OAuth 1.0) </h5>
+                  <h5 style="color: black"> Authorization (OAuth 1.0) </h5>
                   <div class="kv-container">
                        ${request.auth && Object.entries(request.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -495,10 +495,10 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else {
             authSection = `<div class="sub-section">
-                  <h5> Authorization (Inherit From Parent) </h5>
+                  <h5 style="color: black"> Authorization (Inherit From Parent) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong></strong> This Request Inherit Authorization Form Parent </div>
+                        <div style="color: black"><strong></strong> This Request Inherit Authorization Form Parent </div>
                       </div>
                   </div>
                 </div>
@@ -512,8 +512,8 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
             if (mode === 'raw' && request.body.raw) {
                 bodySection = `
                     <div class="sub-section">
-                        <h5>Body (Raw)</h5>
-                        <pre>${request.body.raw}</pre>
+                        <h5 style="color: black">Body (Raw)</h5>
+                        <pre style="color: black">${request.body.raw}</pre>
                     </div>
                     `;
             } else if (mode === 'formdata' && request.body.formData?.length) {
@@ -521,16 +521,16 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
                 if (filtered.length) {
                     bodySection = `
                                 <div class="sub-section">
-                                <h5>Body (Form Data)</h5>
+                                <h5 style="color: black">Body (Form Data)</h5>
                                 <table>
                                     <thead>
-                                    <tr><th>Key</th><th>Value</th><th>Description</th></tr>
+                                    <tr><th style="color: black">Key</th><th style="color: black">Value</th><th style="color: black">Description</th></tr>
                                     </thead>
                                     <tbody>
                                     ${filtered.map(item => `
                                         <tr>
-                                        <td>${item.key}</td>
-                                        <td>${item.src || ''}</td>
+                                        <td style="color: black">${item.key}</td>
+                                        <td style="color: black">${item.src || ''}</td>
                                         </tr>
                                     `).join('')}
                                     </tbody>
@@ -546,18 +546,18 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
             } else if (mode === 'file' && request.body.file && request.body.file.name) {
                 bodySection = `
                         <div class="sub-section">
-                          <h5>Body (File)</h5>
-                          <p><strong>Name:</strong> ${request.body.file.name}</p>
-                          ${request.body.file.src ? `<p><strong>Source:</strong> ${request.body.file.src}</p>` : ''}
+                          <h5 style="color: black">Body (File)</h5>
+                          <p style="color: black"><strong>Name:</strong> ${request.body.file.name}</p>
+                          ${request.body.file.src ? `<p style="color: black"><strong>Source:</strong> ${request.body.file.src}</p>` : ''}
                         </div>
                       `;
             }
             else if (mode === 'graphql' && request.body.graphql) {
                 bodySection = `
                     <div class="sub-section">
-                        <h5>Body (GraphQL)</h5>
-                        <pre>${request.body.graphql?.query}</pre>
-                        <pre>${request.body.graphql?.variables}</pre>
+                        <h5 style="color: black">Body (GraphQL)</h5>
+                        <pre style="color: black">${request.body.graphql?.query}</pre>
+                        <pre style="color: black">${request.body.graphql?.variables}</pre>
                     </div>
                     `
             }
@@ -566,11 +566,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         const responseSection = request.response?.length
             ? `
         <div class="sub-section">
-          <h5>Responses</h5>
+          <h5 style="color: black">Responses</h5>
           ${request.response.map(r => `
             <div style="margin-bottom: 12px;">
-              <p><strong>Status:</strong> ${r.status} (${r.code})</p>
-              <pre>${r.body}</pre>
+              <p style="color: black"><strong>Status:</strong> ${r.status} (${r.code})</p>
+              <pre style="color: black">${r.body}</pre>
             </div>
           `).join('')}
         </div>
@@ -579,10 +579,10 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         return `
       <div class="request-block">
         <h4>
-          <span class="request-method method-${request.method}">${request.method}</span>
+          <span style="color: black" class="request-method method-${request.method}">${request.method}</span>
           ${request.name}
         </h4>
-        <p class="url">${urlNeeded.raw}</p>
+        <p style="color: black" class="url">${urlNeeded.raw}</p>
         ${authSection}
         ${headersTable}
         ${queryParamsTable}
@@ -597,10 +597,10 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         let folderAuth = '';
         if (folderAuthType === '' || folderAuthType === 'inheritCollection' || folderAuthType === 'none') {
             folderAuth = `<div class="sub-section">
-                  <h5> Authorization (Inherit From Parent) </h5>
+                  <h5 style="color: black"> Authorization (Inherit From Parent) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong></strong> This Folder Inherit Authorization Form Parent </div>
+                        <div style="color: black"><strong></strong> This Folder Inherit Authorization Form Parent </div>
                       </div>
                   </div>
                 </div>
@@ -608,10 +608,10 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (folderAuthType === 'noAuth') {
             folderAuth = `<div class="sub-section">
-                  <h5> Authorization (No Authorization) </h5>
+                  <h5 style="color: black"> Authorization (No Authorization) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong></strong> No Authrization Required </div>
+                        <div style="color: black"><strong></strong> No Authrization Required </div>
                       </div>
                   </div>
                 </div>
@@ -619,11 +619,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (folderAuthType === 'basic') {
             folderAuth = `<div class="sub-section">
-                  <h5> Authorization (Basic Auth) </h5>
+                  <h5 style="color: black"> Authorization (Basic Auth) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong>User Name:</strong> User </div>
-                        <div><strong>Password:</strong> User Password </div>
+                        <div style="color: black"><strong>User Name:</strong> User </div>
+                        <div style="color: black"><strong>Password:</strong> User Password </div>
                       </div>
                   </div>
                 </div>
@@ -631,11 +631,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (folderAuthType === 'apiKey') {
             folderAuth = `<div class="sub-section">
-                  <h5> Authorization (API Key) </h5>
+                  <h5 style="color: black"> Authorization (API Key) </h5>
                   <div class="kv-container">
                        ${folder.auth && Object.entries(folder.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${key === 'value' ? dummyval : value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -644,9 +644,9 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else if (folderAuthType === 'bearer') {
             folderAuth = `<div class="sub-section">
-                  <h5> Authorization (Bearer) </h5>
+                  <h5 style="color: black"> Authorization (Bearer) </h5>
                   <div class="kv-container">
-                       <div><strong>token:</strong> Add token </div>
+                       <div style="color: black"><strong>token:</strong> Add token </div>
                   </div>
                 </div>
               `;
@@ -654,11 +654,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         else if (colAuthType === 'oauth2') {
 
             colAuth = `<div class="sub-section">
-                  <h5> Authorization (OAuth 2.0) </h5>
+                  <h5 style="color: black"> Authorization (OAuth 2.0) </h5>
                   <div class="kv-container">
                        ${folder.auth && Object.entries(folder.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -668,11 +668,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         else if (colAuthType === 'oauth1') {
 
             colAuth = `<div class="sub-section">
-                  <h5> Authorization (OAuth 1.0) </h5>
+                  <h5 style="color: black"> Authorization (OAuth 1.0) </h5>
                   <div class="kv-container">
                        ${folder.auth && Object.entries(folder.auth.credentials).map(([key, value]) => `
                             <div class="kv-item">
-                            <div><strong>${key}:</strong> ${value}</div>
+                            <div style="color: black"><strong>${key}:</strong> ${value}</div>
                             </div>
                         `).join('')}
                   </div>
@@ -681,19 +681,19 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         }
         else {
             folderAuth = `<div class="sub-section">
-                  <h5> Authorization (Inherit From Parent) </h5>
+                  <h5 style="color: black"> Authorization (Inherit From Parent) </h5>
                   <div class="kv-container">
                       <div class="kv-item">
-                        <div><strong>Inherit:</strong> This Request Inherit Authorization Form Parent </div>
+                        <div style="color:black"><strong>Inherit:</strong> This Request Inherit Authorization Form Parent </div>
                       </div>
                   </div>
                 </div>
               `;
         }
         const folderHeader = `
-        <div class="folder-block">
-          <h3>📁 ${folder.name}</h3>
-          ${folder.description ? `<p class="description">${folder.description}</p>` : ''}
+        <div class="folder-block" style="color: black">
+          <h3 style="color: black">📁 ${folder.name}</h3>
+          ${folder.description ? `<p class="description" style="color: black">${folder.description}</p>` : ''}
           ${folderAuth}
       `;
 
@@ -706,7 +706,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
             : '';
 
         return `
-        <div class="section">
+        <div class="section" style="color: black">
           ${folderHeader}
           ${nestedFolders}
           ${folderRequests}
@@ -716,11 +716,11 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
 
     const renderedFolders = col.folders && col.folders.length
         ? col.folders.map(folder => renderFolder(folder, col.variables ?? [])).join('')
-        : '<p>No folders available.</p>';
+        : '<p style="color: black">No folders available.</p>';
 
     const renderedRequests = col.requests && col.requests.length
         ? col.requests.map(request => renderRequest(request, col.variables ?? [])).join('')
-        : '<p>No standalone requests available.</p>';
+        : '<p style="color: black">No standalone requests available.</p>';
 
     return `
     <style>
@@ -731,7 +731,6 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         overflow-y: auto;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background-color: #fff;
-        color: #2c3e50;
         line-height: 1.6;
       }
       #container {
@@ -742,26 +741,34 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
       h1 {
         font-size: 2em;
         margin-bottom: 8px;
+        color:rgb(0, 0, 0);
       }
       h2 {
         margin-top: 40px;
-        border-bottom: 2px solid #eaeaea;
+        border-bottom: 2px solidrgb(0, 0, 0);
         padding-bottom: 6px;
-        color: #333;
+        color: rgb(0, 0, 0);
       }
       h3 {
         margin-top: 24px;
         font-size: 1.3em;
-        color: #34495e;
+        color:rgb(0, 0, 0);
       }
       h4 {
         margin: 16px 0 4px;
         font-size: 1.1em;
+        color:rgb(0, 0, 0);
       }
       h5 {
         margin: 12px 0 4px;
         font-size: 1em;
         color: #555;
+      }
+      p{
+        color: rgb(0, 0, 0);
+      }
+      strong{
+        color: rgb(0, 0, 0);
       }
       .description {
         color: #555;
@@ -770,7 +777,7 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
       }
       .url {
         font-family: monospace;
-        color: #7f8c8d;
+        color:rgb(0, 0, 0);
       }
       .request-method {
         font-weight: bold;
@@ -808,28 +815,35 @@ function renderCollectionHTML(col: APICollection | null, id: string): string {
         .kv-item {
           padding: 10px;
           border: 1px solid #ddd;
-          background: #f9f9f9;
+          background:rgb(255, 255, 255);
           border-radius: 6px;
           line-height: 1.5;
+          colour: rgb(0, 0, 0);
         }
+      .titlecol{
+        color: var(--primary-color);
+      }
       table {
         width: 100%;
         border-collapse: collapse;
         margin: 12px 0;
       }
-      th, td {
+      th, td, tr {
         border: 1px solid #ddd;
         padding: 8px 10px;
         text-align: left;
+        color: rgb(0, 0, 0);
       }
       th {
-        background-color: #f9f9f9;
+        background-color:rgb(255, 255, 255);
+        color: rgb(0, 0, 0);
       }
+      t
       .sub-section {
         margin-top: 12px;
       }
       pre {
-        background: #f6f8fa;
+        background:rgb(255, 255, 255);
         padding: 10px;
         border: 1px solid #ddd;
         overflow-x: auto;
@@ -891,7 +905,7 @@ const DocumentationPane: React.FC<DocumentationPaneProps> = ({ tabState }) => {
 
     return (
         <div style={{ padding: 24, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <h2>{tabState.title}</h2>
+            <h2 className='titlecol'>{tabState.title}</h2>
             <div style={{ margin: '16px 0' }}>
                 <button onClick={handleExport}>Export as {exportType.toUpperCase()}</button>
                 <select value={exportType} onChange={e => setExportType(e.target.value as 'pdf' | 'html')}>

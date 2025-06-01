@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import authImage from '../../assets/authpage.png';
 import logoImg from '../../assets/logo.jpeg';
@@ -12,7 +12,6 @@ const PageWrapper = styled.div`
   width: 100vw;
   display: flex;
   flex-direction: row;
-  margin-left: 40px
 `;
 
 const LeftSide = styled.div`
@@ -191,8 +190,10 @@ const LogoText = styled.span`
   user-select: none;
 `;
 
-export default function AuthFileUploader({ onAuthenticated }: Props) {
+const AuthFileUploader: React.FC<Props> = ({ onAuthenticated }) => {
   const [file, setFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   const isAuthenticated = async (file: File): Promise<boolean> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -210,30 +211,31 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
     }
   };
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
 
-    const auth = await isAuthenticated(file);
-    if (auth) {
-      document.cookie = `authToken=asdfghjigfgvergrurh84t4tvhrnvwvwe8; Max-Age=3600; path=/`;
-      onAuthenticated();
-    } else {
-      alert("Authentication failed.");
-    }
-  };
+  //   const auth = await isAuthenticated(file);
+  //   if (auth) {
+  //     document.cookie = `authToken=asdfghjigfgvergrurh84t4tvhrnvwvwe8; Max-Age=3600; path=/`;
+  //     onAuthenticated();
+  //   } else {
+  //     alert("Authentication failed.");
+  //   }
+  // };
 
   const handleLogin = async () => {
     if (!file) return alert('Please upload a file');
-
-    const buffer = await file.arrayBuffer();
-    const iv = buffer.slice(0, 12);
-    const data = buffer.slice(12, buffer.byteLength - 16);
-    const authTag = buffer.slice(buffer.byteLength - 16);
-
+    
     try {
+      setIsLoading(true);
+      const buffer = await file.arrayBuffer();
+      const iv = buffer.slice(0, 12);
+      const data = buffer.slice(12, buffer.byteLength - 16);
+      const authTag = buffer.slice(buffer.byteLength - 16);
+
       const key = await getKeyFromPassword('MySuperSecretKey', new Uint8Array(iv));
-      const decrypted = await crypto.subtle.decrypt(
+      await crypto.subtle.decrypt(
         {
           name: 'AES-GCM',
           iv: new Uint8Array(iv),
@@ -242,12 +244,15 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
         key,
         concatenateBuffers(data, authTag)
       );
+
+      // Set cookie and authenticate
       document.cookie = `authToken=asdfghjigfgvergrurh84t4tvhrnvwvwe8; Max-Age=3600; path=/`;
       onAuthenticated();
-
     } catch (e) {
       console.error('Decryption failed:', e);
       alert('Invalid file');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -291,14 +296,18 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
         <LeftSide>
           <AuthImage src={authImage} alt="Arcon Auth" />
           <LeftTitle>Arcon API Integrator</LeftTitle>
-          <div style={{ color: '#888', marginTop: 4, fontSize: '1rem', fontWeight: 400 }}>Light weight API testing tool</div>
+          <div style={{ color: '#888', marginTop: 4, fontSize: '1rem', fontWeight: 400 }}>
+            Light weight API testing tool
+          </div>
         </LeftSide>
         <RightSide>
           <Card>
             <FormHeading>Welcome back!</FormHeading>
             <Divider />
             <FileInputWrapper>
-              <FileButton htmlFor="auth-file-input">Please upload your authentication file</FileButton>
+              <FileButton htmlFor="auth-file-input" style={{ opacity: isLoading ? 0.7 : 1 }}>
+                Please upload your authentication file
+              </FileButton>
               <HiddenInput
                 id="auth-file-input"
                 type="file"
@@ -306,10 +315,17 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
                   const files = e.target.files;
                   if (files && files[0]) setFile(files[0]);
                 }}
+                disabled={isLoading}
               />
               {file && <FileName>{file.name}</FileName>}
             </FileInputWrapper>
-            <SubmitButton onClick={handleLogin}>Submit</SubmitButton>
+            <SubmitButton 
+              onClick={handleLogin} 
+              disabled={isLoading}
+              style={{ opacity: isLoading ? 0.7 : 1 }}
+            >
+              {isLoading ? 'Verifying...' : 'Submit'}
+            </SubmitButton>
             <Note>Your auth file will be verified securely.</Note>
           </Card>
         </RightSide>
@@ -317,3 +333,5 @@ export default function AuthFileUploader({ onAuthenticated }: Props) {
     </>
   );
 }
+
+export default AuthFileUploader;

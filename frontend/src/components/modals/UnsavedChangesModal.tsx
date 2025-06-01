@@ -47,14 +47,14 @@ const Button = styled.button<{ primary?: boolean }>`
   padding: 8px 16px;
   border-radius: 4px;
   border: none;
-  background-color: ${props => props.primary ? 'var(--color-success)' : 'var(--color-panel-alt)'};
+  background-color: ${props => props.primary ? 'var(--color-tab-active)' : 'var(--color-panel-alt)'};
   color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
   
   &:hover {
-    background-color: ${props => props.primary ? 'var(--color-success)' : 'var(--color-border)'};
+    background-color: ${props => props.primary ? 'var(--color-button-hover)' : 'var(--color-border)'};
   }
 `;
 
