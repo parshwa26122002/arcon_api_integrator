@@ -289,11 +289,22 @@ const OAuth2Form: React.FC = () => {
                     params.client_id = clientId;
                     params.client_secret = clientSecret;
                   }
-                  const res = await fetch(accessTokenUrl, {
+                  // Make the request through the proxy
+                  let proxyBody = {
+                    url: accessTokenUrl,
                     method: 'POST',
-                    headers,
+                    headers: headers,
                     body: new URLSearchParams(params)
+                  };
+                  const res = await fetch('http://localhost:4000/api/proxy', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Accept-Encoding': 'identity'
+                    },
+                    body: JSON.stringify(proxyBody)
                   });
+                  
                   const data = await res.json();
                   if (data.access_token) setAccessToken(data.access_token);
                   else alert('Failed to get access token: ' + JSON.stringify(data));
@@ -372,10 +383,19 @@ const OAuth2Form: React.FC = () => {
                     params.client_id = clientId;
                     params.client_secret = clientSecret;
                   }
-                  const res = await fetch(accessTokenUrl, {
+                  let proxyBody = {
+                    url: accessTokenUrl,
                     method: 'POST',
-                    headers,
+                    headers: headers,
                     body: new URLSearchParams(params)
+                  };
+                  const res = await fetch('http://localhost:4000/api/proxy', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Accept-Encoding': 'identity'
+                    },
+                    body: JSON.stringify(proxyBody)
                   });
                   const data = await res.json();
                   if (data.access_token) setAccessToken(data.access_token);
@@ -888,7 +908,7 @@ const Authorization: React.FC<AuthorizationProps> = ({ Id, isRequest, auth, onCh
           <FormGroup>
             <Label>Token</Label>
             <Input
-              type="text"
+              type="password"
               value={auth.credentials.token || ''}
               onChange={(e) => handleCredentialChange('token', e.target.value)}
               placeholder="Enter bearer token"

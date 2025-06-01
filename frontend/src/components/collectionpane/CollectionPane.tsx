@@ -245,7 +245,7 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
     name: '',
     initialValue: '',
     currentValue: '',
-    isSelected: true
+    isSelected: false
   }] : filteredVariables;
 
   const renderTabContent = () => {
@@ -267,8 +267,10 @@ const CollectionPane: React.FC<CollectionPaneProps> = ({ tabState, onStateChange
       case 'auth':
         return (
           <Authorization
-            auth={tabState.auth || { type: 'none', credentials: {} }}
+            auth={tabState.auth || { type: "none", credentials: {} }}
             onChange={handleAuthChange}
+            Id={tabState.id.toString()}
+            isRequest={false}
           />
         );
       case 'variables':

@@ -2,6 +2,7 @@ import express, { json, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import fetch, { RequestInit } from 'node-fetch';
 import authRouter from './auth'
+import openapiRouter from './openapiToPostman';
 
 const app = express();
 const PORT = 4000;
@@ -9,6 +10,7 @@ const PORT = 4000;
 app.use(cors());
 app.use(json());
 app.use("/api",authRouter)
+app.use("/api",openapiRouter)
 // Proxy endpoint that handles all HTTP methods
 app.post('/api/proxy', (req: Request, res: Response, next: NextFunction) => {
   (async () => {

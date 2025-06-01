@@ -264,6 +264,23 @@ const getAllRequestsFromCollection = (collection: APICollection): APIRequest[] =
   return allRequests;
 };
 
+const getAllRequestsFromFolder = (folder: APIFolder): APIRequest[] => {
+  const allRequests: APIRequest[] = [];
+  allRequests.push(...(folder.requests || []));
+  const traverseFolders = (folders: APIFolder[]) => {
+    for (const folder of folders) {
+      if (folder.requests) {
+        allRequests.push(...folder.requests);
+      }
+      if (folder.folders) {
+        traverseFolders(folder.folders);
+      }
+    }
+  };
+  traverseFolders(folder.folders || []);
+  return allRequests;
+};
+
 const handleSend = async (request: APIRequest) => {
     if (!request) return;
 
@@ -459,17 +476,36 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
       [tabState.collectionId]
     )
   );
+
   const selectedResult = tabState.resultsByIteration?.find(r => r.results.find(r => r.requestId === tabState.selectedResultId))
   const [requestList, setRequestList] = useState<RequestItem[]>([]);
-  const setActiveCollection = useCollectionStore(state => state.setActiveCollection);
-  const setActiveRequest = useCollectionStore(state => state.setActiveRequest);
-  const setActiveFolder = useCollectionStore(state => state.setActiveFolder);
-  const setRunnerTabRequest = useCollectionStore(state => state.setRunnerTabRequest);
+  const activeFolderId = useCollectionStore(state => state.activeFolderId);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [, setShowSearch] = useState(false);
 
+  const getFolder = () => {
+    const updateFolders = (folders: APIFolder[]): APIFolder[] => {
+      return folders.map((folder) => {
+        if (folder.id === tabState.folderId) {
+          return folder;
+        }
+        return {
+          ...folder,
+          folders: updateFolders(folder.folders || []),
+        };
+      });
+    };
+    return updateFolders(collection?.folders || [])[0];
+  }
+
+  let allRequests: APIRequest[] = [];
   if (!collection) return null;
-  const allRequests = getAllRequestsFromCollection(collection);
+  else if(collection && !activeFolderId) {
+    allRequests = getAllRequestsFromCollection(collection);
+  }
+  else if(collection && activeFolderId) {
+    allRequests = getAllRequestsFromFolder(getFolder());
+  }
 
   useEffect(() => {
     if (!collection) return;   
@@ -559,20 +595,6 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
     }
   }
   
-  const openCollection = () => {
-    setActiveCollection(collection.id);
-    setActiveRequest(null);
-    setActiveFolder(null);
-    setRunnerTabRequest(null);
-  }
-
-  const openRequest = () => {
-    setActiveCollection(collection.id);
-    setActiveRequest(selectedResult?.results[0].requestId || null);
-    setActiveFolder(null);
-    setRunnerTabRequest(null);
-  }
-
   const allSelected = requestList.length > 0 && requestList.every(r => r.isSelected);
 
 
