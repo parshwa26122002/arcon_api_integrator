@@ -517,7 +517,7 @@ function renderCollectionHTML(col: APICollection | null): string {
                     </div>
                     `;
             } else if (mode === 'formdata' && request.body.formData?.length) {
-                const filtered = request.body.formData.filter(i => i.isSelected !== false && i.key && i.value);
+                const filtered = request.body.formData.filter(i => i.isSelected !== false && i.key && i.type);
                 if (filtered.length) {
                     bodySection = `
                                 <div class="sub-section">
@@ -530,7 +530,7 @@ function renderCollectionHTML(col: APICollection | null): string {
                                     ${filtered.map(item => `
                                         <tr>
                                         <td style="color: black">${item.key}</td>
-                                        <td style="color: black">${item.src || ''}</td>
+                                        <td style="color: black">${item.type === 'text' ? item.value : (item.src || '')}</td>
                                         </tr>
                                     `).join('')}
                                     </tbody>
