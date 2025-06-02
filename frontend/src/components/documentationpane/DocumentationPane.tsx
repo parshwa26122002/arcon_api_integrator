@@ -524,7 +524,7 @@ function renderCollectionHTML(col: APICollection | null): string {
                                 <h5 style="color: black">Body (Form Data)</h5>
                                 <table>
                                     <thead>
-                                    <tr><th style="color: black">Key</th><th style="color: black">Value</th><th style="color: black">Description</th></tr>
+                                    <tr><th style="color: black">Key</th><th style="color: black">Value</th></tr>
                                     </thead>
                                     <tbody>
                                     ${filtered.map(item => `
