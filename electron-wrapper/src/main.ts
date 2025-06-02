@@ -13,14 +13,15 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             sandbox: false,
             contextIsolation: true,
-            nodeIntegration: false
+            nodeIntegration: false,
+            devTools: false
         }
     });
 
     if (isDev) {
-        mainWindow.loadURL('http://localhost:5173'); // Vite dev server
+        mainWindow.loadURL('https://arcon-api-integrator-frontend.onrender.com'); // Vite dev server
     } else {
-        mainWindow.loadFile(path.join(__dirname, 'dist/index.html')); // Production build
+        mainWindow.loadURL('https://arcon-api-integrator-frontend.onrender.com'); // Production build
     }
 }
 

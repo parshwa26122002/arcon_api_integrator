@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "cross-env NODE_ENV=development electron .",
-    "start:prod": "cross-env NODE_ENV=production electron ."
+    "start:prod": "cross-env NODE_ENV=production electron .",
+    "package": "electron-packager . YourAppName --platform=win32 --arch=x64 --out=release --overwrite",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +19,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "electron": "^36.3.2",
+    "electron-packager": "^17.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "wait-on": "^8.0.3"
