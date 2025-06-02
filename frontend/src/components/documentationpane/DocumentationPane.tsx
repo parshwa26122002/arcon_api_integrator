@@ -299,7 +299,9 @@ function renderCollectionHTML(col: APICollection | null): string {
         colAuth = `<div class="sub-section">
                   <h5> Authorization (Bearer) </h5>
                   <div class="kv-container">
+                    <div class="kv-item">
                        <div style="color: black"><strong>token:</strong> Add Token</div>
+                     </div>
                   </div>
                 </div>
               `;
@@ -343,7 +345,7 @@ function renderCollectionHTML(col: APICollection | null): string {
                 </div>
               `;
     }
-    function renderKeyValueTable(title: string, items: { key: string; value: string; description?: string }[]): string {
+    function renderKeyValueTable(title: string, items: { key: string; value: string }[]): string {
         const filtered = items.filter(item => item.key && item.value);
         if (filtered.length === 0) return '';
         return `
@@ -351,14 +353,13 @@ function renderCollectionHTML(col: APICollection | null): string {
         <h5 style="color: black">${title}</h5>
         <table>
           <thead>
-            <tr><th style="color: black">Key</th><th style="color: black">Value</th><thstyle="color: black">Description</th></tr>
+            <tr><th style="color: black">Key</th><th style="color: black">Value</th></tr>
           </thead>
           <tbody>
             ${filtered.map(item => `
               <tr style="color: black">
                 <td style="color: black" >${item.key}</td>
                 <td style="color: black">${item.value}</td>
-                <td style="color: black">${item.description || ''}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -460,7 +461,9 @@ function renderCollectionHTML(col: APICollection | null): string {
             authSection = `<div class="sub-section">
                   <h5 style="color: black"> Authorization (Bearer) </h5>
                   <div class="kv-container">
+                    <div class="kv-item">
                        <div style="color: black"><strong>token:</strong> Add Token </div>
+                    </div>
                   </div>
                 </div>
               `;
@@ -646,7 +649,9 @@ function renderCollectionHTML(col: APICollection | null): string {
             folderAuth = `<div class="sub-section">
                   <h5 style="color: black"> Authorization (Bearer) </h5>
                   <div class="kv-container">
+                    <div class="kv-item">
                        <div style="color: black"><strong>token:</strong> Add token </div>
+                    </div>
                   </div>
                 </div>
               `;
@@ -810,6 +815,7 @@ function renderCollectionHTML(col: APICollection | null): string {
           display: flex;
           flex-direction: column;
           gap: 10px;
+          width: 100%;
         }
 
         .kv-item {
@@ -818,7 +824,14 @@ function renderCollectionHTML(col: APICollection | null): string {
           background:rgb(255, 255, 255);
           border-radius: 6px;
           line-height: 1.5;
-          colour: rgb(0, 0, 0);
+          color: rgb(0, 0, 0);
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          white-space: normal;
+
+          width: 100%;
+          box-sizing: border-box;
+
         }
       .titlecol{
         color: var(--primary-color);
@@ -827,12 +840,17 @@ function renderCollectionHTML(col: APICollection | null): string {
         width: 100%;
         border-collapse: collapse;
         margin: 12px 0;
+        table-layout: fixed;
+        word-wrap: break-word;
       }
       th, td, tr {
         border: 1px solid #ddd;
         padding: 8px 10px;
         text-align: left;
         color: rgb(0, 0, 0);
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
       th {
         background-color:rgb(255, 255, 255);
@@ -846,7 +864,10 @@ function renderCollectionHTML(col: APICollection | null): string {
         background:rgb(255, 255, 255);
         padding: 10px;
         border: 1px solid #ddd;
-        overflow-x: auto;
+        white-space: pre-wrap;       
+        word-wrap: break-word;      
+        overflow-wrap: break-word;
+        overflow-x: auto;            
       }
     </style>
     <body>
