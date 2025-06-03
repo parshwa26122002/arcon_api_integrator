@@ -14,14 +14,16 @@ function createWindow() {
             sandbox: false,
             contextIsolation: true,
             nodeIntegration: false,
-            devTools: false
+            devTools: true
         }
     });
 
     if (isDev) {
-        mainWindow.loadURL('https://arcon-api-integrator-frontend.onrender.com'); // Vite dev server
+        //mainWindow.loadURL('http://localhost:5173'); // Vite dev server
+        mainWindow.loadFile(path.join(__dirname, '../../frontend/dist/index.html'));
     } else {
-        mainWindow.loadURL('https://arcon-api-integrator-frontend.onrender.com'); // Production build
+        //mainWindow.loadURL('https://arcon-api-integrator-frontend.onrender.com'); // Production build
+        mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'));
     }
 }
 

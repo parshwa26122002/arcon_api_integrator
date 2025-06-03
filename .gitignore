@@ -27,3 +27,5 @@ frontend/package-lock.json
 
 encrypt.js
 encrypted.bin
+
+electron-wrapper/release
