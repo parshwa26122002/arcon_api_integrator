@@ -27,7 +27,7 @@ export function convertURLToExport(url: string, variables: Variable[]): URLConve
         //const raw = convertedParts.join('/');
         try {
             const parsed = new URL(raw);
-            const urlEx: URLExport = {
+            const urlEx: URLConversionExport = {
                 raw,
                 protocol: parsed.protocol.replace(':', ''),
                 host: parsed.hostname.split('.'),
@@ -52,6 +52,12 @@ export function convertURLToExport(url: string, variables: Variable[]): URLConve
             } else {
                 hostPart = raw;
             }
+            if (pathPart != '') {
+                const slashIndex2 = pathPart.indexOf('?');
+                if (slashIndex2 != -1) {
+                    pathPart = pathPart.slice(0, slashIndex2);
+                }
+            }
             if (hostPart) {
                 const portMatch = hostPart.match(/:(\d+)$/);
                 if (portMatch) {
@@ -74,7 +80,7 @@ export function convertURLToExport(url: string, variables: Variable[]): URLConve
         const raw = url;
         try {
             const parsed = new URL(raw);
-            const urlEx2: URLExport = {
+            const urlEx2: URLConversionExport = {
                 raw,
                 protocol: parsed.protocol.replace(':', ''),
                 host: parsed.hostname.split('.'),
@@ -98,6 +104,12 @@ export function convertURLToExport(url: string, variables: Variable[]): URLConve
                 pathPart = raw.slice(slashIndex + 1);
             } else {
                 hostPart = raw;
+            }
+            if (pathPart != '') {
+                const slashIndex2 = pathPart.indexOf('?');
+                if (slashIndex2 != -1) {
+                    pathPart = pathPart.slice(0, slashIndex2);
+                }
             }
             if (hostPart) {
                 const portMatch = hostPart.match(/:(\d+)$/);
