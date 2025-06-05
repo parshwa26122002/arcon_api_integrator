@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('electron', {
     saveExportFile: (content: string, filename: string, type: string) => ipcRenderer.invoke('save-json-file', content, filename, type),
     savepdfBlob: (base64: string, filename: string) => ipcRenderer.invoke('save-pdf-blob', base64, filename),
     sendMessage: (msg: any) => ipcRenderer.send('fromFrontend', msg),
-    onMessage: (callback: any) => ipcRenderer.on('fromMain', (_: any, data: any) => callback(data))
+    onMessage: (callback: any) => ipcRenderer.on('fromMain', (_: any, data: any) => callback(data)),
+    sendRequest: (url: string, method: any, header: Record<any, any>, body?: any) => ipcRenderer.invoke('send-request', url, method, header, body)
 });
