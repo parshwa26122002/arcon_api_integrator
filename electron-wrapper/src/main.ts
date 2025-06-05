@@ -5,6 +5,8 @@ const fsPromises = require('fs/promises');
 const collectionsDir = path.join(app.getPath('userData'), 'collections');
 const isDev = process.env.NODE_ENV === 'development';
 //const fetch = require('node-fetch');
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 1000,
