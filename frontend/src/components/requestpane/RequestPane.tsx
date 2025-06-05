@@ -550,41 +550,6 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
             const isElectronn = isElectron();
             let responseTimeFromELectron = 0;
             if (isElectron()) {
-                /*try{
-                  // 👇 Direct API request (from desktop app)
-                  responseTimeFromELectron = performance.now();
-                  response = await fetch(proxyBody.url, {
-                    method: proxyBody.method,
-                    headers: proxyBody.headers,
-                    body: JSON.stringify(proxyBody.body)
-                  });
-                  responseTimeFromELectron = (performance.now() - responseTimeFromELectron) / 1000; // Convert to seconds
-                  console.log('isElectron', isElectron());
-                  if (response.status === 400) {
-                    // If 400, fallback to proxy
-        
-                    isElectronn = false;
-                    response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Accept-Encoding': 'identity'
-                      },
-                      body: JSON.stringify(proxyBody)
-                    });
-                  }
-                }catch(error){
-                  isElectronn = false;
-                  console.log('Electron request failed:');          
-                  response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept-Encoding': 'identity'
-                  },
-                  body: JSON.stringify(proxyBody)
-                });
-                }*/
                 responseTimeFromELectron = performance.now();
                 response = await window.electron?.sendRequest(proxyBody.url, proxyBody.method, proxyBody.headers, proxyBody.body);
                 responseTimeFromELectron = (performance.now() - responseTimeFromELectron) / 1000; // Convert to seconds
@@ -621,7 +586,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                         formattedResponse = responseText;
                     }
                 }
-
+                
                 updateTabResponse(
                     formattedResponse,
                     response.statusText,
