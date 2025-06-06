@@ -6,6 +6,7 @@ import { editor } from 'monaco-editor';
 import { FiX } from 'react-icons/fi';
 import { FiCopy, FiSave, FiSearch } from 'react-icons/fi';
 import { processRequestWithVariables } from '../../utils/variableUtils';
+import { isElectron } from '../../utils/env';
 
 const SplitContainer = styled.div`
   display: flex;
@@ -408,8 +409,8 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
         else if(requestbody.mode == 'urlencoded'){ 
           requestbody.urlencoded = request.body?.urlencoded?.filter((item: UrlEncodedItem) => item.isSelected == true);
         }
-        const queryParams = request.queryParams.filter(x => x.isSelected);
-        const selheaders = request.headers.filter(x => x.isSelected);
+        const queryParams = request.queryParams?.filter(x => x.isSelected);
+        const selheaders = request.headers?.filter(x => x.isSelected);
 
       const apiRequest = {
         id: request.id || '',
@@ -420,7 +421,7 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
         headers: selheaders || [],
         auth: request.auth || { type: 'none', credentials: {} },
         body: requestbody || {mode:'none'},
-        contentType: request.headers.find(h => h.key?.toLowerCase() === 'content-type')?.value || '',
+        contentType: request.headers?.find(h => h.key?.toLowerCase() === 'content-type')?.value || '',
         response: request.response || [],
       };
     const variables = collection?.variables || [];
@@ -599,36 +600,54 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
       }
     }
 
-    // Make the request through the proxy
-    const response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept-Encoding': 'identity'
-      },
-      body: JSON.stringify(proxyBody)
-    });
+    let response: any;
+    const isElectronn = isElectron();
+    let responseTimeFromELectron = 0;
+    if (isElectron()) {
+        responseTimeFromELectron = performance.now();
+        response = await window.electron?.sendRequest(proxyBody.url, proxyBody.method, proxyBody.headers, proxyBody.body);
+        responseTimeFromELectron = (performance.now() - responseTimeFromELectron) / 1000; // Convert to seconds
+    } else {
+        // Make the request through the proxy
+        response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept-Encoding': 'identity'
+            },
+            body: JSON.stringify(proxyBody)
+        });
+    }
 
     try {
-      const contentType = response.headers.get('content-type');
-      const responseText = await response.text();
+      let contentType;
+      let responseText;
+      if (isElectronn) {
+          contentType = response.headers['content-type'];
+          responseText = response.body;
+      } else {
+          contentType = response.headers.get('content-type');
+          responseText = await response.text();
+      }
       
       let formattedResponse = responseText;
       let jsonData: any = null;
       if (contentType?.includes('application/json')) {
         try {
           jsonData = JSON.parse(responseText);
-          formattedResponse = JSON.stringify(jsonData.body, null, 2);
+          formattedResponse = JSON.stringify(isElectronn ? jsonData : jsonData.body, null, 2);
         } catch {
           formattedResponse = responseText;
         }
       }
 
+      const durationSeconds = isElectronn ? responseTimeFromELectron : jsonData?.durationSeconds || 0;
+      console.log('durationSeconds', durationSeconds);
       request.response.push({
         status: response.statusText,
         code: response.status,
         body: formattedResponse,
-        durationSeconds: jsonData?.durationSeconds || 0});
+        durationSeconds: durationSeconds});
 
     } catch (error) {
       console.error('Failed to process response:', error);

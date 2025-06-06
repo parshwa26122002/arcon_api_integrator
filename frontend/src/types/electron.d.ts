@@ -9,6 +9,7 @@ declare global {
             deleteCollection: (id: string) => Promise<void>;
             saveExportFile: (content: string, filename: string, type: string) => Promise<void>;
             savepdfBlob: (base64: string, filename: string) => Promise<void>;
+            sendRequest: (url: string, method: any, header: Record<any, any>,  body?: any) => Promise<any>;
         };
     }
 } 
