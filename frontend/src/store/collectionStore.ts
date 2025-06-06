@@ -369,6 +369,8 @@ export type RunnerTabState = {
   started: boolean;
   isOpen: boolean;
   selectedResultId: string | null;
+  showSchemaInput?: boolean;
+  showSchemaOutput?: boolean;
   resultsByIteration?: {
     iteration: number;
     results: {
@@ -379,6 +381,10 @@ export type RunnerTabState = {
       durationSeconds: number;
       body: string;
       isResponseSaved: boolean;
+      expectedSchema?: string;
+      expectedCode?: number;
+      expectedStatus?: string;
+      validationResult?: string;
     }[];
   }[] 
   

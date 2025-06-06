@@ -167,6 +167,8 @@ const MainContentTabs: React.FC = () => {
         started: runnerNewState.started ?? tab.started,
         isOpen: runnerNewState.isOpen ?? tab.isOpen,
         selectedResultId: runnerNewState.selectedResultId ?? tab.selectedResultId,
+        showSchemaInput: runnerNewState.showSchemaInput ?? tab.showSchemaInput,
+        showSchemaOutput: runnerNewState.showSchemaOutput ?? tab.showSchemaOutput,
       };
     } 
     return tab;

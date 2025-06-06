@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useCollectionStore, type APIRequest, type APIFolder, type RunnerTabState, type APICollection, getNearestParentAuth, type FormDataItem, type UrlEncodedItem, type Header, type QueryParam } from '../../store/collectionStore';
 import { styled } from 'styled-components';
 import Editor from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { FiX } from 'react-icons/fi';
+import { FiCheckCircle, FiX } from 'react-icons/fi';
 import { FiCopy, FiSave, FiSearch } from 'react-icons/fi';
 import { processRequestWithVariables } from '../../utils/variableUtils';
 import { isElectron } from '../../utils/env';
@@ -248,6 +248,26 @@ const ResponseActions = styled.div`
   gap: 8px;
 `;
 
+const SchemaBox = styled.textarea`
+  width: 100%; height: 150px; margin-top: 10px; background: #1e1e1e; color: #ddd;
+  border: 1px solid #555; padding: 8px; font-size: 14px; resize: none;
+`;
+const ValidationBox = styled.div`
+  background: #2c2c2c; color: #eee; margin-top: 12px; padding: 8px; font-size: 13px;
+  border-left: 4px solid #49cc90;
+`;
+
+const SchemaButton = styled.button`
+  background-color: transparent;
+  border: none;
+  color: #49cc90;
+  font-size: 14px;
+  cursor: pointer;
+  &:hover { color:rgb(255, 255, 255); }
+  font-size: 12px;
+`;
+
+
 interface RequestItem extends APIRequest {
   isSelected: boolean;
 }
@@ -271,7 +291,7 @@ const getAllRequestsFromCollection = (collection: APICollection): APIRequest[] =
 
 const getAllRequestsFromFolder = (folder: APIFolder): APIRequest[] => {
   const allRequests: APIRequest[] = [];
-  allRequests.push(...(folder.requests || []));
+  allRequests.push(...(folder?.requests || []));
   const traverseFolders = (folders: APIFolder[]) => {
     for (const folder of folders) {
       if (folder.requests) {
@@ -305,20 +325,17 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [, setShowSearch] = useState(false);
 
-  const getFolder = () => {
-    const updateFolders = (folders: APIFolder[]): APIFolder[] => {
-      return folders.map((folder) => {
-        if (folder.id === tabState.folderId) {
-          return folder;
-        }
-        return {
-          ...folder,
-          folders: updateFolders(folder.folders || []),
-        };
-      });
-    };
-    return updateFolders(collection?.folders || [])[0];
-  }
+const getFolder = (): APIFolder | undefined => {
+  const findFolder = (folders: APIFolder[]): APIFolder | undefined => {
+    for (const folder of folders) {
+      if (folder.id === tabState.folderId) return folder;
+      const nested = findFolder(folder.folders || []);
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+  return findFolder(collection?.folders || []);
+};
 
   let allRequests: APIRequest[] = [];
   if (!collection) return null;
@@ -326,7 +343,10 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
     allRequests = getAllRequestsFromCollection(collection);
   }
   else if(collection && activeFolderId) {
-    allRequests = getAllRequestsFromFolder(getFolder());
+    const folder = getFolder();
+    if (folder) {
+      allRequests = getAllRequestsFromFolder(folder);
+    }
   }
 
   useEffect(() => {
@@ -394,19 +414,19 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
   };
 
   const handleSend = async (request: APIRequest) => {
-  // if (!tabState) return;
+    // if (!tabState) return;
 
-  if (!request.url) {
-    request.response.push({
-    status: 'Error',
-    code: 0,
-    body: 'Error: Please enter a URL',
-    durationSeconds: 0
-  });
-    return;
-  }
+    if (!request.url) {
+      request.response.push({
+      status: 'Error',
+      code: 0,
+      body: 'Error: Please enter a URL',
+      durationSeconds: 0
+    });
+      return;
+    }
 
-  try {
+    try {
         const requestbody = {
         ...request.body,
         mode: request.body?.mode ?? 'none', 
@@ -432,31 +452,31 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
         contentType: request.headers?.find(h => h.key?.toLowerCase() === 'content-type')?.value || '',
         response: request.response || [],
       };
-    const variables = collection?.variables || [];
+      const variables = collection?.variables || [];
 
-    // Process request with variables
+      // Process request with variables
     const processedRequest = processRequestWithVariables(apiRequest, variables);
 
-    // Prepare request body and determine content type
-    let bodyToSend = undefined;
-    let contentTypeHeader = processedRequest.contentType;
+      // Prepare request body and determine content type
+      let bodyToSend = undefined;
+      let contentTypeHeader = processedRequest.contentType;
 
-    if (processedRequest.body) {
-      switch (processedRequest.body.mode) {
-        case 'raw':
-          bodyToSend = processedRequest.body.raw;
-          // Set content type based on raw body language
-          if (processedRequest.body.options?.raw?.language === 'json') {
-            contentTypeHeader = 'application/json';
-          } else if (processedRequest.body.options?.raw?.language === 'xml') {
-            contentTypeHeader = 'application/xml';
-          } else if (processedRequest.body.options?.raw?.language === 'html') {
-            contentTypeHeader = 'text/html';
-          } else {
-            contentTypeHeader = 'text/plain';
-          }
-          break;
-        case 'formdata':
+      if (processedRequest.body) {
+        switch (processedRequest.body.mode) {
+          case 'raw':
+            bodyToSend = processedRequest.body.raw;
+            // Set content type based on raw body language
+            if (processedRequest.body.options?.raw?.language === 'json') {
+              contentTypeHeader = 'application/json';
+            } else if (processedRequest.body.options?.raw?.language === 'xml') {
+              contentTypeHeader = 'application/xml';
+            } else if (processedRequest.body.options?.raw?.language === 'html') {
+              contentTypeHeader = 'text/html';
+            } else {
+              contentTypeHeader = 'text/plain';
+            }
+            break;
+          case 'formdata':
           //const formData = new FormData();
           //processedRequest.body.formData?.forEach((item: FormDataItem) => {
           //  if (item.key && item.value) {
@@ -464,149 +484,149 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
           //  }
               //});
           bodyToSend = processedRequest.body.formData;
-          contentTypeHeader = '';  // Browser will set it automatically with boundary
-          break;
-        case 'urlencoded':
-          const params = new URLSearchParams();
-          processedRequest.body.urlencoded?.forEach((item: UrlEncodedItem) => {
-            if (item.key && item.value) {
-              params.append(item.key, item.value);
-            }
-          });
-          bodyToSend = params.toString();
-          contentTypeHeader = 'application/x-www-form-urlencoded';
-          break;
-        case 'graphql':
-          bodyToSend = JSON.stringify({
-            query: processedRequest.body.graphql?.query || '',
-            variables: processedRequest.body.graphql?.variables ? JSON.parse(processedRequest.body.graphql.variables) : {}
-          });
-          contentTypeHeader = 'application/json';
+            contentTypeHeader = '';  // Browser will set it automatically with boundary
+            break;
+          case 'urlencoded':
+            const params = new URLSearchParams();
+            processedRequest.body.urlencoded?.forEach((item: UrlEncodedItem) => {
+              if (item.key && item.value) {
+                params.append(item.key, item.value);
+              }
+            });
+            bodyToSend = params.toString();
+            contentTypeHeader = 'application/x-www-form-urlencoded';
+            break;
+          case 'graphql':
+            bodyToSend = JSON.stringify({
+              query: processedRequest.body.graphql?.query || '',
+              variables: processedRequest.body.graphql?.variables ? JSON.parse(processedRequest.body.graphql.variables) : {}
+            });
+            contentTypeHeader = 'application/json';
           break;
         case 'file':
               bodyToSend = JSON.stringify(processedRequest.body.file);
-           break;
+            break;
+        }
       }
-    }
 
-    // Initialize headers object
-    const headers: Record<string, string> = {};
+      // Initialize headers object
+      const headers: Record<string, string> = {};
 
-    // Add authorization headers based on auth type
-    let parentAuth = null;
-    if (request.auth.type === 'inheritCollection') {
-      parentAuth = request.id ? getNearestParentAuth(request.id, true) : undefined;
-      if (parentAuth) {
-        if (parentAuth.type === 'basic') {
-          const { username, password } = parentAuth.credentials;
-          if (username && password) {
-            const base64Credentials = btoa(`${username}:${password}`);
-            headers['Authorization'] = `Basic ${base64Credentials}`;
-          }
-        } else if (parentAuth.type === 'bearer') {
-          const { token } = parentAuth.credentials;
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-        } else if (parentAuth.type === 'apiKey' && parentAuth.credentials.in === "header") {
-          const { key, value } = parentAuth.credentials;
-          if (key && value) {
-            headers[key] = value;
+      // Add authorization headers based on auth type
+      let parentAuth = null;
+      if (request.auth.type === 'inheritCollection') {
+        parentAuth = request.id ? getNearestParentAuth(request.id, true) : undefined;
+        if (parentAuth) {
+          if (parentAuth.type === 'basic') {
+            const { username, password } = parentAuth.credentials;
+            if (username && password) {
+              const base64Credentials = btoa(`${username}:${password}`);
+              headers['Authorization'] = `Basic ${base64Credentials}`;
+            }
+          } else if (parentAuth.type === 'bearer') {
+            const { token } = parentAuth.credentials;
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+          } else if (parentAuth.type === 'apiKey' && parentAuth.credentials.in === "header") {
+            const { key, value } = parentAuth.credentials;
+            if (key && value) {
+              headers[key] = value;
+            }
           }
         }
       }
-    }
-    if (request.auth.type === 'basic') {
-      const { username, password } = request.auth.credentials;
-      if (username && password) {
-        const base64Credentials = btoa(`${username}:${password}`);
-        headers['Authorization'] = `Basic ${base64Credentials}`;
+      if (request.auth.type === 'basic') {
+        const { username, password } = request.auth.credentials;
+        if (username && password) {
+          const base64Credentials = btoa(`${username}:${password}`);
+          headers['Authorization'] = `Basic ${base64Credentials}`;
+        }
+      } else if (processedRequest.auth.type === 'bearer') {
+        const { token } = processedRequest.auth.credentials;
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } else if (processedRequest.auth.type === 'apiKey') {
+        const { key, value } = processedRequest.auth.credentials;
+        if (key && value) {
+          headers[key] = value;
+        }
       }
-    } else if (processedRequest.auth.type === 'bearer') {
-      const { token } = processedRequest.auth.credentials;
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    } else if (processedRequest.auth.type === 'apiKey') {
-      const { key, value } = processedRequest.auth.credentials;
-      if (key && value) {
-        headers[key] = value;
-      }
-    }
 
-    // Add custom headers from the Headers tab
-    processedRequest.headers.forEach((header: Header) => {
-      if (header.key && header.value) {
-        headers[header.key] = header.value;
-      }
-    });
-
-    // Set content type if not already set and we have a content type to set
-    if (!headers['Content-Type'] && contentTypeHeader) {
-      headers['Content-Type'] = contentTypeHeader;
-    }
-
-    // Build URL with query parameters
-    let finalUrl: URL;
-    try {
-      finalUrl = new URL(processedRequest.url);
-      processedRequest.queryParams.forEach((param: QueryParam) => {
-        if (param.key) {
-          finalUrl.searchParams.append(param.key, param.value || '');
+      // Add custom headers from the Headers tab
+      processedRequest.headers.forEach((header: Header) => {
+        if (header.key && header.value) {
+          headers[header.key] = header.value;
         }
       });
-      if (request.auth.credentials.in === "query") {
-        // Add API key to query parameters if specified
-        const { key, value } = request.auth.credentials;
-        if (key && value) {
-          finalUrl.searchParams.append(key, value);
-        }
+
+      // Set content type if not already set and we have a content type to set
+      if (!headers['Content-Type'] && contentTypeHeader) {
+        headers['Content-Type'] = contentTypeHeader;
       }
-      else if (parentAuth && parentAuth.credentials.in === "query") {
-        // Add API key to query parameters if specified in parent auth
-        const { key, value } = parentAuth.credentials;
-        if (key && value) {
-          finalUrl.searchParams.append(key, value);
-        }
 
-      }
-    } catch (error) {
-              request.response.push({
-              status: 'Error',
-              code: 0,
-              body: `Error: Invalid URL - ${request.url}`,
-              durationSeconds: 0
-            });
-            return;
-    }
-
-    console.log('Sending request through proxy:', {
-      url: finalUrl.toString(),
-      method: processedRequest.method,
-      headers,
-      body: bodyToSend
-    });
-
-    // Prepare the proxy request body
-    let proxyBody: any = {
-      url: finalUrl.toString(),
-      method: processedRequest.method,
-      headers,
-    };
-
-    // Only add body if it exists and method is not GET
-    if (bodyToSend !== undefined && processedRequest.method !== 'GET') {
-      if (bodyToSend instanceof FormData) {
-        // Convert FormData to an object
-        const formDataObj: Record<string, string> = {};
-        bodyToSend.forEach((value, key) => {
-          formDataObj[key] = value.toString();
+      // Build URL with query parameters
+      let finalUrl: URL;
+      try {
+        finalUrl = new URL(processedRequest.url);
+        processedRequest.queryParams.forEach((param: QueryParam) => {
+          if (param.key) {
+            finalUrl.searchParams.append(param.key, param.value || '');
+          }
         });
-        proxyBody.body = formDataObj;
-      } else {
-        proxyBody.body = bodyToSend;
+        if (request.auth.credentials.in === "query") {
+          // Add API key to query parameters if specified
+          const { key, value } = request.auth.credentials;
+          if (key && value) {
+            finalUrl.searchParams.append(key, value);
+          }
+        }
+        else if (parentAuth && parentAuth.credentials.in === "query") {
+          // Add API key to query parameters if specified in parent auth
+          const { key, value } = parentAuth.credentials;
+          if (key && value) {
+            finalUrl.searchParams.append(key, value);
+          }
+
+        }
+      } catch (error) {
+                request.response.push({
+                status: 'Error',
+                code: 0,
+                body: `Error: Invalid URL - ${request.url}`,
+                durationSeconds: 0
+              });
+              return;
       }
-    }
+
+      console.log('Sending request through proxy:', {
+        url: finalUrl.toString(),
+        method: processedRequest.method,
+        headers,
+        body: bodyToSend
+      });
+
+      // Prepare the proxy request body
+      let proxyBody: any = {
+        url: finalUrl.toString(),
+        method: processedRequest.method,
+        headers,
+      };
+
+      // Only add body if it exists and method is not GET
+      if (bodyToSend !== undefined && processedRequest.method !== 'GET') {
+        if (bodyToSend instanceof FormData) {
+          // Convert FormData to an object
+          const formDataObj: Record<string, string> = {};
+          bodyToSend.forEach((value, key) => {
+            formDataObj[key] = value.toString();
+          });
+          proxyBody.body = formDataObj;
+        } else {
+          proxyBody.body = bodyToSend;
+        }
+      }
 
     let response: any;
     const isElectronn = isElectron();
@@ -616,18 +636,18 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
         response = await window.electron?.sendRequest(proxyBody.url, proxyBody.method, proxyBody.headers, proxyBody.body);
         responseTimeFromELectron = (performance.now() - responseTimeFromELectron) / 1000; // Convert to seconds
     } else {
-        // Make the request through the proxy
+      // Make the request through the proxy
         response = await fetch('https://arcon-api-integrator-wic7.onrender.com/api/proxy', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept-Encoding': 'identity'
-            },
-            body: JSON.stringify(proxyBody)
-        });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept-Encoding': 'identity'
+        },
+        body: JSON.stringify(proxyBody)
+      });
     }
 
-    try {
+      try {
       let contentType;
       let responseText;
       if (isElectronn) {
@@ -637,28 +657,37 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
           contentType = response.headers.get('content-type');
           responseText = await response.text();
       }
-      
-      let formattedResponse = responseText;
-      let jsonData: any = null;
-      if (contentType?.includes('application/json')) {
-        try {
-          jsonData = JSON.parse(responseText);
+        
+        let formattedResponse = responseText;
+        let jsonData: any = null;
+        if (contentType?.includes('application/json')) {
+          try {
+            jsonData = JSON.parse(responseText);
           formattedResponse = JSON.stringify(isElectronn ? jsonData : jsonData.body, null, 2);
-        } catch {
-          formattedResponse = responseText;
+          } catch {
+            formattedResponse = responseText;
+          }
         }
-      }
 
       const durationSeconds = isElectronn ? responseTimeFromELectron : jsonData?.durationSeconds || 0;
       console.log('durationSeconds', durationSeconds);
-      request.response.push({
-        status: response.statusText,
-        code: response.status,
-        body: formattedResponse,
+        request.response.push({
+          status: response.statusText,
+          code: response.status,
+          body: formattedResponse,
         durationSeconds: durationSeconds});
 
+      } catch (error) {
+        console.error('Failed to process response:', error);
+        request.response.push({
+          status: 'Error',
+          code: 0,
+          body: `Error: ${(error as Error).message}`,
+          durationSeconds: 0
+        });
+      }
     } catch (error) {
-      console.error('Failed to process response:', error);
+      console.error('Request failed:', error);
       request.response.push({
         status: 'Error',
         code: 0,
@@ -666,18 +695,9 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
         durationSeconds: 0
       });
     }
-  } catch (error) {
-    console.error('Request failed:', error);
-    request.response.push({
-      status: 'Error',
-      code: 0,
-      body: `Error: ${(error as Error).message}`,
-      durationSeconds: 0
-    });
-  }
-};
+  };
 
-
+  
   const handleCardClick = (res: any) => {
     onStateChange({ selectedResultId: res.requestId, isOpen: true });
     console.log(tabState.selectedResultId, tabState.isOpen);
@@ -702,6 +722,106 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
       }
       onStateChange({ resultsByIteration: tabState.resultsByIteration });
     }
+  }
+
+  const handleValidate = () => {
+    try {
+      const request = requestList.find(r => r.id === selectedResult?.results[0].requestId);
+      if(!request?.response?.[0]?.expectedSchema && !tabState?.showSchemaInput && !tabState?.showSchemaOutput) {
+        const restrue = {...tabState, showSchemaInput:true};
+        onStateChange(restrue);
+        return;
+      }
+      const schema = JSON.parse(request?.response?.[0]?.expectedSchema || '{}');
+      const responseRaw = selectedResult?.results[0].body || '{}';
+      const response = JSON.parse(responseRaw);
+      const mismatches: string[] = [];
+
+      if(request?.response?.[0]?.expectedCode != selectedResult?.results?.[0]?.code) {
+        mismatches.push(`Expected code: ${request?.response?.[0]?.expectedCode}, got: ${selectedResult?.results?.[0]?.code}`);
+      }
+      if(request?.response?.[0]?.expectedStatus != selectedResult?.results?.[0]?.status) {
+        mismatches.push(`Expected status: ${request?.response?.[0]?.expectedStatus}, got: ${selectedResult?.results?.[0]?.status}`);
+      }
+      Object.keys(schema).forEach(key => {
+        const expectedType = schema[key];
+        const actual = response[key];
+        const actualType = typeof actual;
+        if (!(key in response)) {
+          mismatches.push(`Missing key: "${key}"`);
+        } else if (actualType !== expectedType) {
+          mismatches.push(`[${key}] => expected: ${expectedType}, got: ${actualType}`);
+        }
+      });
+
+      const result = mismatches.length
+        ? 'Schema Mismatches:\n' + mismatches.join('\n')
+        : 'All keys matched!';
+
+      if (tabState.resultsByIteration) {
+        const resultreq = tabState.resultsByIteration.find(r => r.results.find(r => r.requestId === tabState.selectedResultId));
+        if (resultreq) {
+          resultreq.results[0].validationResult = result;   
+        }
+      }
+      onStateChange({ resultsByIteration: tabState.resultsByIteration});
+    } catch (err) {
+      if (tabState.resultsByIteration) {
+        const resultreq = tabState.resultsByIteration.find(r => r.results.find(r => r.requestId === tabState.selectedResultId));
+        if (resultreq) {
+          resultreq.results[0].validationResult = 'Error parsing JSON: ' + (err as Error).message;;
+        }
+      }
+      onStateChange({ resultsByIteration: tabState.resultsByIteration});
+    }
+    onStateChange({ showSchemaOutput: true });
+  };
+
+  const handleSchemaChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
+    if (tabState.resultsByIteration) {
+      const result = tabState.resultsByIteration.find(r => r.results.find(r => r.requestId === tabState.selectedResultId));
+      if (result) {
+        result.results[0].expectedSchema = e.target.value;
+      }
+    }
+    onStateChange({resultsByIteration: tabState.resultsByIteration})
+
+  }, [tabState, onStateChange]);
+
+  const handleCodeChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    if (tabState.resultsByIteration) {
+      const result = tabState.resultsByIteration.find(r => r.results.find(r => r.requestId === tabState.selectedResultId));
+      if (result) {
+        result.results[0].expectedCode = parseInt(e.target.value);
+      }
+    }
+    onStateChange({resultsByIteration: tabState.resultsByIteration})
+  }, [tabState, onStateChange]);
+
+  const handleStatusChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    if (tabState.resultsByIteration) {
+      const result = tabState.resultsByIteration.find(r => r.results.find(r => r.requestId === tabState.selectedResultId));
+      if (result) {
+        result.results[0].expectedStatus = e.target.value;
+      }
+    }
+    onStateChange({resultsByIteration: tabState.resultsByIteration})
+  }, [tabState, onStateChange]);
+  
+
+  const saveSchema = () => {
+    const request = requestList.find(r => r.id === selectedResult?.results[0].requestId);
+    if (request) {
+      const tempresponse = selectedResult?.results[0];
+      request.response[0].expectedCode = tempresponse?.code || 0;
+      request.response[0].expectedStatus = tempresponse?.status || '';
+      request.response[0].expectedSchema = tempresponse?.expectedSchema || '';
+      onStateChange({ resultsByIteration: tabState.resultsByIteration, showSchemaInput: false })
+    }
+  };
+  
+  const AddEditSchema = () => {
+    onStateChange({ resultsByIteration: tabState.resultsByIteration, showSchemaInput: true });
   }
   
   const allSelected = requestList.length > 0 && requestList.every(r => r.isSelected);
@@ -735,7 +855,7 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
               <Cell>{req.name}</Cell>
             </Row>
           ))}
-          {requestList.filter(r => r.isSelected).length === 0 && 
+          {requestList.length === 0 && 
            <Label>No Requests present in the collection</Label>
           }
         </RequestSection>
@@ -824,9 +944,34 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
                 <IconButton title="Save" style={{ opacity: selectedResult?.results?.[0]?.isResponseSaved ? 0.5 : 1, pointerEvents: selectedResult?.results?.[0]?.isResponseSaved ? 'none' : 'auto',
                 }} onClick={SaveResponse}><FiSave /></IconButton>
               )}
+              <IconButton title="Validate" onClick={handleValidate}>
+                <FiCheckCircle />
+              </IconButton>
               <IconButton title="Close" onClick={() => onStateChange({ isOpen: false })}><FiX /></IconButton>
             </ResponseActions>
           </ResponseHeader>
+          {tabState.showSchemaInput && (
+            <div>
+              <div style={{fontSize: 12, marginBottom: 8}}>No schema found. Kindly add a schema to validate the response.</div>
+              <input type="number" placeholder='Expected code' value={selectedResult?.results[0].expectedCode} onChange={handleCodeChange} /> 
+              <input type="text" placeholder='Expected status' value={selectedResult?.results[0].expectedStatus} onChange={handleStatusChange} /> 
+              <SchemaBox
+                placeholder='Enter expected schema, e.g. { "token": "string", "id": "number" }'
+                value={selectedResult?.results[0].expectedSchema}
+                onChange={handleSchemaChange}
+              />
+              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                <Button onClick={saveSchema}><FiSave /> Save</Button>
+                <Button onClick={() => onStateChange({...tabState, showSchemaInput: false})}><FiX /> Cancel</Button>
+              </div>
+            </div>
+          )}
+          {!tabState.showSchemaInput && tabState.showSchemaOutput && selectedResult?.results[0].validationResult && 
+          <div>
+            <SchemaButton title="Edit Schema" onClick={AddEditSchema}>Edit Schema</SchemaButton>
+            <ValidationBox>{selectedResult?.results[0].validationResult}</ValidationBox>
+          </div>
+          }
           <ResponseContent>
             <Editor
               onMount={(editor) => (editorRef.current = editor)}
