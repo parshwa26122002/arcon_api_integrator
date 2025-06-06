@@ -234,6 +234,21 @@ const SchemaButton = styled.button`
   font-size: 12px;
 `;
 
+const Spinner = styled.div`
+  width: 28px;
+  height: 28px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: auto;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+
 interface RequestPaneProps {
     tabState: RequestTabState;
     onStateChange: (newState: RequestTabState) => void;
@@ -271,6 +286,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
     const [activeTab, setActiveTab] = useState<'params' | 'auth' | 'headers' | 'body'>('params');
     const [isResponseSaved, setIsResponseSaved] = useState(true);
     const [, setShowSearch] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
     // Move response state into tabState updates
@@ -348,6 +364,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
             updateTabResponse('Error: Please enter a URL', 'Error', 0, 0);
             return;
         }
+        setIsLoading(true);
         const requestbody = { ...tabState.body };
         if (requestbody.mode == 'formdata') {
             requestbody.formData = tabState.body.formData?.filter((item: FormDataItem) => item.isSelected == true);
@@ -601,6 +618,9 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
         } catch (error) {
             console.error('Request failed:', error);
             updateTabResponse(`Error: ${(error as Error).message}`, 'Error', 0, 0);
+        }
+        finally {
+          setIsLoading(false); 
         }
         setIsResponseSaved(false);
     };
@@ -927,7 +947,11 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                         </div>
                     }
                     <ResponseContent>
-                        <Editor
+                        {isLoading ? (
+                          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                            <Spinner />
+                          </div>
+                        ) :( <Editor
                             onMount={(editor) => {
                                 editorRef.current = editor;
                                 editor.updateOptions({ readOnly: true });
@@ -954,7 +978,7 @@ const RequestPane: React.FC<RequestPaneProps> = ({ tabState, onStateChange }) =>
                                 wordWrap: 'on',
                                 readOnly: true
                             }}
-                        />
+                        />)}
                     </ResponseContent>
                 </ResponseSection>
             </SplitContainer>
