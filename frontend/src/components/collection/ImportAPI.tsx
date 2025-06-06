@@ -748,7 +748,7 @@ function convertPostmanToCollection(postman: any): APICollection {
   return {
     id: crypto.randomUUID(),
     name: postman.info?.name || "Imported Postman Collection",
-    description: postman.info?.description || "",
+    description: extractDescription(postman.info?.description),
     folders,
     requests,
     auth: postman.auth ? {
@@ -769,3 +769,12 @@ function convertPostmanToCollection(postman: any): APICollection {
     })) || []
   };
 }
+
+
+const extractDescription = (desc: any): string =>
+  desc && typeof desc === 'object' && typeof desc.content === 'string'
+    ? desc.content
+    : typeof desc === 'string'
+      ? desc
+      : '';
+ 
