@@ -19,12 +19,12 @@ const TabTitle = styled.span`
 
 const SaveButton = styled(FiSave)<{ disabled: boolean }>`
   font-size: 18px;
-  color: ${props => props.disabled ? '#6a6a6a' : 'var(--color-text)'};
+  color: ${props => props.disabled ? 'var(--color-disabled)' : 'var(--color-text)'};
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: color 0.2s;
 
   &:hover {
-    color: var(--color-success);
+    color: ${props => props.disabled ? 'var(--color-disabled)' : 'var(--color-success)'};
   }
 `;
 

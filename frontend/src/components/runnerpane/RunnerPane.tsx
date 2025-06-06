@@ -64,13 +64,20 @@ const Input = styled.input`
 
 const Button = styled.button`
   padding: 10px 16px;
-  background-color: var(--color-tab-active);  color: var(--color-primary-text);
+  background-color: var(--color-tab-active);  
+  color: white;
   border: none;
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
   &:hover {
-    background-color: var(--color-primary-hover);
+    background-color: var(--color-button-hover);
+    color: var(--color-text);
+  }
+  &:disabled {
+    background-color: #999;        
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 `;
 
@@ -79,7 +86,7 @@ const HeaderRow = styled.div`
   padding: 8px 12px;
   background-color: var(--color-tab-active);
   font-weight: bold;
-  color: #var(--color-text);
+  color: white;
   border-bottom: 1px solid var(--color-border);
   font-size: 14px;
 `;
@@ -224,14 +231,15 @@ const ResponseStatus = styled.span<{ code: number }>`
 const IconButton = styled.button`
   background: none;
   border: none;
-  color: #ccc;
+  color: var(--color-text);
   cursor: pointer;
   padding: 6px;
   display: flex;
   align-items: center;
 
   &:hover {
-    color: var(--color-success);
+    color:var(--color-link-hover);
+    background: none;
   }
 `;
 
@@ -727,6 +735,9 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
               <Cell>{req.name}</Cell>
             </Row>
           ))}
+          {requestList.filter(r => r.isSelected).length === 0 && 
+           <Label>No Requests present in the collection</Label>
+          }
         </RequestSection>
 
         <ScheduleSection>
@@ -744,12 +755,12 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
               type="number"
               min={1}
               value={tabState.delay}
-              onChange={(e) => { const value = parseInt(e.target.value, 10) || 0;
+              onChange={(e) => { const value = parseInt(e.target.value, 10) || 1;
                 onStateChange({ delay: value });
             }}
             />
           </FieldGroup>
-          <Button onClick={handleRun}>Run Collection</Button>
+          <Button disabled={requestList.filter(r => r.isSelected).length === 0} onClick={handleRun}>Run Collection</Button>
         </ScheduleSection>
       </SplitContainer>
     </Container>
@@ -793,6 +804,12 @@ const RunnerPane = ({ tabState, onStateChange }: RunnerPaneProps) => {
               ) : (
                 ''
               )}
+              {selectedResult?.results && selectedResult?.results.length > 0 && typeof selectedResult?.results[0] === 'object' &&
+              selectedResult?.results[0].durationSeconds !== undefined ? (
+              <span style={{ marginLeft: 16, color: '#aaa', fontSize: 13 }}>
+              {`Time: ${selectedResult?.results[0].durationSeconds.toFixed(3)}s`}
+              </span>
+              ) : null}
             </ResponseLeftSection>
 
             <ResponseActions>

@@ -474,7 +474,7 @@ const CustomSuggestionsContainer = styled.div`
 const CustomSuggestionItem = styled.div`
   padding: 8px 12px;
   cursor: pointer;
-  color: #var(--color-text);
+  color: var(--color-text);
   font-size: 12px;
   
   &:hover {

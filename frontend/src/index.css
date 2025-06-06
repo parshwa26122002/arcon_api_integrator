@@ -66,6 +66,7 @@ body {
   --color-sidebar-search-text: #e1e1e1;
   --color-sidebar-search-focus-border: #7d4acf;
   --color-sidebar-search-placeholder: #888;
+  --color-disabled: #aaa;
 }
 
 body, #root {
@@ -108,7 +109,7 @@ button:hover {
 /* Light theme overrides */
 .light {
   --color-bg: #ffffff;
-  --color-text: #213547;
+  --color-text: #000000;
   --color-link: #646cff;
   --color-link-hover: #ff7a7a;
   --color-button-bg: #f9f9f9;
@@ -153,13 +154,14 @@ button:hover {
   --color-sidebar-search-text: #000000;
   --color-sidebar-search-focus-border: #eb434b;
   --color-sidebar-search-placeholder: #aaa;
+  --color-disabled: #aaa;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not(.dark):not(.light) {
     /* If no explicit theme, use light if system prefers */
     --color-bg: #ffffff;
-    --color-text: #213547;
+    --color-text: #000000;
     --color-link: #646cff;
     --color-link-hover: #747bff;
     --color-button-bg: #f9f9f9;
