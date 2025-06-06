@@ -128,14 +128,14 @@ const VariableRow = styled.div`
 const Input = styled.input`
   padding: 6px 8px;
   background-color: var(--color-panel-alt);
-  border: 1px solid #var(--color-border);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: #var(--color-text);
+  color: var(--color-text);
   font-size: 14px;
 
   &:focus {
     outline: none;
-    border-color: #6a6a6a;
+    border-color:var(--color-panel-alt);
   }
 `;
 

@@ -323,7 +323,7 @@ const OAuth2Form: React.FC<OAuth2FormProps> = ({ auth, handleCredentialChange, d
             </GetTokenButton>
             {accessToken && (
               <div style={{ marginTop: 12 }}>
-                <strong>Access Token:</strong>
+                <TokenDisplay>Access Token:</TokenDisplay>
                 <TokenDisplay>{accessToken}</TokenDisplay>
               </div>
             )}
@@ -643,7 +643,7 @@ const OAuth2Form: React.FC<OAuth2FormProps> = ({ auth, handleCredentialChange, d
 
 const GetTokenButton = styled.button`
   padding: 8px 16px;
-  background-color: var(--color-primary);
+  background-color: var(--color-tab-active);
   color: white;
   border: none;
   border-radius: 4px;
@@ -654,7 +654,7 @@ const GetTokenButton = styled.button`
   margin-bottom: 24px;
 
   &:hover {
-    background-color: var(--color-primary-hover);
+    background-color: var(--color-button-hover);
   }
 `;
 

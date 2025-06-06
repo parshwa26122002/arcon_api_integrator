@@ -235,7 +235,7 @@ const DeleteFileButton = styled.button`
   justify-content: center;
   
   &:hover {
-    color: #ff4444;
+    color:var(--color-error);
   }
 `;
 
@@ -250,7 +250,7 @@ const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #e1e1e1;
+  color: var(--color-text);
   font-size: 14px;
   cursor: pointer;
 `;
@@ -272,8 +272,8 @@ const DeleteButton = styled.button`
   }
 
   &:hover {
-    background-color: #4a4a4a;
-    color: #e1e1e1;
+    background-color:var(--color-panel-alt);
+    color: var(--color-text);
   }
 `;
 
@@ -297,9 +297,9 @@ const CheckVariablesButton = styled.button`
 
 const LengthConfigForm = styled.div`
   padding: 16px;
-  background-color: #2d2d2d;
+  background-color: var(--color-panel);
   border-radius: 4px;
-  border: 1px solid #4a4a4a;
+  border: 1px var(--color-border);
   flex-shrink: 0;
 `;
 
@@ -396,10 +396,10 @@ const ConfigFormsContainer = styled.div`
 const ApplyAllButton = styled(ApplyButton)`
   width: 100%;
   margin-top: 8px;
-  background-color: #7d4acf;
+  background-color: var(--color-tab-active);  
   
   &:hover {
-    background-color: #9666d8;
+    background-color: var(--color-button-hover);
   }
 `;
 
@@ -408,26 +408,26 @@ const ErrorMessage = styled.div`
   font-size: 12px;
   margin-top: 8px;
   padding: 8px;
-  background-color: rgba(255, 68, 68, 0.1);
+  background-color: var(--color-panel);
   border-radius: 4px;
-  border: 1px solid rgba(255, 68, 68, 0.2);
+  border: 1px solid var(--color-border);
 `;
 
 const BottomSection = styled.div`
   flex-shrink: 0;
-  border-top: 1px solid #4a4a4a;
+  border-top: 1px solid var(--color-border);
   padding-top: 16px;
   margin-top: auto;
 `;
 
 const InvalidVariableMessage = styled.div`
-  color: #ff4444;
+  color:var(--color-error);
   font-size: 12px;
   margin-bottom: 8px;
   padding: 8px;
-  background-color: rgba(255, 68, 68, 0.1);
+  background-color: var(--color-panel);
   border-radius: 4px;
-  border: 1px solid rgba(255, 68, 68, 0.2);
+  border: 1px solid var(--color-border);
 `;
 
 interface StyledSuggestiveInputProps {
@@ -464,6 +464,7 @@ const CustomSuggestionsContainer = styled.div`
   overflow-y: auto;
   background-color:var(--color-panel);
   border: 1px solid var(--color-border);
+  color: var(--color-text);
   border-radius: 4px;
   z-index: 1000;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -477,7 +478,7 @@ const CustomSuggestionItem = styled.div`
   font-size: 12px;
   
   &:hover {
-    background-color: #3d3d3d;
+    background-color: var(--color-panel-alt);
   }
 `;
 
