@@ -265,6 +265,10 @@ const MainContentTabs: React.FC = () => {
           body: { mode: 'none' }
         }
       };
+      setActiveCollection(null);
+      setActiveFolder(null);
+      setActiveRequest(null);
+      setRunnerTabRequest(null);
     }
 
     setTabs(prev => [...prev, newTab]);
